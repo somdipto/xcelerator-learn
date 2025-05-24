@@ -4,6 +4,7 @@ import OnboardingModal from '@/components/OnboardingModal';
 import Dashboard from '@/components/Dashboard';
 import TopNavigation from '@/components/TopNavigation';
 import BottomNavigation from '@/components/BottomNavigation';
+import SubjectsPage from '@/components/SubjectsPage';
 import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
@@ -92,12 +93,10 @@ const Index = () => {
         {activeTab === 'home' && <Dashboard selectedGrade={selectedGrade} />}
         
         {activeTab === 'subjects' && (
-          <div className="p-6 text-center text-white">
-            <h2 className="text-2xl font-bold mb-4">Subjects Overview</h2>
-            <p className="text-[#E0E0E0]">
-              Use the navigation above to explore subjects and chapters for Class {selectedGrade}
-            </p>
-          </div>
+          <SubjectsPage 
+            selectedGrade={selectedGrade} 
+            onChapterSelect={handleChapterSelect}
+          />
         )}
         
         {activeTab === 'quizzes' && (

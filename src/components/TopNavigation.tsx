@@ -3,14 +3,13 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Bell, Settings } from 'lucide-react';
-import SubjectsDropdown from './SubjectsDropdown';
 
 interface TopNavigationProps {
   selectedGrade: number;
   onChapterSelect: (subject: string, chapter: string) => void;
 }
 
-const TopNavigation = ({ selectedGrade, onChapterSelect }: TopNavigationProps) => {
+const TopNavigation = ({ selectedGrade }: TopNavigationProps) => {
   return (
     <nav className="bg-[#1A1A1A] border-b border-[#2C2C2C] p-4">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -27,10 +26,6 @@ const TopNavigation = ({ selectedGrade, onChapterSelect }: TopNavigationProps) =
 
         {/* Center Navigation */}
         <div className="hidden md:flex items-center gap-6">
-          <SubjectsDropdown 
-            selectedGrade={selectedGrade} 
-            onChapterSelect={onChapterSelect}
-          />
           <Button 
             variant="ghost" 
             className="text-white hover:text-[#2979FF] hover:bg-[#2979FF]/10"
