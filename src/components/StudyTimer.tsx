@@ -13,7 +13,7 @@ interface StudyTimerProps {
 }
 
 const StudyTimer = ({ subject = 'General', chapter = 'Study Session', onSessionEnd }: StudyTimerProps) => {
-  const { isStudying, currentSession, elapsedTime, startStudySession, pauseStudySession, endStudySession, formatTime } = useStudyTimer();
+  const { isStudying, currentSession, elapsedTime, startStudySession, pauseStudySession, resumeStudySession, endStudySession, formatTime } = useStudyTimer();
 
   const handleStart = () => {
     startStudySession(subject, chapter);
@@ -28,6 +28,14 @@ const StudyTimer = ({ subject = 'General', chapter = 'Study Session', onSessionE
     toast({
       title: "Study Session Paused ⏸️",
       description: "Take a break! Resume when you're ready.",
+    });
+  };
+
+  const handleResume = () => {
+    resumeStudySession();
+    toast({
+      title: "Study Session Resumed! ▶️",
+      description: "Welcome back! Timer is running again.",
     });
   };
 
@@ -54,11 +62,16 @@ const StudyTimer = ({ subject = 'General', chapter = 'Study Session', onSessionE
             <Clock className="h-6 w-6 text-[#00E676]" />
             <div>
               <div className="font-semibold text-white">
-                {isStudying ? 'Studying Now' : 'Ready to Study'}
+                {isStudying ? 'Studying Now' : currentSession ? 'Session Paused' : 'Ready to Study'}
               </div>
               {currentSession && (
                 <div className="text-sm text-[#E0E0E0]">
                   {currentSession.subject} - {currentSession.chapter}
+                </div>
+              )}
+              {!isStudying && currentSession && (
+                <div className="text-xs text-[#FFA726]">
+                  ⏸️ Paused - Tab was inactive
                 </div>
               )}
             </div>
@@ -70,7 +83,7 @@ const StudyTimer = ({ subject = 'General', chapter = 'Study Session', onSessionE
                 {formatTime(elapsedTime)}
               </div>
               <div className="text-xs text-[#E0E0E0]">
-                {isStudying ? 'Active' : 'Timer'}
+                {isStudying ? 'Active' : currentSession ? 'Paused' : 'Timer'}
               </div>
             </div>
             
@@ -100,7 +113,7 @@ const StudyTimer = ({ subject = 'General', chapter = 'Study Session', onSessionE
               
               {currentSession && !isStudying && (
                 <Button
-                  onClick={handleStart}
+                  onClick={handleResume}
                   className="bg-[#2979FF] hover:bg-[#2979FF]/90 text-white"
                   size="sm"
                 >

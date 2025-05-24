@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 
 interface StudySession {
@@ -14,6 +13,36 @@ export const useStudyTimer = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Handle page visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (currentSession) {
+        if (document.hidden) {
+          // Page is hidden (user left the app), pause timer
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          setIsStudying(false);
+        } else {
+          // Page is visible again, resume timer if there's an active session
+          if (!isStudying && currentSession) {
+            setIsStudying(true);
+            intervalRef.current = setInterval(() => {
+              setElapsedTime(prev => prev + 1);
+            }, 1000);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [currentSession, isStudying]);
+
   const startStudySession = (subject: string, chapter: string) => {
     const session: StudySession = {
       subject,
@@ -26,10 +55,12 @@ export const useStudyTimer = () => {
     setIsStudying(true);
     setElapsedTime(0);
     
-    // Start timer
-    intervalRef.current = setInterval(() => {
-      setElapsedTime(prev => prev + 1);
-    }, 1000);
+    // Start timer only if page is visible
+    if (!document.hidden) {
+      intervalRef.current = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+    }
   };
 
   const pauseStudySession = () => {
@@ -38,6 +69,15 @@ export const useStudyTimer = () => {
       intervalRef.current = null;
     }
     setIsStudying(false);
+  };
+
+  const resumeStudySession = () => {
+    if (currentSession && !isStudying && !document.hidden) {
+      setIsStudying(true);
+      intervalRef.current = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+    }
   };
 
   const endStudySession = () => {
@@ -120,6 +160,7 @@ export const useStudyTimer = () => {
     elapsedTime,
     startStudySession,
     pauseStudySession,
+    resumeStudySession,
     endStudySession,
     formatTime
   };
