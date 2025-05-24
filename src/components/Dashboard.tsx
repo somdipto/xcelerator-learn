@@ -3,7 +3,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, PlayCircle, Trophy, Calendar } from 'lucide-react';
+import { BookOpen, PlayCircle, Trophy, Calendar, TrendingUp, Star } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface DashboardProps {
   selectedGrade: number;
@@ -15,6 +16,27 @@ const Dashboard = ({ selectedGrade }: DashboardProps) => {
     if (hour < 12) return 'Good Morning';
     if (hour < 17) return 'Good Afternoon';
     return 'Good Evening';
+  };
+
+  const handleContinueTopic = (topic: string) => {
+    toast({
+      title: "Continuing Lesson",
+      description: `Opening ${topic}...`,
+    });
+  };
+
+  const handleContinueLearning = () => {
+    toast({
+      title: "Resuming Lesson",
+      description: "Opening Mathematics - Quadratic Equations",
+    });
+  };
+
+  const handleTakeChallenge = () => {
+    toast({
+      title: "Daily Challenge",
+      description: "Starting your daily practice questions!",
+    });
   };
 
   const featuredTopics = [
@@ -56,12 +78,12 @@ const Dashboard = ({ selectedGrade }: DashboardProps) => {
           <h1 className="text-3xl font-bold mb-2">
             {getGreeting()}! 👋
           </h1>
-          <p className="text-[#E0E0E0] text-lg mb-4">
+          <p className="text-[#E0E0E0] text-lg mb-6">
             Ready to continue your Class {selectedGrade} journey?
           </p>
           
           {/* Weekly Progress Card */}
-          <Card className="bg-[#1A1A1A] border-[#2C2C2C] mb-6">
+          <Card className="bg-[#1A1A1A] border-[#2C2C2C] mb-6 hover:border-[#00E676]/30 transition-all duration-300">
             <CardHeader>
               <CardTitle className="text-[#00E676] flex items-center gap-2">
                 <Trophy className="h-5 w-5" />
@@ -69,26 +91,29 @@ const Dashboard = ({ selectedGrade }: DashboardProps) => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#00E676]">{weeklyStats.streak}</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="text-center p-3 bg-[#121212] rounded-lg">
+                  <div className="text-2xl font-bold text-[#00E676] mb-1">{weeklyStats.streak}</div>
                   <div className="text-sm text-[#E0E0E0]">Day Streak</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#2979FF]">{weeklyStats.pointsEarned}</div>
+                <div className="text-center p-3 bg-[#121212] rounded-lg">
+                  <div className="text-2xl font-bold text-[#2979FF] mb-1">{weeklyStats.pointsEarned}</div>
                   <div className="text-sm text-[#E0E0E0]">Points Earned</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-white">{weeklyStats.lessonsCompleted}</div>
+                <div className="text-center p-3 bg-[#121212] rounded-lg">
+                  <div className="text-2xl font-bold text-white mb-1">{weeklyStats.lessonsCompleted}</div>
                   <div className="text-sm text-[#E0E0E0]">Lessons Done</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl">🎯</div>
+                <div className="text-center p-3 bg-[#121212] rounded-lg">
+                  <div className="text-2xl mb-1">🎯</div>
                   <div className="text-sm text-[#E0E0E0]">On Track</div>
                 </div>
               </div>
-              <div className="mt-4 p-3 bg-[#121212] rounded-lg">
-                <p className="text-sm text-[#E0E0E0]">{weeklyStats.nextGoal}</p>
+              <div className="p-4 bg-gradient-to-r from-[#00E676]/10 to-[#2979FF]/10 rounded-lg border border-[#00E676]/20">
+                <p className="text-sm text-[#E0E0E0] flex items-center gap-2">
+                  <Star className="h-4 w-4 text-[#FFA726]" />
+                  {weeklyStats.nextGoal}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -105,10 +130,15 @@ const Dashboard = ({ selectedGrade }: DashboardProps) => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {featuredTopics.map((topic, index) => (
-              <Card key={index} className="bg-[#1A1A1A] border-[#2C2C2C] hover:border-[#00E676] transition-all duration-200 cursor-pointer group">
+              <Card 
+                key={index} 
+                className="bg-[#1A1A1A] border-[#2C2C2C] hover:border-[#00E676]/50 transition-all duration-300 cursor-pointer group hover:scale-105"
+              >
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="text-4xl">{topic.image}</div>
+                    <div className="text-4xl group-hover:scale-110 transition-transform duration-200">
+                      {topic.image}
+                    </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-white group-hover:text-[#00E676] transition-colors">
                         {topic.title}
@@ -131,7 +161,11 @@ const Dashboard = ({ selectedGrade }: DashboardProps) => {
                         <Calendar className="h-4 w-4" />
                         {topic.duration}
                       </span>
-                      <Button size="sm" className="bg-[#00E676] hover:bg-[#00E676]/90 text-black">
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleContinueTopic(topic.title)}
+                        className="bg-[#00E676] hover:bg-[#00E676]/90 text-black font-medium transition-all duration-200"
+                      >
                         Continue
                       </Button>
                     </div>
@@ -143,7 +177,7 @@ const Dashboard = ({ selectedGrade }: DashboardProps) => {
 
           {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="bg-gradient-to-r from-[#2979FF]/20 to-[#1A1A1A] border-[#2979FF]/30">
+            <Card className="bg-gradient-to-r from-[#2979FF]/20 to-[#1A1A1A] border-[#2979FF]/30 hover:border-[#2979FF]/50 transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <PlayCircle className="h-12 w-12 text-[#2979FF]" />
@@ -155,7 +189,10 @@ const Dashboard = ({ selectedGrade }: DashboardProps) => {
                       Mathematics - Quadratic Equations
                     </p>
                     <Progress value={45} className="h-2 mb-3" />
-                    <Button className="bg-[#2979FF] hover:bg-[#2979FF]/90 text-white">
+                    <Button 
+                      onClick={handleContinueLearning}
+                      className="bg-[#2979FF] hover:bg-[#2979FF]/90 text-white transition-all duration-200"
+                    >
                       Continue Learning
                     </Button>
                   </div>
@@ -163,7 +200,7 @@ const Dashboard = ({ selectedGrade }: DashboardProps) => {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-[#00E676]/20 to-[#1A1A1A] border-[#00E676]/30">
+            <Card className="bg-gradient-to-r from-[#00E676]/20 to-[#1A1A1A] border-[#00E676]/30 hover:border-[#00E676]/50 transition-all duration-300">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                   <Trophy className="h-12 w-12 text-[#00E676]" />
@@ -174,8 +211,14 @@ const Dashboard = ({ selectedGrade }: DashboardProps) => {
                     <p className="text-[#E0E0E0] text-sm mb-3">
                       Complete 3 practice questions
                     </p>
-                    <div className="text-sm text-[#00E676] mb-3">2/3 completed</div>
-                    <Button className="bg-[#00E676] hover:bg-[#00E676]/90 text-black">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="text-sm text-[#00E676] font-medium">2/3 completed</div>
+                      <TrendingUp className="h-4 w-4 text-[#00E676]" />
+                    </div>
+                    <Button 
+                      onClick={handleTakeChallenge}
+                      className="bg-[#00E676] hover:bg-[#00E676]/90 text-black transition-all duration-200"
+                    >
                       Take Challenge
                     </Button>
                   </div>
