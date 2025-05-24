@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { BookOpen, GraduationCap } from 'lucide-react';
+import { BookOpen, GraduationCap, Users } from 'lucide-react';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -24,6 +24,11 @@ const OnboardingModal = ({ isOpen, onSelectGrade }: OnboardingModalProps) => {
     { number: 11, label: 'Class XI', icon: '🏆' },
     { number: 12, label: 'Class XII', icon: '👑' },
   ];
+
+  const handleTeacherLogin = () => {
+    // TODO: Navigate to teacher login page
+    console.log('Navigate to teacher login');
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
@@ -56,9 +61,23 @@ const OnboardingModal = ({ isOpen, onSelectGrade }: OnboardingModalProps) => {
           ))}
         </div>
         
-        <p className="text-center text-[#E0E0E0] text-sm mt-6">
-          Don't worry, you can change this anytime in settings!
-        </p>
+        <div className="mt-6 pt-4 border-t border-[#2C2C2C]">
+          <p className="text-center text-[#E0E0E0] text-sm mb-4">
+            Don't worry, you can change this anytime in settings!
+          </p>
+          
+          {/* Teacher Login Link */}
+          <div className="text-center">
+            <Button
+              onClick={handleTeacherLogin}
+              variant="link"
+              className="text-[#2979FF] hover:text-[#2979FF]/80 text-sm flex items-center gap-2 mx-auto"
+            >
+              <Users className="h-4 w-4" />
+              Are you a teacher? Login here
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
