@@ -21,6 +21,7 @@ interface ContentItem {
   fileName: string;
   originalName: string;
   fileSize: number;
+  filePath: string;
   uploadDate: string;
 }
 
