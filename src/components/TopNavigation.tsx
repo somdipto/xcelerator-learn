@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Bell, Settings, Calendar, Video } from 'lucide-react';
+import { Calendar, Video } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface TopNavigationProps {
@@ -11,8 +12,6 @@ interface TopNavigationProps {
 }
 
 const TopNavigation = ({ selectedGrade }: TopNavigationProps) => {
-  const [notifications, setNotifications] = useState(3);
-
   const handleLiveClasses = () => {
     toast({
       title: "Live Classes",
@@ -24,21 +23,6 @@ const TopNavigation = ({ selectedGrade }: TopNavigationProps) => {
     toast({
       title: "Practice Tests",
       description: "Opening practice test section...",
-    });
-  };
-
-  const handleNotifications = () => {
-    toast({
-      title: "Notifications",
-      description: `You have ${notifications} new notifications`,
-    });
-    setNotifications(0);
-  };
-
-  const handleSettings = () => {
-    toast({
-      title: "Settings",
-      description: "Settings panel coming soon!",
     });
   };
 
@@ -78,29 +62,8 @@ const TopNavigation = ({ selectedGrade }: TopNavigationProps) => {
           </Button>
         </div>
 
-        {/* Right Actions */}
+        {/* Right Actions - Only Avatar */}
         <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={handleNotifications}
-            className="text-white hover:text-[#00E676] hover:bg-[#00E676]/10 relative transition-all duration-200"
-          >
-            <Bell className="h-5 w-5" />
-            {notifications > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#00E676] text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-                {notifications}
-              </span>
-            )}
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={handleSettings}
-            className="text-white hover:text-[#00E676] hover:bg-[#00E676]/10 transition-all duration-200"
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
           <Avatar className="h-9 w-9 border-2 border-[#00E676] cursor-pointer hover:border-[#2979FF] transition-colors duration-200">
             <AvatarFallback className="bg-gradient-to-r from-[#00E676] to-[#2979FF] text-black font-bold">
               S

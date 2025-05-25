@@ -1,8 +1,10 @@
 
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { BookOpen, GraduationCap, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -10,6 +12,8 @@ interface OnboardingModalProps {
 }
 
 const OnboardingModal = ({ isOpen, onSelectGrade }: OnboardingModalProps) => {
+  const navigate = useNavigate();
+  
   const grades = [
     { number: 1, label: 'Class I', icon: '🌟' },
     { number: 2, label: 'Class II', icon: '📚' },
@@ -26,8 +30,7 @@ const OnboardingModal = ({ isOpen, onSelectGrade }: OnboardingModalProps) => {
   ];
 
   const handleTeacherLogin = () => {
-    // TODO: Navigate to teacher login page
-    console.log('Navigate to teacher login');
+    navigate('/teacher-login');
   };
 
   return (
@@ -63,7 +66,7 @@ const OnboardingModal = ({ isOpen, onSelectGrade }: OnboardingModalProps) => {
         
         <div className="mt-6 pt-4 border-t border-[#2C2C2C]">
           <p className="text-center text-[#E0E0E0] text-sm mb-4">
-            Don't worry, you can change this anytime in settings!
+            Don't worry, you can change this anytime!
           </p>
           
           {/* Teacher Login Link */}
