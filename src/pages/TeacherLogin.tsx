@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { GraduationCap, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { GraduationCap, Eye, EyeOff, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 
@@ -14,18 +14,21 @@ const TeacherLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     // Simulate login process
     setTimeout(() => {
-      if (email && password) {
+      // Check for admin credentials
+      if (email === 'admin' && password === 'admin') {
         localStorage.setItem('teacherAuth', 'true');
         localStorage.setItem('teacherData', JSON.stringify({
-          email,
-          name: 'Teacher',
+          email: 'admin',
+          name: 'Administrator',
           loginTime: new Date().toISOString()
         }));
         
@@ -36,9 +39,10 @@ const TeacherLogin = () => {
         
         navigate('/teacher-dashboard');
       } else {
+        setError('Invalid credentials. Please use admin/admin to login.');
         toast({
           title: "Login Failed",
-          description: "Please enter valid credentials",
+          description: "Invalid email or password",
         });
       }
       setLoading(false);
@@ -77,14 +81,21 @@ const TeacherLogin = () => {
 
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
+            {error && (
+              <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-md">
+                <AlertCircle className="h-4 w-4 text-red-400" />
+                <span className="text-sm text-red-400">{error}</span>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-[#E0E0E0]">
                 Email Address
               </Label>
               <Input
                 id="email"
-                type="email"
-                placeholder="teacher@school.edu"
+                type="text"
+                placeholder="Enter admin"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
@@ -100,7 +111,7 @@ const TeacherLogin = () => {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
+                  placeholder="Enter admin"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF] pr-10"
@@ -127,17 +138,11 @@ const TeacherLogin = () => {
             </Button>
 
             <div className="text-center pt-4">
-              <Button
-                type="button"
-                variant="link"
-                className="text-[#666666] hover:text-[#00E676] text-sm"
-                onClick={() => toast({
-                  title: "Contact Administrator",
-                  description: "Please contact your school administrator for password reset"
-                })}
-              >
-                Forgot password?
-              </Button>
+              <div className="text-sm text-[#666666] bg-[#2C2C2C] p-3 rounded-md">
+                <strong className="text-[#E0E0E0]">Demo Credentials:</strong><br />
+                Email: admin<br />
+                Password: admin
+              </div>
             </div>
           </form>
         </CardContent>

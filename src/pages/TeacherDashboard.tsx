@@ -50,46 +50,46 @@ const TeacherDashboard = () => {
         return <QuizManager />;
       default:
         return (
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-[#1A1A1A] p-6 rounded-lg border border-[#2C2C2C]">
+          <div className="p-4 md:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+              <div className="bg-[#1A1A1A] p-4 md:p-6 rounded-lg border border-[#2C2C2C]">
                 <h3 className="text-lg font-semibold text-white mb-2">Total Students</h3>
-                <p className="text-3xl font-bold text-[#00E676]">152</p>
+                <p className="text-2xl md:text-3xl font-bold text-[#00E676]">152</p>
                 <p className="text-sm text-[#E0E0E0]">Active learners</p>
               </div>
               
-              <div className="bg-[#1A1A1A] p-6 rounded-lg border border-[#2C2C2C]">
+              <div className="bg-[#1A1A1A] p-4 md:p-6 rounded-lg border border-[#2C2C2C]">
                 <h3 className="text-lg font-semibold text-white mb-2">Subjects</h3>
-                <p className="text-3xl font-bold text-[#2979FF]">8</p>
+                <p className="text-2xl md:text-3xl font-bold text-[#2979FF]">8</p>
                 <p className="text-sm text-[#E0E0E0]">Active courses</p>
               </div>
               
-              <div className="bg-[#1A1A1A] p-6 rounded-lg border border-[#2C2C2C]">
+              <div className="bg-[#1A1A1A] p-4 md:p-6 rounded-lg border border-[#2C2C2C]">
                 <h3 className="text-lg font-semibold text-white mb-2">Content</h3>
-                <p className="text-3xl font-bold text-[#FFA726]">84</p>
+                <p className="text-2xl md:text-3xl font-bold text-[#FFA726]">84</p>
                 <p className="text-sm text-[#E0E0E0]">Uploaded materials</p>
               </div>
               
-              <div className="bg-[#1A1A1A] p-6 rounded-lg border border-[#2C2C2C]">
+              <div className="bg-[#1A1A1A] p-4 md:p-6 rounded-lg border border-[#2C2C2C]">
                 <h3 className="text-lg font-semibold text-white mb-2">Avg. Progress</h3>
-                <p className="text-3xl font-bold text-[#E91E63]">78%</p>
+                <p className="text-2xl md:text-3xl font-bold text-[#E91E63]">78%</p>
                 <p className="text-sm text-[#E0E0E0]">Student completion</p>
               </div>
             </div>
 
-            <div className="bg-[#1A1A1A] p-6 rounded-lg border border-[#2C2C2C]">
+            <div className="bg-[#1A1A1A] p-4 md:p-6 rounded-lg border border-[#2C2C2C]">
               <h3 className="text-xl font-semibold text-white mb-4">Recent Activity</h3>
               <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b border-[#2C2C2C]">
-                  <span className="text-[#E0E0E0]">New student enrolled in Class 10</span>
+                <div className="flex items-center justify-between py-2 border-b border-[#2C2C2C] flex-col sm:flex-row gap-2 sm:gap-0">
+                  <span className="text-[#E0E0E0] text-sm sm:text-base">New student enrolled in Class 10</span>
                   <span className="text-sm text-[#666666]">2 hours ago</span>
                 </div>
-                <div className="flex items-center justify-between py-2 border-b border-[#2C2C2C]">
-                  <span className="text-[#E0E0E0]">Math quiz completed by 25 students</span>
+                <div className="flex items-center justify-between py-2 border-b border-[#2C2C2C] flex-col sm:flex-row gap-2 sm:gap-0">
+                  <span className="text-[#E0E0E0] text-sm sm:text-base">Math quiz completed by 25 students</span>
                   <span className="text-sm text-[#666666]">4 hours ago</span>
                 </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-[#E0E0E0]">Physics video uploaded successfully</span>
+                <div className="flex items-center justify-between py-2 flex-col sm:flex-row gap-2 sm:gap-0">
+                  <span className="text-[#E0E0E0] text-sm sm:text-base">Physics video uploaded successfully</span>
                   <span className="text-sm text-[#666666]">1 day ago</span>
                 </div>
               </div>
@@ -106,7 +106,7 @@ const TeacherDashboard = () => {
         onSectionChange={setActiveSection}
       />
       
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col md:ml-0 w-full">
         <TeacherTopNav teacherData={teacherData} />
         
         <main className="flex-1 overflow-auto">
