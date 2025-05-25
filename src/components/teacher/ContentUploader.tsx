@@ -1,13 +1,28 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, FileText, Video, Image, File } from 'lucide-react';
+import { Upload, FileText, Video, Image, File, Trash2, Download, Eye } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import DatabaseService from '@/services/database';
+
+interface ContentItem {
+  _id: string;
+  title: string;
+  description: string;
+  subject: string;
+  chapter: string;
+  grade: number;
+  type: string;
+  fileName: string;
+  originalName: string;
+  fileSize: number;
+  uploadDate: string;
+}
 
 const ContentUploader = () => {
   const [uploadData, setUploadData] = useState({
@@ -18,6 +33,10 @@ const ContentUploader = () => {
     grade: '',
     type: 'video'
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [contentList, setContentList] = useState<ContentItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const contentTypes = [
     { value: 'video', label: 'Video Lecture', icon: Video },
@@ -26,28 +45,73 @@ const ContentUploader = () => {
     { value: 'file', label: 'Other File', icon: File }
   ];
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    loadContent();
+    
+    // Real-time listeners
+    DatabaseService.onContentUploaded((content) => {
+      setContentList(prev => [content, ...prev]);
+    });
+    
+    DatabaseService.onContentDeleted((id) => {
+      setContentList(prev => prev.filter(item => item._id !== id));
+    });
+
+    return () => {
+      DatabaseService.disconnect();
+    };
+  }, []);
+
+  const loadContent = async () => {
+    try {
+      const content = await DatabaseService.getContent();
+      setContentList(content);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load content",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Simulate file upload
+      setSelectedFile(file);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile || !uploadData.title || !uploadData.subject) {
       toast({
-        title: "File Uploaded",
-        description: `${file.name} has been uploaded successfully`
+        title: "Missing Information",
+        description: "Please fill in all required fields and select a file",
+        variant: "destructive"
       });
+      return;
+    }
 
-      // Save to localStorage for sync with student app
-      const contentData = {
-        id: Date.now().toString(),
-        ...uploadData,
-        fileName: file.name,
-        fileSize: file.size,
-        uploadDate: new Date().toISOString()
-      };
+    setUploading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('title', uploadData.title);
+      formData.append('description', uploadData.description);
+      formData.append('subject', uploadData.subject);
+      formData.append('chapter', uploadData.chapter);
+      formData.append('grade', uploadData.grade);
+      formData.append('type', uploadData.type);
 
-      const existingContent = JSON.parse(localStorage.getItem('teacherContent') || '[]');
-      const updatedContent = [...existingContent, contentData];
-      localStorage.setItem('teacherContent', JSON.stringify(updatedContent));
-      localStorage.setItem('studentContent', JSON.stringify(updatedContent)); // Sync with student app
+      await DatabaseService.uploadContent(formData);
+      
+      toast({
+        title: "Upload Successful",
+        description: `${uploadData.title} has been uploaded successfully`
+      });
 
       // Reset form
       setUploadData({
@@ -58,11 +122,59 @@ const ContentUploader = () => {
         grade: '',
         type: 'video'
       });
+      setSelectedFile(null);
+      
+      // Reset file input
+      const fileInput = document.getElementById('file') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+      
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload content. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
+  const handleDelete = async (id: string, title: string) => {
+    try {
+      await DatabaseService.deleteContent(id);
+      toast({
+        title: "Content Deleted",
+        description: `${title} has been deleted successfully`
+      });
+    } catch (error) {
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete content",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getFileIcon = (type: string) => {
+    const iconMap = {
+      video: Video,
+      document: FileText,
+      image: Image,
+      file: File
+    };
+    return iconMap[type as keyof typeof iconMap] || File;
+  };
+
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6 space-y-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-2">Content Upload</h1>
         <p className="text-[#E0E0E0]">Upload videos, documents, and other learning materials</p>
@@ -79,7 +191,7 @@ const ContentUploader = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="title" className="text-[#E0E0E0]">Content Title</Label>
+              <Label htmlFor="title" className="text-[#E0E0E0]">Content Title *</Label>
               <Input
                 id="title"
                 value={uploadData.title}
@@ -102,7 +214,7 @@ const ContentUploader = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-[#E0E0E0]">Grade</Label>
+                <Label className="text-[#E0E0E0]">Grade *</Label>
                 <Select value={uploadData.grade} onValueChange={(value) => setUploadData({...uploadData, grade: value})}>
                   <SelectTrigger className="bg-[#121212] border-[#424242] text-white">
                     <SelectValue placeholder="Select grade" />
@@ -135,7 +247,7 @@ const ContentUploader = () => {
             </div>
 
             <div>
-              <Label htmlFor="subject" className="text-[#E0E0E0]">Subject</Label>
+              <Label htmlFor="subject" className="text-[#E0E0E0]">Subject *</Label>
               <Input
                 id="subject"
                 value={uploadData.subject}
@@ -157,44 +269,82 @@ const ContentUploader = () => {
             </div>
 
             <div>
-              <Label htmlFor="file" className="text-[#E0E0E0]">Choose File</Label>
+              <Label htmlFor="file" className="text-[#E0E0E0]">Choose File *</Label>
               <Input
                 id="file"
                 type="file"
-                onChange={handleFileUpload}
+                onChange={handleFileSelect}
                 className="bg-[#121212] border-[#424242] text-white file:bg-[#2979FF] file:text-white file:border-0 file:rounded file:px-4 file:py-2"
                 accept="video/*,image/*,.pdf,.doc,.docx,.ppt,.pptx"
               />
+              {selectedFile && (
+                <p className="text-sm text-[#00E676] mt-1">
+                  Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                </p>
+              )}
             </div>
 
             <Button
+              onClick={handleUpload}
               className="w-full bg-[#2979FF] hover:bg-[#2979FF]/90 text-white"
-              disabled={!uploadData.title || !uploadData.subject}
+              disabled={uploading || !uploadData.title || !uploadData.subject || !selectedFile}
             >
               <Upload className="h-4 w-4 mr-2" />
-              Upload Content
+              {uploading ? 'Uploading...' : 'Upload Content'}
             </Button>
           </CardContent>
         </Card>
 
-        {/* Recent Uploads */}
+        {/* Content List */}
         <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
           <CardHeader>
-            <CardTitle className="text-white">Recent Uploads</CardTitle>
+            <CardTitle className="text-white">Uploaded Content ({contentList.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {[1, 2, 3].map((item) => (
-                <div key={item} className="flex items-center gap-3 p-3 bg-[#121212] rounded-lg">
-                  <Video className="h-8 w-8 text-[#2979FF]" />
-                  <div className="flex-1">
-                    <div className="font-medium text-white">Math Lesson {item}</div>
-                    <div className="text-sm text-[#E0E0E0]">Class 10 • Mathematics</div>
-                    <div className="text-xs text-[#666666]">Uploaded 2 hours ago</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {loading ? (
+              <div className="text-center text-[#E0E0E0] py-8">Loading content...</div>
+            ) : contentList.length === 0 ? (
+              <div className="text-center text-[#E0E0E0] py-8">No content uploaded yet</div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {contentList.map((content) => {
+                  const IconComponent = getFileIcon(content.type);
+                  return (
+                    <div key={content._id} className="flex items-center gap-3 p-3 bg-[#121212] rounded-lg">
+                      <IconComponent className="h-8 w-8 text-[#2979FF] flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-white truncate">{content.title}</div>
+                        <div className="text-sm text-[#E0E0E0]">
+                          Class {content.grade} • {content.subject}
+                          {content.chapter && ` • ${content.chapter}`}
+                        </div>
+                        <div className="text-xs text-[#666666]">
+                          {formatFileSize(content.fileSize)} • {new Date(content.uploadDate).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-[#00E676] hover:bg-[#00E676]/10"
+                          onClick={() => window.open(`http://localhost:3001/${content.filePath}`, '_blank')}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-[#FF7043] hover:bg-[#FF7043]/10"
+                          onClick={() => handleDelete(content._id, content.title)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

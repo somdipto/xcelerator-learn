@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Trash2, BookOpen, Save } from 'lucide-react';
+import { Plus, Edit, Trash2, BookOpen, Save, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import DatabaseService from '@/services/database';
 
 interface Subject {
-  id: string;
+  _id: string;
   name: string;
   description: string;
   grade: number;
@@ -19,6 +21,7 @@ interface Subject {
 const SubjectManager = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [loading, setLoading] = useState(true);
   const [newSubject, setNewSubject] = useState({
     name: '',
     description: '',
@@ -28,94 +31,119 @@ const SubjectManager = () => {
   });
 
   useEffect(() => {
-    // Load subjects from localStorage or initialize with defaults
-    const savedSubjects = localStorage.getItem('teacherSubjects');
-    if (savedSubjects) {
-      setSubjects(JSON.parse(savedSubjects));
-    } else {
-      const defaultSubjects: Subject[] = [
-        {
-          id: '1',
-          name: 'Mathematics',
-          description: 'Basic to advanced mathematical concepts',
-          grade: 10,
-          chapters: ['Algebra', 'Geometry', 'Trigonometry'],
-          color: '#2979FF'
-        },
-        {
-          id: '2',
-          name: 'Science',
-          description: 'Physics, Chemistry, and Biology',
-          grade: 10,
-          chapters: ['Physics', 'Chemistry', 'Biology'],
-          color: '#00E676'
-        }
-      ];
-      setSubjects(defaultSubjects);
-      localStorage.setItem('teacherSubjects', JSON.stringify(defaultSubjects));
-    }
+    loadSubjects();
+    
+    // Real-time listeners
+    DatabaseService.onSubjectAdded((subject) => {
+      setSubjects(prev => [...prev, subject]);
+    });
+    
+    DatabaseService.onSubjectUpdated((subject) => {
+      setSubjects(prev => prev.map(s => s._id === subject._id ? {...s, ...subject} : s));
+    });
+    
+    DatabaseService.onSubjectDeleted((id) => {
+      setSubjects(prev => prev.filter(s => s._id !== id));
+    });
+
+    return () => {
+      DatabaseService.disconnect();
+    };
   }, []);
 
-  const saveSubjects = (updatedSubjects: Subject[]) => {
-    setSubjects(updatedSubjects);
-    localStorage.setItem('teacherSubjects', JSON.stringify(updatedSubjects));
-    // Sync with student app
-    localStorage.setItem('subjectsData', JSON.stringify(updatedSubjects));
+  const loadSubjects = async () => {
+    try {
+      const subjectsData = await DatabaseService.getSubjects();
+      setSubjects(subjectsData);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load subjects",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddSubject = () => {
-    if (!newSubject.name) return;
+  const handleAddSubject = async () => {
+    if (!newSubject.name.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter a subject name",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    const subject: Subject = {
-      id: Date.now().toString(),
-      ...newSubject,
-      chapters: newSubject.chapters.filter(ch => ch.trim() !== '')
-    };
-    
-    const updatedSubjects = [...subjects, subject];
-    saveSubjects(updatedSubjects);
-    
-    setNewSubject({
-      name: '',
-      description: '',
-      grade: 1,
-      chapters: [''],
-      color: '#2979FF'
-    });
-    
-    toast({
-      title: "Subject Added",
-      description: `${subject.name} has been added successfully`
-    });
+    try {
+      const subjectData = {
+        ...newSubject,
+        chapters: newSubject.chapters.filter(ch => ch.trim() !== '')
+      };
+      
+      await DatabaseService.createSubject(subjectData);
+      
+      setNewSubject({
+        name: '',
+        description: '',
+        grade: 1,
+        chapters: [''],
+        color: '#2979FF'
+      });
+      
+      toast({
+        title: "Subject Added",
+        description: `${subjectData.name} has been added successfully`
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add subject",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEditSubject = (subject: Subject) => {
     setEditingSubject({ ...subject });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingSubject) return;
     
-    const updatedSubjects = subjects.map(s => 
-      s.id === editingSubject.id ? editingSubject : s
-    );
-    saveSubjects(updatedSubjects);
-    setEditingSubject(null);
-    
-    toast({
-      title: "Subject Updated",
-      description: `${editingSubject.name} has been updated successfully`
-    });
+    try {
+      await DatabaseService.updateSubject(editingSubject._id, editingSubject);
+      setEditingSubject(null);
+      
+      toast({
+        title: "Subject Updated",
+        description: `${editingSubject.name} has been updated successfully`
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update subject",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteSubject = (id: string) => {
-    const updatedSubjects = subjects.filter(s => s.id !== id);
-    saveSubjects(updatedSubjects);
-    
-    toast({
-      title: "Subject Deleted",
-      description: "Subject has been removed successfully"
-    });
+  const handleDeleteSubject = async (id: string, name: string) => {
+    try {
+      await DatabaseService.deleteSubject(id);
+      
+      toast({
+        title: "Subject Deleted",
+        description: `${name} has been removed successfully`
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete subject",
+        variant: "destructive"
+      });
+    }
   };
 
   const addChapter = (chapters: string[], setChapters: (chapters: string[]) => void) => {
@@ -129,19 +157,29 @@ const SubjectManager = () => {
   };
 
   const removeChapter = (index: number, chapters: string[], setChapters: (chapters: string[]) => void) => {
-    const updated = chapters.filter((_, i) => i !== index);
-    setChapters(updated);
+    if (chapters.length > 1) {
+      const updated = chapters.filter((_, i) => i !== index);
+      setChapters(updated);
+    }
   };
 
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="text-center text-white">Loading subjects...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6 space-y-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-2">Subject Manager</h1>
         <p className="text-[#E0E0E0]">Create and manage subjects for your students</p>
       </div>
 
       {/* Add New Subject */}
-      <Card className="bg-[#1A1A1A] border-[#2C2C2C] mb-6">
+      <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Plus className="h-5 w-5" />
@@ -151,7 +189,7 @@ const SubjectManager = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name" className="text-[#E0E0E0]">Subject Name</Label>
+              <Label htmlFor="name" className="text-[#E0E0E0]">Subject Name *</Label>
               <Input
                 id="name"
                 value={newSubject.name}
@@ -168,7 +206,7 @@ const SubjectManager = () => {
                 min="1"
                 max="12"
                 value={newSubject.grade}
-                onChange={(e) => setNewSubject({...newSubject, grade: parseInt(e.target.value)})}
+                onChange={(e) => setNewSubject({...newSubject, grade: parseInt(e.target.value) || 1})}
                 className="bg-[#121212] border-[#424242] text-white"
               />
             </div>
@@ -202,8 +240,9 @@ const SubjectManager = () => {
                   variant="outline"
                   size="icon"
                   className="border-[#424242] text-[#FF7043] hover:bg-[#FF7043]/10"
+                  disabled={newSubject.chapters.length === 1}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             ))}
@@ -221,6 +260,7 @@ const SubjectManager = () => {
           <Button
             onClick={handleAddSubject}
             className="bg-[#00E676] hover:bg-[#00E676]/90 text-black"
+            disabled={!newSubject.name.trim()}
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Subject
@@ -230,79 +270,93 @@ const SubjectManager = () => {
 
       {/* Existing Subjects */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {subjects.map((subject) => (
-          <Card key={subject.id} className="bg-[#1A1A1A] border-[#2C2C2C]">
-            {editingSubject?.id === subject.id ? (
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <Input
-                    value={editingSubject.name}
-                    onChange={(e) => setEditingSubject({...editingSubject, name: e.target.value})}
-                    className="bg-[#121212] border-[#424242] text-white"
-                  />
-                  <Textarea
-                    value={editingSubject.description}
-                    onChange={(e) => setEditingSubject({...editingSubject, description: e.target.value})}
-                    className="bg-[#121212] border-[#424242] text-white"
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleSaveEdit}
-                      size="sm"
-                      className="bg-[#00E676] hover:bg-[#00E676]/90 text-black"
-                    >
-                      <Save className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      onClick={() => setEditingSubject(null)}
-                      size="sm"
-                      variant="outline"
-                      className="border-[#424242] text-[#E0E0E0]"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            ) : (
-              <>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="h-5 w-5" style={{ color: subject.color }} />
-                      <CardTitle className="text-white text-lg">{subject.name}</CardTitle>
-                    </div>
-                    <div className="flex gap-1">
+        {subjects.length === 0 ? (
+          <div className="col-span-full text-center text-[#E0E0E0] py-8">
+            No subjects created yet. Add your first subject above.
+          </div>
+        ) : (
+          subjects.map((subject) => (
+            <Card key={subject._id} className="bg-[#1A1A1A] border-[#2C2C2C]">
+              {editingSubject?._id === subject._id ? (
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    <Input
+                      value={editingSubject.name}
+                      onChange={(e) => setEditingSubject({...editingSubject, name: e.target.value})}
+                      className="bg-[#121212] border-[#424242] text-white"
+                    />
+                    <Textarea
+                      value={editingSubject.description}
+                      onChange={(e) => setEditingSubject({...editingSubject, description: e.target.value})}
+                      className="bg-[#121212] border-[#424242] text-white"
+                    />
+                    <Input
+                      type="number"
+                      min="1"
+                      max="12"
+                      value={editingSubject.grade}
+                      onChange={(e) => setEditingSubject({...editingSubject, grade: parseInt(e.target.value) || 1})}
+                      className="bg-[#121212] border-[#424242] text-white"
+                    />
+                    <div className="flex gap-2">
                       <Button
-                        onClick={() => handleEditSubject(subject)}
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-[#2979FF] hover:bg-[#2979FF]/10"
+                        onClick={handleSaveEdit}
+                        size="sm"
+                        className="bg-[#00E676] hover:bg-[#00E676]/90 text-black"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Save className="h-4 w-4" />
                       </Button>
                       <Button
-                        onClick={() => handleDeleteSubject(subject.id)}
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-[#FF7043] hover:bg-[#FF7043]/10"
+                        onClick={() => setEditingSubject(null)}
+                        size="sm"
+                        variant="outline"
+                        className="border-[#424242] text-[#E0E0E0]"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        Cancel
                       </Button>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-[#E0E0E0] text-sm mb-3">{subject.description}</p>
-                  <p className="text-xs text-[#666666] mb-2">Grade {subject.grade}</p>
-                  <div className="text-xs text-[#666666]">
-                    {subject.chapters.length} chapters
                   </div>
                 </CardContent>
-              </>
-            )}
-          </Card>
-        ))}
+              ) : (
+                <>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-5 w-5" style={{ color: subject.color }} />
+                        <CardTitle className="text-white text-lg">{subject.name}</CardTitle>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          onClick={() => handleEditSubject(subject)}
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-[#2979FF] hover:bg-[#2979FF]/10"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => handleDeleteSubject(subject._id, subject.name)}
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-[#FF7043] hover:bg-[#FF7043]/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-[#E0E0E0] text-sm mb-3">{subject.description}</p>
+                    <p className="text-xs text-[#666666] mb-2">Grade {subject.grade}</p>
+                    <div className="text-xs text-[#666666]">
+                      {subject.chapters.length} chapter{subject.chapters.length !== 1 ? 's' : ''}
+                    </div>
+                  </CardContent>
+                </>
+              )}
+            </Card>
+          ))
+        )}
       </div>
     </div>
   );
