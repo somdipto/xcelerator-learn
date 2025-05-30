@@ -1,6 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
 import OnboardingModal from '@/components/OnboardingModal';
-import Dashboard from '@/components/Dashboard';
 import TopNavigation from '@/components/TopNavigation';
 import BottomNavigation from '@/components/BottomNavigation';
 import SubjectsPage from '@/components/SubjectsPage';
@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 const Index = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [activeTab, setActiveTab] = useState('subjects'); // Changed from 'home' to 'subjects'
+  const [activeTab, setActiveTab] = useState('subjects');
 
   useEffect(() => {
     // Check if user has already selected a grade
@@ -54,13 +54,12 @@ const Index = () => {
     
     // Show appropriate toast for each tab with better messaging
     const tabMessages = {
-      home: "Welcome back to your personalized dashboard!",
       subjects: "Explore your subjects and dive into new chapters",
       quizzes: "Ready to test your knowledge? Let's go!",
       profile: "View your progress and achievements"
     };
     
-    if (tab !== 'subjects') { // Changed from 'home' to 'subjects'
+    if (tab !== 'subjects') {
       toast({
         title: `${tab.charAt(0).toUpperCase() + tab.slice(1)}`,
         description: tabMessages[tab as keyof typeof tabMessages],
@@ -101,9 +100,6 @@ const Index = () => {
       />
       
       <main className="pb-20">
-        {/* Home tab is hidden but code kept for later use */}
-        {activeTab === 'home' && <Dashboard selectedGrade={selectedGrade} />}
-        
         {activeTab === 'subjects' && (
           <SubjectsPage 
             selectedGrade={selectedGrade} 

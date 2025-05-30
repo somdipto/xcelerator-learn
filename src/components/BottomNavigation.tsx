@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, BookOpen, Trophy, User } from 'lucide-react';
+import { BookOpen, Trophy, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface BottomNavigationProps {
@@ -10,7 +10,6 @@ interface BottomNavigationProps {
 
 const BottomNavigation = ({ activeTab, onTabChange }: BottomNavigationProps) => {
   const tabs = [
-    { id: 'home', label: 'Home', icon: Home },
     { id: 'subjects', label: 'Subjects', icon: BookOpen },
     { id: 'quizzes', label: 'Quizzes', icon: Trophy },
     { id: 'profile', label: 'Profile', icon: User },
