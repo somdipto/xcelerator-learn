@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import OnboardingModal from '@/components/OnboardingModal';
 import Dashboard from '@/components/Dashboard';
@@ -11,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 const Index = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState('subjects'); // Changed from 'home' to 'subjects'
 
   useEffect(() => {
     // Check if user has already selected a grade
@@ -61,7 +60,7 @@ const Index = () => {
       profile: "View your progress and achievements"
     };
     
-    if (tab !== 'home') {
+    if (tab !== 'subjects') { // Changed from 'home' to 'subjects'
       toast({
         title: `${tab.charAt(0).toUpperCase() + tab.slice(1)}`,
         description: tabMessages[tab as keyof typeof tabMessages],
@@ -102,6 +101,7 @@ const Index = () => {
       />
       
       <main className="pb-20">
+        {/* Home tab is hidden but code kept for later use */}
         {activeTab === 'home' && <Dashboard selectedGrade={selectedGrade} />}
         
         {activeTab === 'subjects' && (
