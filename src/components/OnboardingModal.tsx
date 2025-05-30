@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -29,7 +28,7 @@ const OnboardingModal = ({ isOpen, onSelectGrade }: OnboardingModalProps) => {
     { number: 12, label: 'Class XII', icon: Crown, color: 'text-emerald-400' },
   ];
 
-  const enabledClasses = [8, 10];
+  const enabledClasses = [8, 9, 10];
 
   const handleGradeClick = (grade: number) => {
     if (enabledClasses.includes(grade)) {
