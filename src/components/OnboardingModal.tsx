@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { BookOpen, GraduationCap, Users, School, Book, Calculator, Globe, Microscope, Rocket, Target, Trophy, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -27,6 +28,21 @@ const OnboardingModal = ({ isOpen, onSelectGrade }: OnboardingModalProps) => {
     { number: 11, label: 'Class XI', icon: Trophy, color: 'text-amber-400' },
     { number: 12, label: 'Class XII', icon: Crown, color: 'text-emerald-400' },
   ];
+
+  const enabledClasses = [8, 10];
+
+  const handleGradeClick = (grade: number) => {
+    if (enabledClasses.includes(grade)) {
+      onSelectGrade(grade);
+    } else {
+      // Show coming soon notification with glass texture
+      toast({
+        title: "Coming Soon! 🚀",
+        description: `Class ${grade} content is being prepared. Stay tuned for updates!`,
+        className: "bg-black/80 backdrop-blur-md border border-white/20 text-white shadow-2xl",
+      });
+    }
+  };
 
   const handleTeacherLogin = () => {
     navigate('/teacher-login');
@@ -52,14 +68,20 @@ const OnboardingModal = ({ isOpen, onSelectGrade }: OnboardingModalProps) => {
         <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
           {grades.map((grade) => {
             const IconComponent = grade.icon;
+            const isEnabled = enabledClasses.includes(grade.number);
+            
             return (
               <Button
                 key={grade.number}
-                onClick={() => onSelectGrade(grade.number)}
+                onClick={() => handleGradeClick(grade.number)}
                 variant="outline"
-                className="h-20 bg-[#121212] border-[#424242] hover:border-[#00E676] hover:bg-[#00E676]/10 text-white hover:text-[#00E676] transition-all duration-200 flex flex-col items-center gap-2 group"
+                className={`h-20 bg-[#121212] border-[#424242] text-white transition-all duration-200 flex flex-col items-center gap-2 group ${
+                  isEnabled 
+                    ? 'hover:border-[#00E676] hover:bg-[#00E676]/10 hover:text-[#00E676] opacity-100 cursor-pointer' 
+                    : 'opacity-30 cursor-not-allowed hover:opacity-40'
+                }`}
               >
-                <IconComponent className={`h-6 w-6 ${grade.color} group-hover:text-[#00E676] transition-colors`} />
+                <IconComponent className={`h-6 w-6 ${grade.color} ${isEnabled ? 'group-hover:text-[#00E676]' : ''} transition-colors`} />
                 <span className="text-sm font-medium">{grade.label}</span>
               </Button>
             );
