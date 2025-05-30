@@ -34,6 +34,14 @@ const Index = () => {
     });
   };
 
+  const handleClassChange = () => {
+    setShowOnboarding(true);
+    toast({
+      title: "Change Class",
+      description: "Select your new class to continue learning",
+    });
+  };
+
   const handleChapterSelect = (subject: string, chapter: string) => {
     toast({
       title: "Chapter Selected",
@@ -90,6 +98,7 @@ const Index = () => {
       <TopNavigation 
         selectedGrade={selectedGrade} 
         onChapterSelect={handleChapterSelect}
+        onClassChange={handleClassChange}
       />
       
       <main className="pb-20">

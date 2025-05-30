@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -9,9 +8,10 @@ import { toast } from '@/hooks/use-toast';
 interface TopNavigationProps {
   selectedGrade: number;
   onChapterSelect: (subject: string, chapter: string) => void;
+  onClassChange?: () => void;
 }
 
-const TopNavigation = ({ selectedGrade }: TopNavigationProps) => {
+const TopNavigation = ({ selectedGrade, onClassChange }: TopNavigationProps) => {
   const handleLiveClasses = () => {
     toast({
       title: "Live Classes",
@@ -26,6 +26,12 @@ const TopNavigation = ({ selectedGrade }: TopNavigationProps) => {
     });
   };
 
+  const handleClassClick = () => {
+    if (onClassChange) {
+      onClassChange();
+    }
+  };
+
   return (
     <nav className="bg-[#1A1A1A] border-b border-[#2C2C2C] p-4 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -36,9 +42,12 @@ const TopNavigation = ({ selectedGrade }: TopNavigationProps) => {
             <span className="text-white">erator</span>
           </div>
           <div className="hidden sm:block">
-            <p className="text-xs text-[#E0E0E0] bg-[#2C2C2C] px-2 py-1 rounded-full">
+            <button 
+              onClick={handleClassClick}
+              className="text-xs text-[#E0E0E0] bg-[#2C2C2C] px-2 py-1 rounded-full hover:bg-[#00E676] hover:text-black transition-colors cursor-pointer"
+            >
               Class {selectedGrade}
-            </p>
+            </button>
           </div>
         </div>
 
