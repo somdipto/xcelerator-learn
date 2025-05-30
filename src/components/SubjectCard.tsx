@@ -34,14 +34,6 @@ const SubjectCard = ({ subject, data, onSubjectSelect, onChapterSelect }: Subjec
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-[#E0E0E0]">Progress</span>
-            <span className="text-[#00E676]">0% Complete</span>
-          </div>
-          <div className="w-full bg-[#2C2C2C] rounded-full h-2">
-            <div className="bg-gradient-to-r from-[#00E676] to-[#2979FF] h-2 rounded-full w-0 transition-all duration-500"></div>
-          </div>
-          
           <div className="grid grid-cols-3 gap-2 mt-4">
             <div className="text-center">
               <div className="text-[#00E676] font-bold text-lg">📚</div>

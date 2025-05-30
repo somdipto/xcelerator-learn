@@ -104,6 +104,7 @@ const Index = () => {
           <SubjectsPage 
             selectedGrade={selectedGrade} 
             onChapterSelect={handleChapterSelect}
+            onClassChange={handleClassChange}
           />
         )}
         
