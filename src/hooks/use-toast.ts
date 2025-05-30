@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import type {
@@ -158,6 +159,8 @@ function toast({ ...props }: Toast) {
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
+      // Apply consistent black and white glass styling to all toasts
+      className: `bg-black/80 backdrop-blur-md border border-white/20 text-white shadow-2xl ${props.className || ''}`,
     },
   })
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -34,11 +35,10 @@ const OnboardingModal = ({ isOpen, onSelectGrade }: OnboardingModalProps) => {
     if (enabledClasses.includes(grade)) {
       onSelectGrade(grade);
     } else {
-      // Show coming soon notification with glass texture
+      // Show coming soon notification with consistent styling
       toast({
         title: "Coming Soon! 🚀",
         description: `Class ${grade} content is being prepared. Stay tuned for updates!`,
-        className: "bg-black/80 backdrop-blur-md border border-white/20 text-white shadow-2xl",
       });
     }
   };
