@@ -11,6 +11,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu';
+import { subjects } from '@/data/subjects';
 
 interface SubjectsDropdownProps {
   selectedGrade: number;
@@ -19,58 +20,6 @@ interface SubjectsDropdownProps {
 
 const SubjectsDropdown = ({ selectedGrade, onChapterSelect }: SubjectsDropdownProps) => {
   const [openSubject, setOpenSubject] = useState<string | null>(null);
-
-  const subjects = {
-    'Mathematics': {
-      icon: '🧮',
-      chapters: [
-        'Number Systems',
-        'Algebra',
-        'Geometry',
-        'Trigonometry',
-        'Statistics',
-        'Probability'
-      ]
-    },
-    'Science': {
-      icon: '🔬',
-      chapters: [
-        'Physics - Motion',
-        'Physics - Energy',
-        'Chemistry - Atoms',
-        'Biology - Life Processes',
-        'Environmental Science'
-      ]
-    },
-    'Social Science': {
-      icon: '🌍',
-      chapters: [
-        'History - Ancient India',
-        'Geography - Resources',
-        'Civics - Democracy',
-        'Economics - Development'
-      ]
-    },
-    'English': {
-      icon: '📖',
-      chapters: [
-        'Grammar',
-        'Literature',
-        'Writing Skills',
-        'Poetry',
-        'Comprehension'
-      ]
-    },
-    'Hindi': {
-      icon: '🇮🇳',
-      chapters: [
-        'व्याकरण',
-        'साहित्य',
-        'लेखन कौशल',
-        'कविता'
-      ]
-    }
-  };
 
   return (
     <DropdownMenu>
