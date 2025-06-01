@@ -6,57 +6,57 @@ export const subjects = {
     chapters: {
       8: [
         // Sem 1
-        'Rational Numbers',
-        'Linear Equations in One Variable',
-        'Understanding Quadrilaterals',
-        'Practical Geometry',
-        'Data Handling',
-        'Squares and Square Roots',
-        'Cubes and Cube Roots',
-        'Comparing Quantities',
+        'Chapter 1: Rational Numbers',
+        'Chapter 2: Linear Equations in One Variable',
+        'Chapter 3: Understanding Quadrilaterals',
+        'Chapter 4: Practical Geometry',
+        'Chapter 5: Data Handling',
+        'Chapter 6: Squares and Square Roots',
+        'Chapter 7: Cubes and Cube Roots',
+        'Chapter 8: Comparing Quantities',
         // Sem 2
-        'Algebraic Expressions and Identities',
-        'Visualizing Shapes',
-        'Mensuration',
-        'Exponents and Powers',
-        'Direct and Indirect Proportions',
-        'Factorization',
-        'Introduction to Graphs',
-        'Playing with Numbers'
+        'Chapter 9: Algebraic Expressions and Identities',
+        'Chapter 10: Visualizing Shapes',
+        'Chapter 11: Mensuration',
+        'Chapter 12: Exponents and Powers',
+        'Chapter 13: Direct and Indirect Proportions',
+        'Chapter 14: Factorization',
+        'Chapter 15: Introduction to Graphs',
+        'Chapter 16: Playing with Numbers'
       ],
       9: [
         // Sem 1
-        'Number System',
-        'Polynomials',
-        'Co-ordinate Geometry',
-        'Linear Equations in two variables',
-        'Introduction to Euclid\'s Geometry',
-        'Lines and Angles',
+        'Chapter 1: Number System',
+        'Chapter 2: Polynomials',
+        'Chapter 3: Co-ordinate Geometry',
+        'Chapter 4: Linear Equations in two variables',
+        'Chapter 5: Introduction to Euclid\'s Geometry',
+        'Chapter 6: Lines and Angles',
         // Sem 2
-        'Triangles',
-        'Quadrilaterals',
-        'Circles',
-        'Heron\'s Formula',
-        'Surface Areas and Volumes',
-        'Statistics'
+        'Chapter 7: TRIANGLES',
+        'Chapter 8: Quadrilaterals',
+        'Chapter 9: Circles',
+        'Chapter 10: HERON\'S FORMULA',
+        'Chapter 11: SURFACE AREAS AND VOLUMES',
+        'Chapter 12: Statistics'
       ],
       10: [
         // Sem 1
-        'Real Numbers',
-        'Polynomials',
-        'Pair of Linear Equations in two variables',
-        'Quadratic Equations',
-        'Arithmetic Progressions',
-        'Triangles',
-        'Coordinate Geometry',
+        'Chapter 1: Real Numbers',
+        'Chapter 2: Polynomials',
+        'Chapter 3: Pair of Linear Equations in two variables',
+        'Chapter 4: Quadratic Equations',
+        'Chapter 5: Arithmetic Progressions',
+        'Chapter 6: Triangles',
+        'Chapter 7: Coordinate Geometry',
         // Sem 2
-        'Introduction to Trigonometry',
-        'Some Applications of Trigonometry',
-        'Circles',
-        'Areas Related to Circles',
-        'Surface Areas and Volumes',
-        'Statistics',
-        'Probability'
+        'Chapter 8: INTRODUCTION TO TRIGONOMETRY',
+        'Chapter 9: SOME APPLICATIONS OF TRIGONOMETRY',
+        'Chapter 10: Circles',
+        'Chapter 11: AREAS RELATED TO CIRCLES',
+        'Chapter 12: SURFACE AREAS AND VOLUMES',
+        'Chapter 13: STATISTICS',
+        'Chapter 14: PROBABILITY'
       ]
     }
   },
@@ -66,56 +66,56 @@ export const subjects = {
     chapters: {
       8: [
         // Physics
-        'Force & Pressure',
-        'Friction',
-        'Coal & Petroleum',
-        'Synthetic Fibers & Plastics',
-        'Sounds',
-        'Materials: Metals and Non Metals',
-        'Light',
-        'Chemical Effects of Electrical Current',
-        'Some Natural Phenomena',
-        'Combustion and Flames',
-        'Stars and Solar System',
+        'Chapter 1: Force & Pressure',
+        'Chapter 2: Friction',
+        'Chapter 3: Coal & Petroleum',
+        'Chapter 4: Synthetic Fibers & Plastics',
+        'Chapter 5: Sounds',
+        'Chapter 6: Materials: Metals and Non Metals',
+        'Chapter 7: Light',
+        'Chapter 8: Chemical Effects of Electrical Current',
+        'Chapter 9: Some Natural Phenomena',
+        'Chapter 10: Combustion and Flames',
+        'Chapter 11: Stars and Solar System',
         // Biology
-        'Cell - Structure and Function',
-        'Microorganisms: Friends and Foes',
-        'Crop Production and Management',
-        'Reproduction in Animals',
-        'Reaching the age of Adolescence',
-        'Conservation of Plants and Animals',
-        'Pollution of Air and Water'
+        'Chapter 1: Cell - Structure and Function',
+        'Chapter 2: Microorganisms: Friends and Foes',
+        'Chapter 3: Crop Production and Management',
+        'Chapter 4: Reproduction in Animals',
+        'Chapter 5: Reaching the age of Adolescence',
+        'Chapter 6: Conservation of Plants and Animals',
+        'Chapter 7: Pollution of Air and Water'
       ],
       9: [
-        'Matter in Our Surroundings',
-        'Is Matter Around Us Pure?',
-        'Atoms and Molecules',
-        'Structure of the Atom',
-        'The Fundamental Unit of Life',
-        'Tissues',
-        'Motions',
-        'Force and Laws of Motion',
-        'Gravitation',
-        'Work and Energy',
-        'Sound',
-        'Improvement in Food Resources'
+        'Chapter 1: MATTER IN OUR SURROUNDINGS',
+        'Chapter 2: IS MATTER AROUND US PURE?',
+        'Chapter 3: ATOMS AND MOLECULES',
+        'Chapter 4: STRUCTURE OF THE ATOM',
+        'Chapter 5: THE FUNDAMENTAL UNIT OF LIFE',
+        'Chapter 6: TISSUES',
+        'Chapter 7: MOTIONS',
+        'Chapter 8: FORCE AND LAWS OF MOTION',
+        'Chapter 9: GRAVITATION',
+        'Chapter 10: WORK AND ENERGY',
+        'Chapter 11: SOUND',
+        'Chapter 12: IMPROVEMENT IN FOOD RESOURCES'
       ],
       10: [
         // Physics
-        'Light - Reflection and Refraction',
-        'The Human Eye and the Colourful World',
-        'Electricity',
-        'Magnetic Effects of Electric Current',
+        'Chapter 1: Light - Reflection and Refraction',
+        'Chapter 2: The Human Eye and the Colourful World',
+        'Chapter 3: Electricity',
+        'Chapter 4: Magnetic Effects of Electric Current',
         // Biology
-        'Life Processes',
-        'Control and Coordination',
-        'How do Organisms Reproduce?',
-        'Heredity',
+        'Chapter 1: Life Processes',
+        'Chapter 2: Control and Coordination',
+        'Chapter 3: How do Organisms Reproduce?',
+        'Chapter 4: Heredity',
         // Chemistry
-        'Chemical Reactions and Equations',
-        'Acids, Bases and Salts',
-        'Metals and Non-metals',
-        'Carbon and Its Compounds'
+        'Chapter 1: Chemical Reactions and Equations',
+        'Chapter 2: Acids, Bases and Salts',
+        'Chapter 3: Metals and Non-metals',
+        'Chapter 4: Carbon and Its Compounds'
       ]
     }
   },
@@ -125,55 +125,55 @@ export const subjects = {
     chapters: {
       8: [
         // Geography
-        'Resources',
-        'Land, Soil, Water, Natural Vegetation and Wildlife Resources',
-        'Mineral and Power Resources',
-        'Agriculture',
-        'Industries',
-        'Human Resources',
+        'Chapter 1: Resources',
+        'Chapter 2: Land, Soil, Water, Natural Vegetation and Wildlife Resources',
+        'Chapter 3: Mineral and Power Resources',
+        'Chapter 4: Agriculture',
+        'Chapter 5: Industries',
+        'Chapter 6: Human Resources',
         // History
-        'How, When and Where',
-        'From Trade to Territory',
-        'Ruling the Countryside',
-        'Tribals, Dikus and the Vision of a Golden Age',
-        'When People Rebel 1857 and After',
-        'Weavers, Iron Smelters and Factory Owners',
-        'Civilizing the "Native", Educating the Nation',
-        'Women, Caste and Reform',
-        'The Making of the National Movement 1870s-1947',
-        'India After Independence',
+        'Chapter 1: How, When and Where',
+        'Chapter 2: From Trade to Territory',
+        'Chapter 3: Ruling the Countryside',
+        'Chapter 4: Tribals, Dikus and the Vision of a Golden Age',
+        'Chapter 5: When People Rebel 1857 and After',
+        'Chapter 6: Weavers, Iron Smelters and Factory Owners',
+        'Chapter 7: Civilizing the "Native", Educating the Nation',
+        'Chapter 8: Women, Caste and Reform',
+        'Chapter 9: The Making of the National Movement 1870s-1947',
+        'Chapter 10: India After Independence',
         // Political Science
-        'The Indian Constitution and Secularism',
-        'Parliament and The Making of Laws',
-        'The Judiciary',
-        'Social Justice and The Marginalised',
-        'Economic Presence of the Government'
+        'Unit 1: The Indian Constitution and Secularism',
+        'Chapter 2: Parliament and The Making of Laws',
+        'Chapter 3: The Judiciary',
+        'Chapter 4: Social Justice and The Marginalised',
+        'Chapter 5: Economic Presence of the Government'
       ],
       9: [
         // Geography
-        'India - Size and Location',
-        'Physical Features of India',
-        'Drainage',
-        'Climate',
-        'Natural Vegetation and Wildlife',
-        'Population',
+        'Chapter 1: India - Size and Location',
+        'Chapter 2: Physical Features of India',
+        'Chapter 3: Drainage',
+        'Chapter 4: Climate',
+        'Chapter 5: Natural Vegetation and Wildlife',
+        'Chapter 6: Population',
         // History
-        'The French Revolution',
-        'Socialism in Europe and the Russian Revolution',
-        'Nazism and the Rise of Hitler',
-        'Forest Society and Colonialism',
-        'Pastoralists in the Modern World',
+        'Chapter 1: The French Revolution',
+        'Chapter 2: Socialism in Europe and the Russian Revolution',
+        'Chapter 3: Nazism and the Rise of Hitler',
+        'Chapter 4: Forest Society and Colonialism',
+        'Chapter 5: Pastoralists in the Modern World',
         // Political Science
-        'What is Democracy? Why Democracy?',
-        'Constitutional Design',
-        'Electoral Politics',
-        'Working of Institutions',
-        'Democratic Rights',
+        'Chapter 1: WHAT IS DEMOCRACY? WHY DEMOCRACY?',
+        'Chapter 2: CONSTITUTIONAL DESIGN',
+        'Chapter 3: ELECTORAL POLITICS',
+        'Chapter 4: WORKING OF INSTITUTIONS',
+        'Chapter 5: Demographic Rights',
         // Economics
-        'The Story of Village Palampur',
-        'People as Resource',
-        'Poverty as a Challenge',
-        'Food Security in India'
+        'Chapter 1: The Story of Village Palampur',
+        'Chapter 2: People as Resource',
+        'Chapter 3: Poverty as a Challenge',
+        'Chapter 4: Food Security in India'
       ],
       10: [
         // Placeholder for 10th grade - will be updated when provided
@@ -181,57 +181,6 @@ export const subjects = {
         'Geography - Resources and Development',
         'History - The Rise of Nationalism in Europe',
         'Political Science - Power Sharing'
-      ]
-    }
-  },
-  'English': {
-    icon: '📖',
-    gradient: 'from-pink-500 to-rose-600',
-    chapters: {
-      8: [
-        'Grammar',
-        'Literature',
-        'Writing Skills',
-        'Poetry',
-        'Comprehension'
-      ],
-      9: [
-        'Grammar',
-        'Literature',
-        'Writing Skills',
-        'Poetry',
-        'Comprehension'
-      ],
-      10: [
-        'Grammar',
-        'Literature',
-        'Writing Skills',
-        'Poetry',
-        'Comprehension'
-      ]
-    }
-  },
-  'Hindi': {
-    icon: '🇮🇳',
-    gradient: 'from-amber-500 to-yellow-600',
-    chapters: {
-      8: [
-        'व्याकरण',
-        'साहित्य',
-        'लेखन कौशल',
-        'कविता'
-      ],
-      9: [
-        'व्याकरण',
-        'साहित्य',
-        'लेखन कौशल',
-        'कविता'
-      ],
-      10: [
-        'व्याकरण',
-        'साहित्य',
-        'लेखन कौशल',
-        'कविता'
       ]
     }
   }

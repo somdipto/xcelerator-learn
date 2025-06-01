@@ -1,8 +1,9 @@
 
-import React from 'react';
-import { Play, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Play, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { SubjectName, SubjectData } from '@/data/subjects';
 
 interface SubjectCardProps {
@@ -14,7 +15,12 @@ interface SubjectCardProps {
 }
 
 const SubjectCard = ({ subject, data, selectedGrade, onSubjectSelect, onChapterSelect }: SubjectCardProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const gradeChapters = data.chapters[selectedGrade as keyof typeof data.chapters] || [];
+
+  const handleStartLearning = () => {
+    setIsExpanded(!isExpanded);
+  };
 
   return (
     <Card className="bg-[#1A1A1A]/80 backdrop-blur-md border-[#2C2C2C] hover:border-[#00E676]/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-[#00E676]/10 group cursor-pointer">
@@ -52,32 +58,58 @@ const SubjectCard = ({ subject, data, selectedGrade, onSubjectSelect, onChapterS
             </div>
           </div>
 
-          <Button
-            onClick={() => onSubjectSelect(subject)}
-            className="w-full mt-4 bg-gradient-to-r from-[#00E676] to-[#2979FF] hover:from-[#00E676]/90 hover:to-[#2979FF]/90 text-black font-medium transition-all duration-300 group-hover:shadow-lg"
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Start Learning
-          </Button>
-
-          <div className="mt-4 space-y-2">
-            <div className="text-sm text-[#E0E0E0] font-medium">Quick Preview:</div>
-            {gradeChapters.slice(0, 3).map((chapter, index) => (
-              <div 
-                key={index}
-                onClick={() => onChapterSelect(subject, chapter)}
-                className="text-xs text-[#666666] hover:text-[#00E676] cursor-pointer transition-colors duration-200 flex items-center gap-2 p-2 rounded-lg hover:bg-[#2C2C2C]/50"
+          <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+            <CollapsibleTrigger asChild>
+              <Button
+                onClick={handleStartLearning}
+                className="w-full mt-4 bg-gradient-to-r from-[#00E676] to-[#2979FF] hover:from-[#00E676]/90 hover:to-[#2979FF]/90 text-black font-medium transition-all duration-300 group-hover:shadow-lg"
               >
-                <ChevronRight className="h-3 w-3" />
-                {chapter}
+                <Play className="h-4 w-4 mr-2" />
+                {isExpanded ? 'Hide Chapters' : 'Start Learning'}
+                {isExpanded ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+              </Button>
+            </CollapsibleTrigger>
+
+            <CollapsibleContent className="mt-4">
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                <div className="text-sm text-[#E0E0E0] font-medium mb-2">All Chapters:</div>
+                {gradeChapters.map((chapter, index) => (
+                  <div 
+                    key={index}
+                    onClick={() => onChapterSelect(subject, chapter)}
+                    className="text-xs text-[#666666] hover:text-[#00E676] cursor-pointer transition-colors duration-200 flex items-center gap-2 p-2 rounded-lg hover:bg-[#2C2C2C]/50"
+                  >
+                    <ChevronRight className="h-3 w-3" />
+                    <span className="flex-1">{chapter}</span>
+                    <span className="text-xs bg-[#2979FF]/20 text-[#2979FF] px-2 py-1 rounded">
+                      {index + 1}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-            {gradeChapters.length > 3 && (
-              <div className="text-xs text-[#2979FF] text-center">
-                +{gradeChapters.length - 3} more chapters
-              </div>
-            )}
-          </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {!isExpanded && (
+            <div className="mt-4 space-y-2">
+              <div className="text-sm text-[#E0E0E0] font-medium">Quick Preview:</div>
+              {gradeChapters.slice(0, 3).map((chapter, index) => (
+                <div 
+                  key={index}
+                  onClick={() => onChapterSelect(subject, chapter)}
+                  className="text-xs text-[#666666] hover:text-[#00E676] cursor-pointer transition-colors duration-200 flex items-center gap-2 p-2 rounded-lg hover:bg-[#2C2C2C]/50"
+                >
+                  <ChevronRight className="h-3 w-3" />
+                  {chapter}
+                </div>
+              ))}
+              {gradeChapters.length > 3 && (
+                <div className="text-xs text-[#2979FF] text-center">
+                  +{gradeChapters.length - 3} more chapters
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
