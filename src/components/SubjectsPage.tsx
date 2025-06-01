@@ -80,6 +80,7 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
               key={subject}
               subject={subject as SubjectName}
               data={data}
+              selectedGrade={selectedGrade}
               onSubjectSelect={setSelectedSubject}
               onChapterSelect={handleChapterClick}
             />

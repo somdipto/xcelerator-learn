@@ -8,11 +8,14 @@ import { SubjectName, SubjectData } from '@/data/subjects';
 interface SubjectCardProps {
   subject: SubjectName;
   data: SubjectData;
+  selectedGrade: number;
   onSubjectSelect: (subject: string) => void;
   onChapterSelect: (subject: string, chapter: string) => void;
 }
 
-const SubjectCard = ({ subject, data, onSubjectSelect, onChapterSelect }: SubjectCardProps) => {
+const SubjectCard = ({ subject, data, selectedGrade, onSubjectSelect, onChapterSelect }: SubjectCardProps) => {
+  const gradeChapters = data.chapters[selectedGrade as keyof typeof data.chapters] || [];
+
   return (
     <Card className="bg-[#1A1A1A]/80 backdrop-blur-md border-[#2C2C2C] hover:border-[#00E676]/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-[#00E676]/10 group cursor-pointer">
       <CardHeader className="pb-4">
@@ -26,7 +29,7 @@ const SubjectCard = ({ subject, data, onSubjectSelect, onChapterSelect }: Subjec
                 {subject}
               </h3>
               <p className="text-[#666666] text-sm font-normal mt-1">
-                {data.chapters.length} chapters • Interactive learning
+                {gradeChapters.length} chapters • Interactive learning
               </p>
             </div>
           </div>
@@ -59,7 +62,7 @@ const SubjectCard = ({ subject, data, onSubjectSelect, onChapterSelect }: Subjec
 
           <div className="mt-4 space-y-2">
             <div className="text-sm text-[#E0E0E0] font-medium">Quick Preview:</div>
-            {data.chapters.slice(0, 3).map((chapter, index) => (
+            {gradeChapters.slice(0, 3).map((chapter, index) => (
               <div 
                 key={index}
                 onClick={() => onChapterSelect(subject, chapter)}
@@ -69,9 +72,9 @@ const SubjectCard = ({ subject, data, onSubjectSelect, onChapterSelect }: Subjec
                 {chapter}
               </div>
             ))}
-            {data.chapters.length > 3 && (
+            {gradeChapters.length > 3 && (
               <div className="text-xs text-[#2979FF] text-center">
-                +{data.chapters.length - 3} more chapters
+                +{gradeChapters.length - 3} more chapters
               </div>
             )}
           </div>
