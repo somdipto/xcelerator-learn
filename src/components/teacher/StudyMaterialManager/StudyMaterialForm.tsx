@@ -1,13 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StudyMaterial } from '../../../data/studyMaterial';
-// import { Button } from '../../ui/button';
-// import { Input } from '../../ui/input';
-// import { Textarea } from '../../ui/textarea';
-// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
-// import { Label } from '../../ui/label';
 
 interface StudyMaterialFormProps {
-  onSubmit: (formData: FormData) => void; // FormData for potential file uploads
+  onSubmit: (formData: FormData) => void;
   initialData?: StudyMaterial | null;
   onCancel: () => void;
 }
@@ -18,9 +20,8 @@ const StudyMaterialForm: React.FC<StudyMaterialFormProps> = ({ onSubmit, initial
   const [type, setType] = useState<'video' | 'pdf' | 'link' | 'other'>('link');
   const [url, setUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [subjectId, setSubjectId] = useState(''); // Optional: Add UI for this if needed
-  const [chapterId, setChapterId] = useState(''); // Optional: Add UI for this if needed
-
+  const [subjectId, setSubjectId] = useState('');
+  const [chapterId, setChapterId] = useState('');
 
   useEffect(() => {
     if (initialData) {
@@ -30,10 +31,7 @@ const StudyMaterialForm: React.FC<StudyMaterialFormProps> = ({ onSubmit, initial
       setUrl(initialData.url || '');
       setSubjectId(initialData.subjectId || '');
       setChapterId(initialData.chapterId || '');
-      // Note: File input cannot be programmatically set for editing for security reasons.
-      // User would need to re-select the file if they want to change it.
     } else {
-      // Reset form for new entry
       setTitle('');
       setDescription('');
       setType('link');
@@ -59,8 +57,6 @@ const StudyMaterialForm: React.FC<StudyMaterialFormProps> = ({ onSubmit, initial
       formData.append('file', file);
     }
 
-    // If editing, and we have an ID, append it.
-    // The backend will use this to identify the record to update.
     if (initialData?.id) {
       formData.append('id', initialData.id);
     }
@@ -71,102 +67,149 @@ const StudyMaterialForm: React.FC<StudyMaterialFormProps> = ({ onSubmit, initial
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setFile(event.target.files[0]);
-      // If a file is selected, clear the URL field for non-link/video types
       if (type !== 'link' && type !== 'video') {
         setUrl('');
       }
     }
   };
 
-    const handleTypeChange = (value: string) => {
+  const handleTypeChange = (value: string) => {
     const newType = value as 'video' | 'pdf' | 'link' | 'other';
     setType(newType);
-    // Reset relevant fields when type changes
     setUrl('');
     setFile(null);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div>
-        <label htmlFor="title">Title*</label>
-        <input
-          id="title"
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-      </div>
-      <div>
-        <label htmlFor="description">Description</label>
-        <textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </div>
-      <div>
-        <label htmlFor="type">Type*</label>
-        <select id="type" value={type} onChange={(e) => handleTypeChange(e.target.value)} required>
-          <option value="link">Link</option>
-          <option value="video">Video (URL)</option>
-          <option value="pdf">PDF (Upload)</option>
-          <option value="other">Other (Upload)</option>
-        </select>
-        {/* Example using ShadCN Select (if available & imported)
-        <Select value={type} onValueChange={handleTypeChange} required>
-          <SelectTrigger>
-            <SelectValue placeholder="Select material type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="link">Link</SelectItem>
-            <SelectItem value="video">Video (URL)</SelectItem>
-            <SelectItem value="pdf">PDF (Upload)</SelectItem>
-            <SelectItem value="other">Other (Upload)</SelectItem>
-          </SelectContent>
-        </Select>
-        */}
-      </div>
+    <Card className="bg-[#2C2C2C] border-[#424242]">
+      <CardHeader>
+        <CardTitle className="text-white">
+          {initialData ? 'Edit Study Material' : 'Add New Study Material'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="title" className="text-[#E0E0E0]">Title *</Label>
+            <Input
+              id="title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
+              placeholder="Enter material title"
+            />
+          </div>
 
-      {(type === 'link' || type === 'video') && (
-        <div>
-          <label htmlFor="url">URL*</label>
-          <input
-            id="url"
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            required={type === 'link' || type === 'video'}
-          />
-        </div>
-      )}
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-[#E0E0E0]">Description</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
+              placeholder="Enter material description"
+              rows={3}
+            />
+          </div>
 
-      {(type === 'pdf' || type === 'other') && (
-        <div>
-          <label htmlFor="file">{initialData?.filePath ? 'Replace File' : 'File* (PDF, Image, etc.)'}</label>
-          <input
-            id="file"
-            type="file"
-            onChange={handleFileChange}
-            accept={type === 'pdf' ? '.pdf' : '*/*'} // Be more specific with accept types if needed
-            required={!initialData && (type === 'pdf' || type === 'other')} // Required if new and not a link/video
-          />
-          {initialData?.filePath && <p>Current file: {initialData.filePath.split('/').pop()}</p>}
-        </div>
-      )}
+          <div className="space-y-2">
+            <Label htmlFor="type" className="text-[#E0E0E0]">Material Type *</Label>
+            <Select value={type} onValueChange={handleTypeChange} required>
+              <SelectTrigger className="bg-[#121212] border-[#424242] text-white focus:border-[#2979FF]">
+                <SelectValue placeholder="Select material type" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#2C2C2C] border-[#424242]">
+                <SelectItem value="link" className="text-white hover:bg-[#424242]">External Link</SelectItem>
+                <SelectItem value="video" className="text-white hover:bg-[#424242]">Video (URL)</SelectItem>
+                <SelectItem value="pdf" className="text-white hover:bg-[#424242]">PDF Document</SelectItem>
+                <SelectItem value="other" className="text-white hover:bg-[#424242]">Other File</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* TODO: Add inputs for subjectId and chapterId if needed, potentially dropdowns fetching from an API */}
+          {(type === 'link' || type === 'video') && (
+            <div className="space-y-2">
+              <Label htmlFor="url" className="text-[#E0E0E0]">URL *</Label>
+              <Input
+                id="url"
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                required={type === 'link' || type === 'video'}
+                className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
+                placeholder="Enter URL (e.g., https://example.com)"
+              />
+            </div>
+          )}
 
-      <div>
-        <button type="submit">{initialData ? 'Update' : 'Add'} Material</button>
-        <button type="button" onClick={onCancel} style={{ marginLeft: '8px' }}>Cancel</button>
-        {/* Example using ShadCN Button (if available & imported)
-        <Button type="submit">{initialData ? 'Update' : 'Add'} Material</Button>
-        <Button type="button" variant="outline" onClick={onCancel} style={{ marginLeft: '8px' }}>Cancel</Button>
-        */}
-      </div>
-    </form>
+          {(type === 'pdf' || type === 'other') && (
+            <div className="space-y-2">
+              <Label htmlFor="file" className="text-[#E0E0E0]">
+                {initialData?.filePath ? 'Replace File' : 'Upload File *'}
+              </Label>
+              <Input
+                id="file"
+                type="file"
+                onChange={handleFileChange}
+                accept={type === 'pdf' ? '.pdf' : '*/*'}
+                required={!initialData && (type === 'pdf' || type === 'other')}
+                className="bg-[#121212] border-[#424242] text-white file:bg-[#2979FF] file:text-white file:border-0 file:rounded file:px-3 file:py-1"
+              />
+              {initialData?.filePath && (
+                <p className="text-sm text-[#666666]">
+                  Current file: {initialData.filePath.split('/').pop()}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="subjectId" className="text-[#E0E0E0]">Subject ID</Label>
+              <Input
+                id="subjectId"
+                type="text"
+                value={subjectId}
+                onChange={(e) => setSubjectId(e.target.value)}
+                className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
+                placeholder="e.g., math-grade8"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="chapterId" className="text-[#E0E0E0]">Chapter ID</Label>
+              <Input
+                id="chapterId"
+                type="text"
+                value={chapterId}
+                onChange={(e) => setChapterId(e.target.value)}
+                className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
+                placeholder="e.g., chapter-1"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <Button 
+              type="submit"
+              className="bg-[#00E676] text-black hover:bg-[#00E676]/90 flex-1"
+            >
+              {initialData ? 'Update Material' : 'Add Material'}
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel}
+              className="border-[#424242] text-[#E0E0E0] hover:bg-[#424242] flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 
