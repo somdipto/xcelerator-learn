@@ -18,7 +18,7 @@ export const studyMaterials: { [subject: string]: SubjectMaterials } = {
   'Mathematics': {
     8: {
       'Chapter 1: Rational Numbers': {
-        pdfUrl: 'https://drive.google.com/file/d/1yGFT_Px8OCZKIRjHvcyqaF5CtwS1Qn15/preview'
+        pdfUrl: 'https://drive.google.com/file/d/1yGFT_Px8OCZKIRjHvcyqaF5CtwS1Qn15/view?usp=sharing'
       }
     },
     9: {},
