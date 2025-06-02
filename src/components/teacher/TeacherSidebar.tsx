@@ -8,6 +8,7 @@ import {
   Users, 
   Video, 
   FileQuestion,
+  FileText, // Added for Study Materials
   GraduationCap,
   Menu,
   X
@@ -25,6 +26,7 @@ const TeacherSidebar = ({ activeSection, onSectionChange }: TeacherSidebarProps)
     { id: 'overview', label: 'Dashboard', icon: Home },
     { id: 'subjects', label: 'Subjects', icon: BookOpen },
     { id: 'content', label: 'Content Upload', icon: Upload },
+    { id: 'study-materials', label: 'Study Materials', icon: FileText }, // Added this line
     { id: 'students', label: 'Student Analytics', icon: Users },
     { id: 'live-classes', label: 'Live Classes', icon: Video },
     { id: 'quizzes', label: 'Quiz Manager', icon: FileQuestion },
