@@ -23,38 +23,40 @@ const SubjectCard = ({ subject, data, selectedGrade, onSubjectSelect, onChapterS
   };
 
   return (
-    <Card className="bg-[#1A1A1A]/80 backdrop-blur-md border-[#2C2C2C] hover:border-[#00E676]/50 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-[#00E676]/10 group cursor-pointer">
-      <CardHeader className="pb-4">
+    <Card className="bg-[#1A1A1A]/90 backdrop-blur-md border-[#2C2C2C] hover:border-[#00E676]/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-[#00E676]/5 group cursor-pointer">
+      <CardHeader className="pb-3 px-4 sm:px-6">
         <CardTitle className="text-white">
-          <div className="flex items-center gap-4 mb-4">
-            <div className={`p-4 rounded-2xl bg-gradient-to-r ${data.gradient} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-              <span className="text-3xl">{data.icon}</span>
+          <div className="flex items-center gap-3 mb-3">
+            <div className={`p-3 sm:p-4 rounded-xl bg-gradient-to-r ${data.gradient} shadow-lg group-hover:scale-105 transition-transform duration-300`}>
+              <span className="text-2xl sm:text-3xl">{data.icon}</span>
             </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold bg-gradient-to-r from-white to-[#E0E0E0] bg-clip-text text-transparent">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-white to-[#E0E0E0] bg-clip-text text-transparent truncate">
                 {subject}
               </h3>
-              <p className="text-[#666666] text-sm font-normal mt-1">
-                {gradeChapters.length} chapters • Interactive learning
+              <p className="text-[#999999] text-sm font-normal mt-1">
+                {gradeChapters.length} chapters
               </p>
             </div>
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-2 mt-4">
-            <div className="text-center">
-              <div className="text-[#00E676] font-bold text-lg">📚</div>
-              <div className="text-xs text-[#666666]">Theory</div>
+      
+      <CardContent className="px-4 sm:px-6 pb-4">
+        <div className="space-y-4">
+          {/* Features Grid - Mobile Optimized */}
+          <div className="grid grid-cols-3 gap-2 py-3 bg-[#2C2C2C]/30 rounded-lg">
+            <div className="text-center py-2">
+              <div className="text-[#00E676] text-lg mb-1">📚</div>
+              <div className="text-xs text-[#999999] font-medium">Theory</div>
             </div>
-            <div className="text-center">
-              <div className="text-[#2979FF] font-bold text-lg">🎥</div>
-              <div className="text-xs text-[#666666]">Videos</div>
+            <div className="text-center py-2">
+              <div className="text-[#2979FF] text-lg mb-1">🎥</div>
+              <div className="text-xs text-[#999999] font-medium">Videos</div>
             </div>
-            <div className="text-center">
-              <div className="text-[#00E676] font-bold text-lg">🏆</div>
-              <div className="text-xs text-[#666666]">Quizzes</div>
+            <div className="text-center py-2">
+              <div className="text-[#00E676] text-lg mb-1">🏆</div>
+              <div className="text-xs text-[#999999] font-medium">Quizzes</div>
             </div>
           </div>
 
@@ -62,50 +64,50 @@ const SubjectCard = ({ subject, data, selectedGrade, onSubjectSelect, onChapterS
             <CollapsibleTrigger asChild>
               <Button
                 onClick={handleStartLearning}
-                className="w-full mt-4 bg-gradient-to-r from-[#00E676] to-[#2979FF] hover:from-[#00E676]/90 hover:to-[#2979FF]/90 text-black font-medium transition-all duration-300 group-hover:shadow-lg"
+                className="w-full h-12 bg-gradient-to-r from-[#00E676] to-[#2979FF] hover:from-[#00E676]/90 hover:to-[#2979FF]/90 text-black font-semibold transition-all duration-300 text-base touch-manipulation"
               >
-                <Play className="h-4 w-4 mr-2" />
+                <Play className="h-5 w-5 mr-2" />
                 {isExpanded ? 'Hide Chapters' : 'Start Learning'}
-                {isExpanded ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+                {isExpanded ? <ChevronUp className="h-5 w-5 ml-2" /> : <ChevronDown className="h-5 w-5 ml-2" />}
               </Button>
             </CollapsibleTrigger>
 
             <CollapsibleContent className="mt-4">
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                <div className="text-sm text-[#E0E0E0] font-medium mb-2">All Chapters:</div>
+              <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
+                <div className="text-sm text-[#E0E0E0] font-semibold mb-3 px-1">All Chapters</div>
                 {gradeChapters.map((chapter, index) => (
-                  <div 
+                  <button 
                     key={index}
                     onClick={() => onChapterSelect(subject, chapter)}
-                    className="text-xs text-[#666666] hover:text-[#00E676] cursor-pointer transition-colors duration-200 flex items-center gap-2 p-2 rounded-lg hover:bg-[#2C2C2C]/50"
+                    className="w-full text-left text-sm text-[#CCCCCC] hover:text-[#00E676] cursor-pointer transition-all duration-200 flex items-center gap-3 p-3 rounded-lg hover:bg-[#2C2C2C]/50 active:bg-[#2C2C2C]/70 touch-manipulation"
                   >
-                    <ChevronRight className="h-3 w-3" />
-                    <span className="flex-1">{chapter}</span>
-                    <span className="text-xs bg-[#2979FF]/20 text-[#2979FF] px-2 py-1 rounded">
+                    <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                    <span className="flex-1 leading-relaxed">{chapter}</span>
+                    <span className="text-xs bg-[#2979FF]/20 text-[#2979FF] px-2 py-1 rounded-full font-medium flex-shrink-0">
                       {index + 1}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </CollapsibleContent>
           </Collapsible>
 
           {!isExpanded && (
-            <div className="mt-4 space-y-2">
-              <div className="text-sm text-[#E0E0E0] font-medium">Quick Preview:</div>
-              {gradeChapters.slice(0, 3).map((chapter, index) => (
-                <div 
+            <div className="space-y-2">
+              <div className="text-sm text-[#E0E0E0] font-semibold mb-2 px-1">Preview</div>
+              {gradeChapters.slice(0, 2).map((chapter, index) => (
+                <button 
                   key={index}
                   onClick={() => onChapterSelect(subject, chapter)}
-                  className="text-xs text-[#666666] hover:text-[#00E676] cursor-pointer transition-colors duration-200 flex items-center gap-2 p-2 rounded-lg hover:bg-[#2C2C2C]/50"
+                  className="w-full text-left text-sm text-[#CCCCCC] hover:text-[#00E676] cursor-pointer transition-all duration-200 flex items-center gap-3 p-3 rounded-lg hover:bg-[#2C2C2C]/50 active:bg-[#2C2C2C]/70 touch-manipulation"
                 >
-                  <ChevronRight className="h-3 w-3" />
-                  {chapter}
-                </div>
+                  <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                  <span className="flex-1 leading-relaxed truncate">{chapter}</span>
+                </button>
               ))}
-              {gradeChapters.length > 3 && (
-                <div className="text-xs text-[#2979FF] text-center">
-                  +{gradeChapters.length - 3} more chapters
+              {gradeChapters.length > 2 && (
+                <div className="text-sm text-[#2979FF] text-center py-2 font-medium">
+                  +{gradeChapters.length - 2} more chapters
                 </div>
               )}
             </div>
