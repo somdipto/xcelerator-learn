@@ -8,6 +8,7 @@ import ContentUploader from '@/components/teacher/ContentUploader';
 import StudentAnalytics from '@/components/teacher/StudentAnalytics';
 import LiveClassManager from '@/components/teacher/LiveClassManager';
 import QuizManager from '@/components/teacher/QuizManager';
+import StudyMaterialManager from '@/components/teacher/StudyMaterialManager';
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -48,6 +49,8 @@ const TeacherDashboard = () => {
         return <LiveClassManager />;
       case 'quizzes':
         return <QuizManager />;
+      case 'study-materials':
+        return <StudyMaterialManager />;
       default:
         return (
           <div className="p-4 md:p-6">
