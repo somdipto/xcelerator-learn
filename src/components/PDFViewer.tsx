@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ExternalLink, Maximize2, Minimize2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -11,20 +11,55 @@ interface PDFViewerProps {
 const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Convert Google Drive URL to proper embed format
+  const getEmbedUrl = (url: string) => {
+    if (url.includes('drive.google.com')) {
+      const fileId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
+      if (fileId) {
+        return `https://drive.google.com/file/d/${fileId}/preview`;
+      }
+    }
+    return url;
+  };
+
+  const embedUrl = getEmbedUrl(pdfUrl);
 
   const openInNewTab = () => {
-    const originalUrl = pdfUrl.replace('/preview', '/view');
+    const originalUrl = embedUrl.replace('/preview', '/view');
     window.open(originalUrl, '_blank');
   };
 
   const openWithGoogleViewer = () => {
-    const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl.replace('/preview', '/view'))}&embedded=true`;
+    const originalUrl = embedUrl.replace('/preview', '/view');
+    const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(originalUrl)}&embedded=true`;
     window.open(viewerUrl, '_blank');
+  };
+
+  const handleIframeLoad = () => {
+    setIsLoading(false);
+    console.log('PDF loaded successfully');
   };
 
   const handleIframeError = () => {
     setHasError(true);
+    setIsLoading(false);
+    console.log('PDF failed to load');
   };
+
+  // Timeout fallback since iframe events aren't reliable for cross-origin
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        setHasError(true);
+        setIsLoading(false);
+        console.log('PDF loading timeout - showing fallback options');
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [isLoading]);
 
   return (
     <div className="space-y-4">
@@ -77,15 +112,26 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
             </div>
           </div>
         ) : (
-          <iframe
-            src={pdfUrl}
-            width="100%"
-            height="100%"
-            title={title}
-            className="bg-white"
-            allow="autoplay; encrypted-media"
-            onError={handleIframeError}
-          />
+          <div className="relative h-full">
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-[#1A1A1A] z-10">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00E676] mx-auto mb-4"></div>
+                  <p className="text-white">Loading PDF...</p>
+                </div>
+              </div>
+            )}
+            <iframe
+              src={embedUrl}
+              width="100%"
+              height="100%"
+              title={title}
+              className="bg-white"
+              allow="autoplay; encrypted-media"
+              onLoad={handleIframeLoad}
+              onError={handleIframeError}
+            />
+          </div>
         )}
       </div>
       
