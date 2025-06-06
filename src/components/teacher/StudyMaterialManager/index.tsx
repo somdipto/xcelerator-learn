@@ -5,137 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, RefreshCw } from 'lucide-react';
 import StudyMaterialList from './StudyMaterialList';
 import StudyMaterialForm from './StudyMaterialForm';
-import { StudyMaterial } from '../../../data/studyMaterial';
+import { supabaseService, StudyMaterial } from '../../../services/supabaseService';
 import { toast } from '@/hooks/use-toast';
-
-// API configuration
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://your-server-url.com' // Replace with your actual server URL
-  : 'http://localhost:3001';
-
-// API functions
-const fetchStudyMaterials = async (): Promise<StudyMaterial[]> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/studymaterials`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch: ${response.status}`);
-    }
-    const data = await response.json();
-    return data.map((m: any) => ({
-      ...m,
-      createdAt: new Date(m.createdAt),
-      updatedAt: new Date(m.updatedAt)
-    }));
-  } catch (error) {
-    console.error('API Error - falling back to localStorage:', error);
-    // Fallback to localStorage for development
-    const storedMaterials = localStorage.getItem('studyMaterials');
-    if (storedMaterials) {
-      return JSON.parse(storedMaterials).map((m: any) => ({
-        ...m,
-        createdAt: new Date(m.createdAt),
-        updatedAt: new Date(m.updatedAt)
-      }));
-    }
-    return [];
-  }
-};
-
-const addStudyMaterial = async (formData: FormData): Promise<StudyMaterial> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/studymaterials`, {
-      method: 'POST',
-      body: formData,
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to add: ${response.status}`);
-    }
-    const data = await response.json();
-    return {
-      ...data,
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt)
-    };
-  } catch (error) {
-    console.error('API Error - falling back to localStorage:', error);
-    // Fallback for development
-    const newId = Math.random().toString(36).substring(2, 15);
-    const material = {
-      id: newId,
-      teacherId: 'teacher1',
-      title: formData.get('title') as string,
-      description: formData.get('description') as string,
-      type: formData.get('type') as 'video' | 'pdf' | 'link' | 'other',
-      url: formData.get('url') as string || undefined,
-      filePath: formData.get('file') ? (formData.get('file') as File).name : undefined,
-      subjectId: formData.get('subjectId') as string || undefined,
-      chapterId: formData.get('chapterId') as string || undefined,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    const materials = await fetchStudyMaterials();
-    localStorage.setItem('studyMaterials', JSON.stringify([...materials, material]));
-    return material;
-  }
-};
-
-const updateStudyMaterial = async (formData: FormData): Promise<StudyMaterial> => {
-  const materialId = formData.get('id') as string;
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/studymaterials/${materialId}`, {
-      method: 'PUT',
-      body: formData,
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to update: ${response.status}`);
-    }
-    const data = await response.json();
-    return {
-      ...data,
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt)
-    };
-  } catch (error) {
-    console.error('API Error - falling back to localStorage:', error);
-    // Fallback for development
-    let materials = await fetchStudyMaterials();
-    const updatedMaterial = {
-      id: materialId,
-      teacherId: 'teacher1',
-      title: formData.get('title') as string,
-      description: formData.get('description') as string,
-      type: formData.get('type') as 'video' | 'pdf' | 'link' | 'other',
-      url: formData.get('url') as string || undefined,
-      filePath: formData.get('file') ? (formData.get('file') as File).name : materials.find(m=>m.id === materialId)?.filePath,
-      subjectId: formData.get('subjectId') as string || undefined,
-      chapterId: formData.get('chapterId') as string || undefined,
-      createdAt: materials.find(m=>m.id === materialId)?.createdAt || new Date(),
-      updatedAt: new Date(),
-    };
-    
-    materials = materials.map(m => m.id === materialId ? updatedMaterial : m);
-    localStorage.setItem('studyMaterials', JSON.stringify(materials));
-    return updatedMaterial;
-  }
-};
-
-const deleteStudyMaterial = async (id: string): Promise<void> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/studymaterials/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to delete: ${response.status}`);
-    }
-  } catch (error) {
-    console.error('API Error - falling back to localStorage:', error);
-    // Fallback for development
-    let materials = await fetchStudyMaterials();
-    materials = materials.filter(m => m.id !== id);
-    localStorage.setItem('studyMaterials', JSON.stringify(materials));
-  }
-};
 
 const StudyMaterialManager: React.FC = () => {
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
@@ -143,15 +14,69 @@ const StudyMaterialManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    checkUser();
+    loadMaterials();
+    
+    // Subscribe to real-time updates
+    const channel = supabaseService.subscribeToStudyMaterials((payload) => {
+      console.log('Real-time update:', payload);
+      loadMaterials(); // Reload materials when changes occur
+    });
+
+    return () => {
+      supabaseService.supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const checkUser = async () => {
+    const { user } = await supabaseService.getCurrentUser();
+    if (user) {
+      const { data: profile } = await supabaseService.getProfile(user.id);
+      setCurrentUser({ ...user, profile });
+    }
+  };
 
   const loadMaterials = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchStudyMaterials();
-      setMaterials(data);
-      console.log('Loaded materials:', data);
-    } catch (err) {
+      const { user } = await supabaseService.getCurrentUser();
+      if (!user) {
+        setError('Please log in to view materials');
+        return;
+      }
+
+      const { data, error: fetchError } = await supabaseService.getTeacherStudyMaterials(user.id);
+      
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      // Transform data to match the expected format
+      const transformedMaterials = data?.map((item: any) => ({
+        id: item.id,
+        teacherId: item.teacher_id,
+        title: item.title,
+        description: item.description,
+        type: item.type,
+        url: item.url,
+        filePath: item.file_path,
+        subjectId: item.subject_id,
+        chapterId: item.chapter_id,
+        grade: item.grade,
+        isPublic: item.is_public,
+        createdAt: new Date(item.created_at),
+        updatedAt: new Date(item.updated_at),
+        subjectName: item.subjects?.name,
+        chapterName: item.chapters?.name
+      })) || [];
+
+      setMaterials(transformedMaterials);
+      console.log('Loaded materials from Supabase:', transformedMaterials);
+    } catch (err: any) {
       console.error("Failed to fetch materials:", err);
       setError('Failed to load study materials. Please try again.');
       toast({
@@ -163,10 +88,6 @@ const StudyMaterialManager: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadMaterials();
-  }, []);
 
   const handleAddClick = () => {
     setEditingMaterial(null);
@@ -181,13 +102,18 @@ const StudyMaterialManager: React.FC = () => {
   const handleDelete = async (materialId: string) => {
     if (window.confirm('Are you sure you want to delete this material?')) {
       try {
-        await deleteStudyMaterial(materialId);
+        const { error } = await supabaseService.deleteStudyMaterial(materialId);
+        
+        if (error) {
+          throw error;
+        }
+
         await loadMaterials();
         toast({
           title: "Success",
           description: "Study material deleted successfully",
         });
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to delete material:", err);
         setError('Failed to delete material. Please try again.');
         toast({
@@ -202,29 +128,65 @@ const StudyMaterialManager: React.FC = () => {
   const handleFormSubmit = async (formData: FormData) => {
     setIsLoading(true);
     try {
+      const { user } = await supabaseService.getCurrentUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      const materialData = {
+        teacher_id: user.id,
+        title: formData.get('title') as string,
+        description: formData.get('description') as string || null,
+        type: formData.get('type') as 'video' | 'pdf' | 'link' | 'other',
+        url: formData.get('url') as string || null,
+        file_path: null as string | null,
+        subject_id: formData.get('subjectId') as string || null,
+        chapter_id: formData.get('chapterId') as string || null,
+        grade: formData.get('grade') ? parseInt(formData.get('grade') as string) : null,
+        is_public: true
+      };
+
+      // Handle file upload if present
+      const file = formData.get('file') as File;
+      if (file && file.size > 0) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
+        const filePath = `study-materials/${fileName}`;
+        
+        // Note: You'll need to create a storage bucket first
+        // For now, we'll store the filename
+        materialData.file_path = filePath;
+        materialData.url = null;
+      }
+
+      let result;
       if (editingMaterial) {
-        formData.append('id', editingMaterial.id);
-        await updateStudyMaterial(formData);
+        result = await supabaseService.updateStudyMaterial(editingMaterial.id, materialData);
         toast({
           title: "Success",
           description: "Study material updated successfully",
         });
       } else {
-        await addStudyMaterial(formData);
+        result = await supabaseService.createStudyMaterial(materialData);
         toast({
           title: "Success",
           description: "Study material added successfully",
         });
       }
+
+      if (result.error) {
+        throw result.error;
+      }
+
       setShowForm(false);
       setEditingMaterial(null);
       await loadMaterials();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to save material:", err);
       setError('Failed to save material. Please try again.');
       toast({
         title: "Error",
-        description: "Failed to save material",
+        description: err.message || "Failed to save material",
         variant: "destructive",
       });
     } finally {
@@ -236,6 +198,22 @@ const StudyMaterialManager: React.FC = () => {
     setShowForm(false);
     setEditingMaterial(null);
   };
+
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-[#E0E0E0] mb-4">Please log in to access the study materials manager.</p>
+          <Button 
+            onClick={() => window.location.href = '/teacher-login'}
+            className="bg-[#2979FF] text-white hover:bg-[#2979FF]/90"
+          >
+            Go to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading && materials.length === 0) {
     return (

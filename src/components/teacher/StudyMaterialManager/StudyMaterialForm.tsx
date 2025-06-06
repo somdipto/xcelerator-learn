@@ -6,11 +6,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StudyMaterial } from '../../../data/studyMaterial';
+import { supabaseService, Subject } from '../../../services/supabaseService';
 
 interface StudyMaterialFormProps {
   onSubmit: (formData: FormData) => void;
-  initialData?: StudyMaterial | null;
+  initialData?: any;
   onCancel: () => void;
 }
 
@@ -22,8 +22,12 @@ const StudyMaterialForm: React.FC<StudyMaterialFormProps> = ({ onSubmit, initial
   const [file, setFile] = useState<File | null>(null);
   const [subjectId, setSubjectId] = useState('');
   const [chapterId, setChapterId] = useState('');
+  const [grade, setGrade] = useState<number>(8);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
 
   useEffect(() => {
+    loadSubjects();
+    
     if (initialData) {
       setTitle(initialData.title);
       setDescription(initialData.description || '');
@@ -31,6 +35,7 @@ const StudyMaterialForm: React.FC<StudyMaterialFormProps> = ({ onSubmit, initial
       setUrl(initialData.url || '');
       setSubjectId(initialData.subjectId || '');
       setChapterId(initialData.chapterId || '');
+      setGrade(initialData.grade || 8);
     } else {
       setTitle('');
       setDescription('');
@@ -39,8 +44,22 @@ const StudyMaterialForm: React.FC<StudyMaterialFormProps> = ({ onSubmit, initial
       setFile(null);
       setSubjectId('');
       setChapterId('');
+      setGrade(8);
     }
   }, [initialData]);
+
+  const loadSubjects = async () => {
+    try {
+      const { data, error } = await supabaseService.getSubjects();
+      if (error) {
+        console.error('Error loading subjects:', error);
+        return;
+      }
+      setSubjects(data || []);
+    } catch (error) {
+      console.error('Failed to load subjects:', error);
+    }
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -48,6 +67,7 @@ const StudyMaterialForm: React.FC<StudyMaterialFormProps> = ({ onSubmit, initial
     formData.append('title', title);
     formData.append('description', description);
     formData.append('type', type);
+    formData.append('grade', grade.toString());
     if (subjectId) formData.append('subjectId', subjectId);
     if (chapterId) formData.append('chapterId', chapterId);
 
@@ -80,6 +100,9 @@ const StudyMaterialForm: React.FC<StudyMaterialFormProps> = ({ onSubmit, initial
     setFile(null);
   };
 
+  // Filter subjects by selected grade
+  const gradeSubjects = subjects.filter(subject => subject.grade === grade);
+
   return (
     <Card className="bg-[#2C2C2C] border-[#424242]">
       <CardHeader>
@@ -89,17 +112,35 @@ const StudyMaterialForm: React.FC<StudyMaterialFormProps> = ({ onSubmit, initial
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="title" className="text-[#E0E0E0]">Title *</Label>
-            <Input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
-              placeholder="Enter material title"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-[#E0E0E0]">Title *</Label>
+              <Input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
+                placeholder="Enter material title"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="grade" className="text-[#E0E0E0]">Grade *</Label>
+              <Select value={grade.toString()} onValueChange={(value) => setGrade(parseInt(value))} required>
+                <SelectTrigger className="bg-[#121212] border-[#424242] text-white focus:border-[#2979FF]">
+                  <SelectValue placeholder="Select grade" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#2C2C2C] border-[#424242]">
+                  {[8, 9, 10, 11, 12].map(g => (
+                    <SelectItem key={g} value={g.toString()} className="text-white hover:bg-[#424242]">
+                      Class {g}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -165,30 +206,32 @@ const StudyMaterialForm: React.FC<StudyMaterialFormProps> = ({ onSubmit, initial
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="subjectId" className="text-[#E0E0E0]">Subject ID</Label>
-              <Input
-                id="subjectId"
-                type="text"
-                value={subjectId}
-                onChange={(e) => setSubjectId(e.target.value)}
-                className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
-                placeholder="e.g., math-grade8"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="subjectId" className="text-[#E0E0E0]">Subject</Label>
+            <Select value={subjectId} onValueChange={setSubjectId}>
+              <SelectTrigger className="bg-[#121212] border-[#424242] text-white focus:border-[#2979FF]">
+                <SelectValue placeholder="Select subject (optional)" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#2C2C2C] border-[#424242]">
+                {gradeSubjects.map(subject => (
+                  <SelectItem key={subject.id} value={subject.id} className="text-white hover:bg-[#424242]">
+                    {subject.icon} {subject.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="chapterId" className="text-[#E0E0E0]">Chapter ID</Label>
-              <Input
-                id="chapterId"
-                type="text"
-                value={chapterId}
-                onChange={(e) => setChapterId(e.target.value)}
-                className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
-                placeholder="e.g., chapter-1"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="chapterId" className="text-[#E0E0E0]">Chapter ID</Label>
+            <Input
+              id="chapterId"
+              type="text"
+              value={chapterId}
+              onChange={(e) => setChapterId(e.target.value)}
+              className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
+              placeholder="e.g., chapter-1 (optional)"
+            />
           </div>
 
           <div className="flex gap-3 pt-4">

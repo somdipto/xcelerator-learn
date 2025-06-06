@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SubjectCard from './SubjectCard';
 import ChapterStudyMaterial from './ChapterStudyMaterial';
-import { subjects, SubjectName } from '@/data/subjects';
+import { supabaseService, Subject } from '@/services/supabaseService';
 import { toast } from '@/hooks/use-toast';
 
 interface SubjectsPageProps {
@@ -16,6 +16,38 @@ interface SubjectsPageProps {
 const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: SubjectsPageProps) => {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadSubjects();
+  }, [selectedGrade]);
+
+  const loadSubjects = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabaseService.getSubjects(selectedGrade);
+      if (error) {
+        console.error('Error loading subjects:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load subjects",
+          variant: "destructive",
+        });
+        return;
+      }
+      setSubjects(data || []);
+    } catch (error) {
+      console.error('Failed to load subjects:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load subjects",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleChapterClick = (subject: string, chapter: string) => {
     setSelectedChapter(chapter);
@@ -41,11 +73,22 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
   if (selectedChapter && selectedSubject) {
     return (
       <ChapterStudyMaterial
-        subject={selectedSubject as SubjectName}
+        subject={selectedSubject as any}
         chapter={selectedChapter}
         selectedGrade={selectedGrade}
         onBack={handleBackToSubjects}
       />
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] px-4 sm:px-6 py-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00E676] mx-auto mb-4"></div>
+          <p className="text-[#E0E0E0]">Loading subjects...</p>
+        </div>
+      </div>
     );
   }
 
@@ -77,19 +120,33 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
         </div>
 
         {/* Subjects Grid - Mobile Responsive */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {Object.entries(subjects).map(([subject, data]) => (
-            <div key={subject} className="w-full">
-              <SubjectCard
-                subject={subject as SubjectName}
-                data={data}
-                selectedGrade={selectedGrade}
-                onSubjectSelect={setSelectedSubject}
-                onChapterSelect={handleChapterClick}
-              />
-            </div>
-          ))}
-        </div>
+        {subjects.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📚</div>
+            <h3 className="text-xl text-[#E0E0E0] mb-2">No subjects available yet</h3>
+            <p className="text-[#666666]">Subjects for Class {selectedGrade} will be added soon.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {subjects.map((subject) => (
+              <div key={subject.id} className="w-full">
+                <SubjectCard
+                  subject={subject.name as any}
+                  data={{
+                    icon: subject.icon || '📚',
+                    gradient: `from-[${subject.color || '#2979FF'}] to-[${subject.color || '#2979FF'}]/70`,
+                    chapters: {
+                      [selectedGrade]: [] // We'll implement chapter loading later
+                    }
+                  }}
+                  selectedGrade={selectedGrade}
+                  onSubjectSelect={setSelectedSubject}
+                  onChapterSelect={handleChapterClick}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
