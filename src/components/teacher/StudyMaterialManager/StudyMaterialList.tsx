@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, ExternalLink, FileText, Video, Link as LinkIcon } from 'lucide-react';
-import { StudyMaterial } from '../../../data/studyMaterial';
+import { StudyMaterial } from '../../../services/supabaseService';
 
 interface StudyMaterialListProps {
   materials: StudyMaterial[];
@@ -52,9 +52,9 @@ const StudyMaterialList: React.FC<StudyMaterialListProps> = ({
   const handleViewMaterial = (material: StudyMaterial) => {
     if (material.url) {
       window.open(material.url, '_blank');
-    } else if (material.filePath) {
+    } else if (material.file_path) {
       // Construct the full URL for the uploaded file
-      const fileUrl = `${window.location.origin}/uploads/${material.filePath.replace('uploads/', '')}`;
+      const fileUrl = `${window.location.origin}/uploads/${material.file_path.replace('uploads/', '')}`;
       window.open(fileUrl, '_blank');
     }
   };
@@ -114,25 +114,25 @@ const StudyMaterialList: React.FC<StudyMaterialListProps> = ({
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        {material.subjectId && (
-                          <div className="text-[#E0E0E0]">Subject: {material.subjectId}</div>
+                        {material.subject_id && (
+                          <div className="text-[#E0E0E0]">Subject: {material.subject_id}</div>
                         )}
-                        {material.chapterId && (
-                          <div className="text-[#CCCCCC]">Chapter: {material.chapterId}</div>
+                        {material.chapter_id && (
+                          <div className="text-[#CCCCCC]">Chapter: {material.chapter_id}</div>
                         )}
-                        {!material.subjectId && !material.chapterId && (
+                        {!material.subject_id && !material.chapter_id && (
                           <span className="text-[#666666]">Not specified</span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm text-[#CCCCCC]">
-                        {material.createdAt.toLocaleDateString()}
+                        {new Date(material.created_at).toLocaleDateString()}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
-                        {(material.url || material.filePath) && (
+                        {(material.url || material.file_path) && (
                           <Button
                             variant="ghost"
                             size="sm"

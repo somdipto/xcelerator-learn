@@ -55,9 +55,25 @@ const StudyMaterialManager: React.FC = () => {
         throw fetchError;
       }
 
-      // Use the data directly as it matches our StudyMaterial interface
-      setMaterials(data || []);
-      console.log('Loaded materials from Supabase:', data);
+      // Transform and validate the data to ensure type safety
+      const transformedMaterials: StudyMaterial[] = (data || []).map((item: any) => ({
+        id: item.id,
+        teacher_id: item.teacher_id,
+        title: item.title,
+        description: item.description,
+        type: item.type as 'video' | 'pdf' | 'link' | 'other', // Type assertion for safety
+        url: item.url,
+        file_path: item.file_path,
+        subject_id: item.subject_id,
+        chapter_id: item.chapter_id,
+        grade: item.grade,
+        is_public: item.is_public,
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      }));
+
+      setMaterials(transformedMaterials);
+      console.log('Loaded materials from Supabase:', transformedMaterials);
     } catch (err: any) {
       console.error("Failed to fetch materials:", err);
       setError('Failed to load study materials. Please try again.');
@@ -233,7 +249,10 @@ const StudyMaterialManager: React.FC = () => {
           {!showForm ? (
             <div className="space-y-4">
               <Button
-                onClick={handleAddClick}
+                onClick={() => {
+                  setEditingMaterial(null);
+                  setShowForm(true);
+                }}
                 className="bg-[#00E676] text-black hover:bg-[#00E676]/90"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -241,16 +260,87 @@ const StudyMaterialManager: React.FC = () => {
               </Button>
               <StudyMaterialList
                 materials={materials}
-                onEdit={handleEdit}
+                onEdit={(material) => {
+                  setEditingMaterial(material);
+                  setShowForm(true);
+                }}
                 onDelete={handleDelete}
                 isLoading={isLoading}
               />
             </div>
           ) : (
             <StudyMaterialForm
-              onSubmit={handleFormSubmit}
+              onSubmit={async (formData: FormData) => {
+                setIsLoading(true);
+                try {
+                  const { user } = await supabaseService.getCurrentUser();
+                  if (!user) {
+                    throw new Error('User not authenticated');
+                  }
+
+                  const materialData = {
+                    teacher_id: user.id,
+                    title: formData.get('title') as string,
+                    description: formData.get('description') as string || undefined,
+                    type: formData.get('type') as 'video' | 'pdf' | 'link' | 'other',
+                    url: formData.get('url') as string || undefined,
+                    file_path: undefined as string | undefined,
+                    subject_id: formData.get('subjectId') as string || undefined,
+                    chapter_id: formData.get('chapterId') as string || undefined,
+                    grade: formData.get('grade') ? parseInt(formData.get('grade') as string) : undefined,
+                    is_public: true
+                  };
+
+                  // Handle file upload if present
+                  const file = formData.get('file') as File;
+                  if (file && file.size > 0) {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
+                    const filePath = `study-materials/${fileName}`;
+                    
+                    materialData.file_path = filePath;
+                    materialData.url = undefined;
+                  }
+
+                  let result;
+                  if (editingMaterial) {
+                    result = await supabaseService.updateStudyMaterial(editingMaterial.id, materialData);
+                    toast({
+                      title: "Success",
+                      description: "Study material updated successfully",
+                    });
+                  } else {
+                    result = await supabaseService.createStudyMaterial(materialData);
+                    toast({
+                      title: "Success",
+                      description: "Study material added successfully",
+                    });
+                  }
+
+                  if (result.error) {
+                    throw result.error;
+                  }
+
+                  setShowForm(false);
+                  setEditingMaterial(null);
+                  await loadMaterials();
+                } catch (err: any) {
+                  console.error("Failed to save material:", err);
+                  setError('Failed to save material. Please try again.');
+                  toast({
+                    title: "Error",
+                    description: err.message || "Failed to save material",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
               initialData={editingMaterial}
-              onCancel={handleFormCancel}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingMaterial(null);
+              }}
             />
           )}
         </CardContent>
