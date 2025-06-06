@@ -46,6 +46,10 @@ const SubjectsDropdown = ({ selectedGrade, onChapterSelect }: SubjectsDropdownPr
         {Object.entries(subjects).map(([subject, data]) => {
           const gradeChapters = data.chapters[selectedGrade as keyof typeof data.chapters] || [];
           
+          if (gradeChapters.length === 0) {
+            return null;
+          }
+          
           return (
             <DropdownMenuSub key={subject}>
               <DropdownMenuSubTrigger className="text-white hover:bg-[#00E676]/10 hover:text-[#00E676] flex items-center gap-2">
@@ -59,7 +63,7 @@ const SubjectsDropdown = ({ selectedGrade, onChapterSelect }: SubjectsDropdownPr
                 <div className="p-2 border-b border-[#2C2C2C]">
                   <p className="text-[#00E676] text-sm font-medium flex items-center gap-2">
                     <span>{data.icon}</span>
-                    {subject} Chapters
+                    {subject} - {gradeChapters.length} Chapters
                   </p>
                 </div>
                 {gradeChapters.map((chapter, index) => (

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import SubjectCard from './SubjectCard';
 import ChapterStudyMaterial from './ChapterStudyMaterial';
 import { supabaseService, Subject } from '@/services/supabaseService';
+import { subjects as subjectsData } from '@/data/subjects';
 import { toast } from '@/hooks/use-toast';
 
 interface SubjectsPageProps {
@@ -26,17 +27,40 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
   const loadSubjects = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabaseService.getSubjects(selectedGrade);
+      // Load subjects from Supabase
+      const { data: supabaseSubjects, error } = await supabaseService.getSubjects(selectedGrade);
       if (error) {
-        console.error('Error loading subjects:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load subjects",
-          variant: "destructive",
-        });
-        return;
+        console.error('Error loading subjects from Supabase:', error);
       }
-      setSubjects(data || []);
+
+      // Merge Supabase subjects with local subjects data
+      const mergedSubjects: Subject[] = [];
+      
+      // Add subjects from local data with their chapters
+      Object.entries(subjectsData).forEach(([subjectName, subjectInfo]) => {
+        const existingSupabaseSubject = supabaseSubjects?.find(s => s.name === subjectName);
+        
+        mergedSubjects.push({
+          id: existingSupabaseSubject?.id || `local-${subjectName}`,
+          name: subjectName,
+          description: existingSupabaseSubject?.description || `${subjectName} for Class ${selectedGrade}`,
+          grade: selectedGrade,
+          icon: subjectInfo.icon,
+          color: existingSupabaseSubject?.color || '#2979FF',
+          created_by: existingSupabaseSubject?.created_by,
+          created_at: existingSupabaseSubject?.created_at || new Date().toISOString(),
+          updated_at: existingSupabaseSubject?.updated_at || new Date().toISOString()
+        });
+      });
+
+      // Add any additional Supabase subjects that aren't in local data
+      supabaseSubjects?.forEach(supabaseSubject => {
+        if (!Object.keys(subjectsData).includes(supabaseSubject.name)) {
+          mergedSubjects.push(supabaseSubject);
+        }
+      });
+
+      setSubjects(mergedSubjects);
     } catch (error) {
       console.error('Failed to load subjects:', error);
       toast({
@@ -50,6 +74,7 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
   };
 
   const handleChapterClick = (subject: string, chapter: string) => {
+    setSelectedSubject(subject);
     setSelectedChapter(chapter);
     onChapterSelect(subject, chapter);
   };
@@ -128,25 +153,30 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {subjects.map((subject) => (
-              <div key={subject.id} className="w-full">
-                <SubjectCard
-                  subject={subject.name as any}
-                  data={{
-                    icon: subject.icon || '📚',
-                    gradient: `from-[${subject.color || '#2979FF'}] to-[${subject.color || '#2979FF'}]/70`,
-                    chapters: {
-                      8: [],
-                      9: [],
-                      10: []
-                    }
-                  }}
-                  selectedGrade={selectedGrade}
-                  onSubjectSelect={setSelectedSubject}
-                  onChapterSelect={handleChapterClick}
-                />
-              </div>
-            ))}
+            {subjects.map((subject) => {
+              const subjectData = subjectsData[subject.name as keyof typeof subjectsData];
+              const displayData = subjectData || {
+                icon: subject.icon || '📚',
+                gradient: `from-[${subject.color || '#2979FF'}] to-[${subject.color || '#2979FF'}]/70`,
+                chapters: {
+                  8: [],
+                  9: [],
+                  10: []
+                }
+              };
+
+              return (
+                <div key={subject.id} className="w-full">
+                  <SubjectCard
+                    subject={subject.name as any}
+                    data={displayData}
+                    selectedGrade={selectedGrade}
+                    onSubjectSelect={setSelectedSubject}
+                    onChapterSelect={handleChapterClick}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

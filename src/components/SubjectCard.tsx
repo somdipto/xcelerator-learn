@@ -74,25 +74,33 @@ const SubjectCard = ({ subject, data, selectedGrade, onSubjectSelect, onChapterS
 
             <CollapsibleContent className="mt-4">
               <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
-                <div className="text-sm text-[#E0E0E0] font-semibold mb-3 px-1">All Chapters</div>
-                {gradeChapters.map((chapter, index) => (
-                  <button 
-                    key={index}
-                    onClick={() => onChapterSelect(subject, chapter)}
-                    className="w-full text-left text-sm text-[#CCCCCC] hover:text-[#00E676] cursor-pointer transition-all duration-200 flex items-center gap-3 p-3 rounded-lg hover:bg-[#2C2C2C]/50 active:bg-[#2C2C2C]/70 touch-manipulation"
-                  >
-                    <ChevronRight className="h-4 w-4 flex-shrink-0" />
-                    <span className="flex-1 leading-relaxed">{chapter}</span>
-                    <span className="text-xs bg-[#2979FF]/20 text-[#2979FF] px-2 py-1 rounded-full font-medium flex-shrink-0">
-                      {index + 1}
-                    </span>
-                  </button>
-                ))}
+                <div className="text-sm text-[#E0E0E0] font-semibold mb-3 px-1">
+                  All Chapters ({gradeChapters.length})
+                </div>
+                {gradeChapters.length > 0 ? (
+                  gradeChapters.map((chapter, index) => (
+                    <button 
+                      key={index}
+                      onClick={() => onChapterSelect(subject, chapter)}
+                      className="w-full text-left text-sm text-[#CCCCCC] hover:text-[#00E676] cursor-pointer transition-all duration-200 flex items-center gap-3 p-3 rounded-lg hover:bg-[#2C2C2C]/50 active:bg-[#2C2C2C]/70 touch-manipulation"
+                    >
+                      <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                      <span className="flex-1 leading-relaxed">{chapter}</span>
+                      <span className="text-xs bg-[#2979FF]/20 text-[#2979FF] px-2 py-1 rounded-full font-medium flex-shrink-0">
+                        {index + 1}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-[#666666]">
+                    No chapters available for Class {selectedGrade}
+                  </div>
+                )}
               </div>
             </CollapsibleContent>
           </Collapsible>
 
-          {!isExpanded && (
+          {!isExpanded && gradeChapters.length > 0 && (
             <div className="space-y-2">
               <div className="text-sm text-[#E0E0E0] font-semibold mb-2 px-1">Preview</div>
               {gradeChapters.slice(0, 2).map((chapter, index) => (
@@ -110,6 +118,12 @@ const SubjectCard = ({ subject, data, selectedGrade, onSubjectSelect, onChapterS
                   +{gradeChapters.length - 2} more chapters
                 </div>
               )}
+            </div>
+          )}
+
+          {!isExpanded && gradeChapters.length === 0 && (
+            <div className="text-center py-4 text-[#666666]">
+              No chapters available for Class {selectedGrade}
             </div>
           )}
         </div>
