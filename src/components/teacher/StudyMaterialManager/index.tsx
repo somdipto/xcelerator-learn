@@ -55,27 +55,9 @@ const StudyMaterialManager: React.FC = () => {
         throw fetchError;
       }
 
-      // Transform data to match the expected format
-      const transformedMaterials = data?.map((item: any) => ({
-        id: item.id,
-        teacherId: item.teacher_id,
-        title: item.title,
-        description: item.description,
-        type: item.type,
-        url: item.url,
-        filePath: item.file_path,
-        subjectId: item.subject_id,
-        chapterId: item.chapter_id,
-        grade: item.grade,
-        isPublic: item.is_public,
-        createdAt: new Date(item.created_at),
-        updatedAt: new Date(item.updated_at),
-        subjectName: item.subjects?.name,
-        chapterName: item.chapters?.name
-      })) || [];
-
-      setMaterials(transformedMaterials);
-      console.log('Loaded materials from Supabase:', transformedMaterials);
+      // Use the data directly as it matches our StudyMaterial interface
+      setMaterials(data || []);
+      console.log('Loaded materials from Supabase:', data);
     } catch (err: any) {
       console.error("Failed to fetch materials:", err);
       setError('Failed to load study materials. Please try again.');
@@ -136,13 +118,13 @@ const StudyMaterialManager: React.FC = () => {
       const materialData = {
         teacher_id: user.id,
         title: formData.get('title') as string,
-        description: formData.get('description') as string || null,
+        description: formData.get('description') as string || undefined,
         type: formData.get('type') as 'video' | 'pdf' | 'link' | 'other',
-        url: formData.get('url') as string || null,
-        file_path: null as string | null,
-        subject_id: formData.get('subjectId') as string || null,
-        chapter_id: formData.get('chapterId') as string || null,
-        grade: formData.get('grade') ? parseInt(formData.get('grade') as string) : null,
+        url: formData.get('url') as string || undefined,
+        file_path: undefined as string | undefined,
+        subject_id: formData.get('subjectId') as string || undefined,
+        chapter_id: formData.get('chapterId') as string || undefined,
+        grade: formData.get('grade') ? parseInt(formData.get('grade') as string) : undefined,
         is_public: true
       };
 
@@ -153,10 +135,8 @@ const StudyMaterialManager: React.FC = () => {
         const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
         const filePath = `study-materials/${fileName}`;
         
-        // Note: You'll need to create a storage bucket first
-        // For now, we'll store the filename
         materialData.file_path = filePath;
-        materialData.url = null;
+        materialData.url = undefined;
       }
 
       let result;

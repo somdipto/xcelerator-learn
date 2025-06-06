@@ -136,7 +136,9 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
                     icon: subject.icon || '📚',
                     gradient: `from-[${subject.color || '#2979FF'}] to-[${subject.color || '#2979FF'}]/70`,
                     chapters: {
-                      [selectedGrade]: [] // We'll implement chapter loading later
+                      8: [],
+                      9: [],
+                      10: []
                     }
                   }}
                   selectedGrade={selectedGrade}

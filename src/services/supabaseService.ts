@@ -39,6 +39,9 @@ export interface Profile {
 }
 
 class SupabaseService {
+  // Expose the supabase client
+  public supabase = supabase;
+
   // Authentication methods
   async signUp(email: string, password: string, userData: { full_name?: string; role?: string } = {}) {
     const { data, error } = await supabase.auth.signUp({
@@ -76,7 +79,7 @@ class SupabaseService {
       .select('*')
       .eq('id', userId)
       .single();
-    return { data, error };
+    return { data: data as Profile | null, error };
   }
 
   async updateProfile(userId: string, updates: Partial<Profile>) {
