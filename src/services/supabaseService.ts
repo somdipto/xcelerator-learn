@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface StudyMaterial {
@@ -6,7 +5,7 @@ export interface StudyMaterial {
   teacher_id: string;
   title: string;
   description?: string;
-  type: 'video' | 'pdf' | 'link' | 'other';
+  type: 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz';
   url?: string;
   file_path?: string;
   subject_id?: string;

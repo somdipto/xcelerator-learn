@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, Users, Trophy, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Clock, Users, Trophy, RefreshCw, BookOpen, FileText, Video, FileSliders } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +21,7 @@ interface ChapterStudyMaterialProps {
 const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: ChapterStudyMaterialProps) => {
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('theory');
+  const [activeTab, setActiveTab] = useState('textbook');
   
   const subjectData = subjects[subject];
   const localStudyMaterial = getStudyMaterial(subject, selectedGrade, chapter);
@@ -88,9 +88,9 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
             teacher_id: material.teacher_id,
             title: material.title,
             description: material.description,
-            type: ['video', 'pdf', 'link', 'other'].includes(material.type) 
-              ? material.type as 'video' | 'pdf' | 'link' | 'other'
-              : 'other',
+            type: ['textbook', 'video', 'summary', 'ppt', 'quiz'].includes(material.type) 
+              ? material.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz'
+              : 'textbook',
             url: material.url,
             file_path: material.file_path,
             subject_id: material.subject_id,
@@ -117,17 +117,18 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
   };
 
   // Categorize materials by type
-  const pdfMaterials = studyMaterials.filter(m => m.type === 'pdf');
+  const textbookMaterials = studyMaterials.filter(m => m.type === 'textbook');
   const videoMaterials = studyMaterials.filter(m => m.type === 'video');
-  const linkMaterials = studyMaterials.filter(m => m.type === 'link');
-  const otherMaterials = studyMaterials.filter(m => m.type === 'other');
+  const summaryMaterials = studyMaterials.filter(m => m.type === 'summary');
+  const pptMaterials = studyMaterials.filter(m => m.type === 'ppt');
+  const quizMaterials = studyMaterials.filter(m => m.type === 'quiz');
 
-  // Get the primary PDF for theory tab (prioritize teacher uploads)
-  const primaryPDF = pdfMaterials[0] || (localStudyMaterial?.pdfUrl ? {
+  // Get the primary textbook for theory tab (prioritize teacher uploads)
+  const primaryTextbook = textbookMaterials[0] || (localStudyMaterial?.pdfUrl ? {
     id: 'local-pdf',
-    title: `${chapter} - Theory`,
+    title: `${chapter} - Textbook`,
     url: localStudyMaterial.pdfUrl,
-    type: 'pdf' as const,
+    type: 'textbook' as const,
     teacher_id: '',
     is_public: true,
     created_at: '',
@@ -166,7 +167,10 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
           className={`w-full bg-${color} text-black hover:bg-${color}/90 font-medium h-11 md:h-12 touch-manipulation`}
         >
           {material.type === 'video' ? 'Watch Video' : 
-           material.type === 'pdf' ? 'View PDF' : 
+           material.type === 'textbook' ? 'View Textbook' :
+           material.type === 'summary' ? 'Read Summary' :
+           material.type === 'ppt' ? 'View Presentation' :
+           material.type === 'quiz' ? 'Take Quiz' :
            'Open Content'}
         </Button>
       </CardContent>
@@ -249,68 +253,86 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-[#2C2C2C] border border-[#424242] mb-6 h-auto">
+              <TabsList className="grid w-full grid-cols-5 bg-[#2C2C2C] border border-[#424242] mb-6 h-auto">
                 <TabsTrigger 
-                  value="theory" 
+                  value="textbook" 
                   className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-[#E0E0E0] h-12 md:h-10 text-sm touch-manipulation"
                 >
-                  <span className="hidden md:inline">📚 Theory</span>
-                  <span className="md:hidden">📚</span>
+                  <div className="flex items-center gap-1">
+                    <BookOpen className="h-4 w-4" />
+                    <span className="hidden md:inline">Textbook</span>
+                  </div>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="videos" 
                   className="data-[state=active]:bg-[#2979FF] data-[state=active]:text-white text-[#E0E0E0] h-12 md:h-10 text-sm touch-manipulation"
                 >
-                  <span className="hidden md:inline">🎥 Videos</span>
-                  <span className="md:hidden">🎥</span>
+                  <div className="flex items-center gap-1">
+                    <Video className="h-4 w-4" />
+                    <span className="hidden md:inline">Videos</span>
+                  </div>
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="practice" 
+                  value="summary" 
                   className="data-[state=active]:bg-[#FFA726] data-[state=active]:text-black text-[#E0E0E0] h-12 md:h-10 text-sm touch-manipulation"
                 >
-                  <span className="hidden md:inline">📝 Practice</span>
-                  <span className="md:hidden">📝</span>
+                  <div className="flex items-center gap-1">
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden md:inline">Summary</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="ppt" 
+                  className="data-[state=active]:bg-[#FF7043] data-[state=active]:text-white text-[#E0E0E0] h-12 md:h-10 text-sm touch-manipulation"
+                >
+                  <div className="flex items-center gap-1">
+                    <FileSliders className="h-4 w-4" />
+                    <span className="hidden md:inline">PPT</span>
+                  </div>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="quiz" 
                   className="data-[state=active]:bg-[#E91E63] data-[state=active]:text-white text-[#E0E0E0] h-12 md:h-10 text-sm touch-manipulation"
                 >
-                  <span className="hidden md:inline">🏆 Quiz</span>
-                  <span className="md:hidden">🏆</span>
+                  <div className="flex items-center gap-1">
+                    <Trophy className="h-4 w-4" />
+                    <span className="hidden md:inline">Quiz</span>
+                  </div>
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="theory" className="space-y-6">
-                {primaryPDF ? (
+              <TabsContent value="textbook" className="space-y-6">
+                {primaryTextbook ? (
                   <Card className="bg-[#2C2C2C]/50 backdrop-blur-sm border-[#424242]">
                     <CardHeader>
                       <CardTitle className="text-[#00E676] text-lg md:text-xl flex items-center gap-2">
-                        📚 {primaryPDF.title}
+                        <BookOpen className="h-5 w-5" />
+                        {primaryTextbook.title}
                         <Badge variant="secondary" className="bg-[#00E676]/20 text-[#00E676] border-[#00E676]/30">
-                          PDF
+                          TEXTBOOK
                         </Badge>
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <PDFViewer 
-                        pdfUrl={primaryPDF.url || supabaseService.getFileUrl('study-materials', primaryPDF.file_path || '')} 
-                        title={primaryPDF.title}
+                        pdfUrl={primaryTextbook.url || supabaseService.getFileUrl('study-materials', primaryTextbook.file_path || '')} 
+                        title={primaryTextbook.title}
                       />
                     </CardContent>
                   </Card>
                 ) : (
                   <div className="text-center py-12">
-                    <div className="text-4xl md:text-6xl mb-4">📚</div>
-                    <h3 className="text-lg md:text-xl text-[#E0E0E0] mb-2">No theory materials yet</h3>
-                    <p className="text-[#666666] text-sm md:text-base">Theory materials for {chapter} will be uploaded by teachers soon.</p>
+                    <div className="text-4xl md:text-6xl mb-4"><BookOpen className="h-16 w-16 mx-auto text-[#666666]" /></div>
+                    <h3 className="text-lg md:text-xl text-[#E0E0E0] mb-2">No textbook materials yet</h3>
+                    <p className="text-[#666666] text-sm md:text-base">Textbook materials for {chapter} will be uploaded by teachers soon.</p>
                   </div>
                 )}
 
-                {/* Additional PDF materials */}
-                {pdfMaterials.length > 1 && (
+                {/* Additional textbook materials */}
+                {textbookMaterials.length > 1 && (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                    {pdfMaterials.slice(1).map(material => 
-                      renderMaterialCard(material, '📄', '[#00E676]')
+                    {textbookMaterials.slice(1).map(material => 
+                      renderMaterialCard(material, '📚', '[#00E676]')
                     )}
                   </div>
                 )}
@@ -324,75 +346,58 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
                     )}
                   </div>
                 ) : (
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                    {renderComingSoonCard(
-                      'Video Lectures',
-                      'Interactive video lessons with detailed explanations.',
-                      '🎥',
-                      '[#2979FF]',
-                      'Expert teachers'
-                    )}
-                    {renderComingSoonCard(
-                      'Animated Concepts',
-                      'Visual animations to understand complex topics.',
-                      '🎬',
-                      '[#2979FF]',
-                      'Interactive content'
-                    )}
+                  <div className="text-center py-12">
+                    <div className="text-4xl md:text-6xl mb-4"><Video className="h-16 w-16 mx-auto text-[#666666]" /></div>
+                    <h3 className="text-lg md:text-xl text-[#E0E0E0] mb-2">No video materials yet</h3>
+                    <p className="text-[#666666] text-sm md:text-base">Video lectures for {chapter} will be uploaded by teachers soon.</p>
                   </div>
                 )}
               </TabsContent>
 
-              <TabsContent value="practice" className="space-y-6">
-                {otherMaterials.length > 0 ? (
+              <TabsContent value="summary" className="space-y-6">
+                {summaryMaterials.length > 0 ? (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                    {otherMaterials.map(material => 
+                    {summaryMaterials.map(material => 
                       renderMaterialCard(material, '📝', '[#FFA726]')
                     )}
                   </div>
                 ) : (
+                  <div className="text-center py-12">
+                    <div className="text-4xl md:text-6xl mb-4"><FileText className="h-16 w-16 mx-auto text-[#666666]" /></div>
+                    <h3 className="text-lg md:text-xl text-[#E0E0E0] mb-2">No summary materials yet</h3>
+                    <p className="text-[#666666] text-sm md:text-base">Summary notes for {chapter} will be uploaded by teachers soon.</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="ppt" className="space-y-6">
+                {pptMaterials.length > 0 ? (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                    {renderComingSoonCard(
-                      'Practice Questions',
-                      'Solve practice questions to test your understanding.',
-                      '📝',
-                      '[#FFA726]',
-                      'Multiple difficulty levels'
+                    {pptMaterials.map(material => 
+                      renderMaterialCard(material, '📊', '[#FF7043]')
                     )}
-                    {renderComingSoonCard(
-                      'Worksheets',
-                      'Downloadable worksheets for offline practice.',
-                      '📋',
-                      '[#FFA726]',
-                      'Printable resources'
-                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-4xl md:text-6xl mb-4"><FileSliders className="h-16 w-16 mx-auto text-[#666666]" /></div>
+                    <h3 className="text-lg md:text-xl text-[#E0E0E0] mb-2">No presentation materials yet</h3>
+                    <p className="text-[#666666] text-sm md:text-base">PowerPoint presentations for {chapter} will be uploaded by teachers soon.</p>
                   </div>
                 )}
               </TabsContent>
 
               <TabsContent value="quiz" className="space-y-6">
-                {linkMaterials.length > 0 ? (
+                {quizMaterials.length > 0 ? (
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                    {linkMaterials.map(material => 
+                    {quizMaterials.map(material => 
                       renderMaterialCard(material, '🏆', '[#E91E63]')
                     )}
                   </div>
                 ) : (
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                    {renderComingSoonCard(
-                      'Chapter Quiz',
-                      'Take a quiz to evaluate your knowledge of this chapter.',
-                      '🏆',
-                      '[#E91E63]',
-                      '20 min quiz'
-                    )}
-                    {renderComingSoonCard(
-                      'Assessment Test',
-                      'Comprehensive assessment for the entire chapter.',
-                      '📊',
-                      '[#E91E63]',
-                      'Detailed analysis'
-                    )}
+                  <div className="text-center py-12">
+                    <div className="text-4xl md:text-6xl mb-4"><Trophy className="h-16 w-16 mx-auto text-[#666666]" /></div>
+                    <h3 className="text-lg md:text-xl text-[#E0E0E0] mb-2">No quizzes available yet</h3>
+                    <p className="text-[#666666] text-sm md:text-base">Quizzes and assessments for {chapter} will be created by teachers soon.</p>
                   </div>
                 )}
               </TabsContent>

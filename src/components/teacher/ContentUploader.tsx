@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, FileText, Video, Image, File, Trash2, Eye, RefreshCw, Users } from 'lucide-react';
+import { Upload, FileText, Video, Image, File, Trash2, Eye, RefreshCw, Users, BookOpen, FileSliders, Trophy } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabaseService, StudyMaterial, Subject } from '@/services/supabaseService';
 import { subjects } from '@/data/subjects';
@@ -31,7 +30,7 @@ const ContentUploader = () => {
     subject_id: '',
     chapter_id: '',
     grade: '',
-    type: 'video' as 'video' | 'pdf' | 'link' | 'other'
+    type: 'textbook' as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz'
   });
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -52,10 +51,11 @@ const ContentUploader = () => {
   const [availableChapters, setAvailableChapters] = useState<string[]>([]);
 
   const contentTypes = [
+    { value: 'textbook', label: 'Textbook/PDF', icon: BookOpen },
     { value: 'video', label: 'Video Lecture', icon: Video },
-    { value: 'pdf', label: 'PDF Document', icon: FileText },
-    { value: 'link', label: 'External Link', icon: Image },
-    { value: 'other', label: 'Other File', icon: File }
+    { value: 'summary', label: 'Summary Notes', icon: FileText },
+    { value: 'ppt', label: 'Presentation (PPT)', icon: FileSliders },
+    { value: 'quiz', label: 'Quiz/Assessment', icon: Trophy }
   ];
 
   useEffect(() => {
@@ -170,7 +170,7 @@ const ContentUploader = () => {
       // Type-safe transformation
       const typedData: ContentItem[] = (data || []).map(item => ({
         ...item,
-        type: item.type as 'video' | 'pdf' | 'link' | 'other'
+        type: item.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz'
       }));
       
       setContentList(typedData);
@@ -187,8 +187,7 @@ const ContentUploader = () => {
   };
 
   const getFileForUpload = () => {
-    if (uploadData.type === 'link') {
-      // For links, create a dummy file object with the URL as the name
+    if (uploadData.type === 'quiz' && linkUrl) {
       return { name: linkUrl } as File;
     }
     return selectedFile;
@@ -197,7 +196,7 @@ const ContentUploader = () => {
   const handleUpload = async () => {
     const fileToUpload = getFileForUpload();
     
-    if (!fileToUpload && uploadData.type !== 'link') {
+    if (!fileToUpload && uploadData.type !== 'quiz') {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields and select a file or provide a link",
@@ -233,8 +232,8 @@ const ContentUploader = () => {
         title: uploadData.title,
         description: uploadData.description || undefined,
         type: uploadData.type,
-        url: uploadData.type === 'link' ? linkUrl : undefined,
-        file_path: uploadData.type !== 'link' ? `content/${Date.now()}-${fileToUpload?.name}` : undefined,
+        url: uploadData.type === 'quiz' ? linkUrl : undefined,
+        file_path: uploadData.type !== 'quiz' ? `content/${Date.now()}-${fileToUpload?.name}` : undefined,
         subject_id: uploadData.subject_id,
         chapter_id: uploadData.chapter_id,
         grade: parseInt(uploadData.grade),
@@ -256,7 +255,7 @@ const ContentUploader = () => {
         subject_id: '',
         chapter_id: '',
         grade: '',
-        type: 'video'
+        type: 'textbook'
       });
       setSelectedFile(null);
       setLinkUrl('');
@@ -338,10 +337,11 @@ const ContentUploader = () => {
 
   const getFileIcon = (type: string) => {
     const iconMap = {
+      textbook: BookOpen,
       video: Video,
-      pdf: FileText,
-      link: Image,
-      other: File
+      summary: FileText,
+      ppt: FileSliders,
+      quiz: Trophy
     };
     return iconMap[type as keyof typeof iconMap] || File;
   };
@@ -462,16 +462,22 @@ const ContentUploader = () => {
             {/* Step 5: Content Type */}
             <div>
               <Label className="text-[#E0E0E0]">Step 5: Content Type</Label>
-              <Select value={uploadData.type} onValueChange={(value: 'video' | 'pdf' | 'link' | 'other') => setUploadData({...uploadData, type: value})}>
+              <Select value={uploadData.type} onValueChange={(value: 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz') => setUploadData({...uploadData, type: value})}>
                 <SelectTrigger className="bg-[#121212] border-[#424242] text-white">
                   <SelectValue placeholder="Select content type" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#1A1A1A] border-[#2C2C2C]">
-                  {contentTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value} className="text-white">
-                      {type.label}
-                    </SelectItem>
-                  ))}
+                  {contentTypes.map((type) => {
+                    const IconComponent = type.icon;
+                    return (
+                      <SelectItem key={type.value} value={type.value} className="text-white">
+                        <div className="flex items-center gap-2">
+                          <IconComponent className="h-4 w-4" />
+                          {type.label}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -479,12 +485,12 @@ const ContentUploader = () => {
             {/* Step 6: File Upload or Link */}
             <div>
               <Label htmlFor="file" className="text-[#E0E0E0]">
-                Step 6: {uploadData.type === 'link' ? 'Content URL *' : 'Choose File *'}
+                Step 6: {uploadData.type === 'quiz' ? 'Quiz URL (Optional)' : 'Choose File *'}
               </Label>
-              {uploadData.type === 'link' ? (
+              {uploadData.type === 'quiz' ? (
                 <Input
                   type="url"
-                  placeholder="https://example.com/video-or-resource"
+                  placeholder="https://forms.google.com/quiz-link (optional)"
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
                   className="bg-[#121212] border-[#424242] text-white"
@@ -495,12 +501,17 @@ const ContentUploader = () => {
                   type="file"
                   onChange={handleFileSelect}
                   className="bg-[#121212] border-[#424242] text-white file:bg-[#2979FF] file:text-white file:border-0 file:rounded file:px-4 file:py-2"
-                  accept={uploadData.type === 'video' ? 'video/*' : uploadData.type === 'pdf' ? '.pdf' : '*/*'}
+                  accept={
+                    uploadData.type === 'video' ? 'video/*' : 
+                    uploadData.type === 'textbook' ? '.pdf' :
+                    uploadData.type === 'ppt' ? '.ppt,.pptx' :
+                    '*/*'
+                  }
                 />
               )}
-              {((uploadData.type === 'link' && linkUrl) || (uploadData.type !== 'link' && selectedFile)) && (
+              {((uploadData.type === 'quiz' && linkUrl) || (uploadData.type !== 'quiz' && selectedFile)) && (
                 <p className="text-sm text-[#00E676] mt-1">
-                  {uploadData.type === 'link' ? 'URL ready' : `Selected: ${selectedFile?.name} (${selectedFile ? formatFileSize(selectedFile.size) : ''})`}
+                  {uploadData.type === 'quiz' ? 'Quiz URL ready' : `Selected: ${selectedFile?.name} (${selectedFile ? formatFileSize(selectedFile.size) : ''})`}
                 </p>
               )}
             </div>
@@ -508,7 +519,7 @@ const ContentUploader = () => {
             <Button
               onClick={handleUpload}
               className="w-full bg-[#2979FF] hover:bg-[#2979FF]/90 text-white"
-              disabled={uploading || !uploadData.title || !uploadData.subject_id || !uploadData.chapter_id || !uploadData.grade || (uploadData.type === 'link' ? !linkUrl : !selectedFile)}
+              disabled={uploading || !uploadData.title || !uploadData.subject_id || !uploadData.chapter_id || !uploadData.grade || (uploadData.type !== 'quiz' && !selectedFile)}
             >
               <Upload className="h-4 w-4 mr-2" />
               {uploading ? 'Uploading...' : 'Upload Content'}
