@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, FileText, Video, Image, File, Trash2, Eye, RefreshCw, Users, BookOpen, FileSliders, Trophy, FileAudio, FilePdf } from 'lucide-react';
+import { Upload, FileText, Video, Image, File, Trash2, Eye, RefreshCw, Users, BookOpen, FileSliders, Trophy, FileAudio } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabaseService, StudyMaterial, Subject } from '@/services/supabaseService';
 import { subjects } from '@/data/subjects';
@@ -60,7 +60,7 @@ const ContentUploader = () => {
   ];
 
   const summaryTypes = [
-    { value: 'pdf', label: 'PDF Summary', icon: FilePdf },
+    { value: 'pdf', label: 'PDF Summary', icon: FileText },
     { value: 'audio', label: 'Audio Summary', icon: FileAudio }
   ];
 
