@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   Settings,
-  BarChart3
+  BarChart3,
+  Book
 } from 'lucide-react';
 
 interface TeacherSidebarProps {
@@ -67,7 +68,7 @@ const TeacherSidebar = ({ activeSection, onSectionChange }: TeacherSidebarProps)
         <div className="p-4 border-b border-[#2C2C2C]">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-r from-[#2979FF] to-[#00E676] rounded-lg flex items-center justify-center">
-              <GraduationCap className="h-5 w-5 text-white" />
+              <Book className="h-5 w-5 text-white" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Teacher CMS</h2>
