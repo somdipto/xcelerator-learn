@@ -4,7 +4,7 @@ import OnboardingModal from '@/components/OnboardingModal';
 import TopNavigation from '@/components/TopNavigation';
 import BottomNavigation from '@/components/BottomNavigation';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { LazySubjectsPage, LazyProfilePage } from '@/components/LazyComponents';
+import { LazySubjectsPage, LazyProfilePage, preloadCriticalComponents } from '@/components/LazyComponents';
 import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
@@ -13,6 +13,9 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('subjects');
 
   useEffect(() => {
+    // Preload critical components after initial render
+    preloadCriticalComponents();
+    
     // Check if user has already selected a grade
     const savedGrade = localStorage.getItem('selectedGrade');
     if (savedGrade) {
@@ -28,46 +31,24 @@ const Index = () => {
     setShowOnboarding(false);
     
     toast({
-      title: "Welcome to Your Learning Journey! 🎉",
-      description: `Class ${grade} curriculum is now ready for you. Let's start learning!`,
+      title: "Welcome! 🎉",
+      description: `Class ${grade} is ready!`,
     });
   };
 
   const handleClassChange = () => {
     setShowOnboarding(true);
-    toast({
-      title: "Change Class",
-      description: "Select your new class to continue learning",
-    });
   };
 
   const handleChapterSelect = (subject: string, chapter: string) => {
-    toast({
-      title: "Chapter Selected",
-      description: `Opening ${subject} - ${chapter}`,
-    });
     console.log(`Selected: ${subject} - ${chapter}`);
   };
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    
-    // Show appropriate toast for each tab with better messaging
-    const tabMessages = {
-      subjects: "Explore your subjects and dive into new chapters",
-      quizzes: "Ready to test your knowledge? Let's go!",
-      profile: "View your progress and achievements"
-    };
-    
-    if (tab !== 'subjects') {
-      toast({
-        title: `${tab.charAt(0).toUpperCase() + tab.slice(1)}`,
-        description: tabMessages[tab as keyof typeof tabMessages],
-      });
-    }
   };
 
-  // Loading state
+  // Loading states
   if (showOnboarding) {
     return (
       <div className="min-h-screen bg-[#121212] flex items-center justify-center">
@@ -79,17 +60,16 @@ const Index = () => {
     );
   }
 
-  // Grade selection loading
   if (!selectedGrade) {
     return (
       <div className="min-h-screen bg-[#121212] flex items-center justify-center">
-        <LoadingSpinner message="Setting up your personalized learning experience..." />
+        <LoadingSpinner message="Setting up..." />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#121212]">
+    <div className="min-h-screen bg-[#121212] performance-optimized">
       <TopNavigation 
         selectedGrade={selectedGrade} 
         onChapterSelect={handleChapterSelect}
@@ -97,7 +77,7 @@ const Index = () => {
       />
       
       <main className="pb-20">
-        <Suspense fallback={<LoadingSpinner message="Loading content..." />}>
+        <Suspense fallback={<LoadingSpinner message="Loading..." />}>
           {activeTab === 'subjects' && (
             <LazySubjectsPage 
               selectedGrade={selectedGrade} 
@@ -113,7 +93,7 @@ const Index = () => {
                   <div className="text-6xl mb-4">🏆</div>
                   <h2 className="text-3xl font-bold text-white mb-4">Practice Quizzes</h2>
                   <p className="text-[#E0E0E0] text-lg">
-                    Challenge yourself with interactive quizzes and track your progress!
+                    Challenge yourself with interactive quizzes!
                   </p>
                 </div>
                 
@@ -128,7 +108,7 @@ const Index = () => {
                   
                   <div className="bg-[#1A1A1A] p-6 rounded-lg border border-[#2C2C2C]">
                     <h3 className="text-xl font-semibold text-white mb-2">Subject Test</h3>
-                    <p className="text-[#E0E0E0] mb-4">Comprehensive chapter tests</p>
+                    <p className="text-[#E0E0E0] mb-4">Comprehensive tests</p>
                     <button className="bg-[#2979FF] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#2979FF]/90 transition-colors">
                       Browse Tests
                     </button>

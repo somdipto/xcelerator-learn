@@ -21,24 +21,45 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    // Use default minification (esbuild) which is faster and lighter
-    minify: true,
+    // Use esbuild for faster builds
+    minify: 'esbuild',
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Simplified chunk splitting for better performance
-          'react-vendor': ['react', 'react-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
-          'query-vendor': ['@tanstack/react-query'],
+        manualChunks: (id) => {
+          // React core
+          if (id.includes('react') || id.includes('react-dom')) {
+            return 'react-vendor';
+          }
+          // Router
+          if (id.includes('react-router')) {
+            return 'router-vendor';
+          }
+          // UI library
+          if (id.includes('@radix-ui')) {
+            return 'ui-vendor';
+          }
+          // Supabase
+          if (id.includes('@supabase') || id.includes('supabase')) {
+            return 'supabase-vendor';
+          }
+          // React Query
+          if (id.includes('@tanstack/react-query')) {
+            return 'query-vendor';
+          }
+          // Lucide icons
+          if (id.includes('lucide-react')) {
+            return 'icons-vendor';
+          }
+          // Large utilities
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         },
       },
     },
-    // Increase chunk size warning limit
-    chunkSizeWarningLimit: 1000,
-    // Disable source maps for production builds
+    chunkSizeWarningLimit: 500,
     sourcemap: false,
   },
-  // Optimize dependencies
   optimizeDeps: {
     include: [
       'react',
@@ -46,5 +67,6 @@ export default defineConfig(({ mode }) => ({
       'react-router-dom',
       '@tanstack/react-query'
     ],
+    force: true,
   },
 }));
