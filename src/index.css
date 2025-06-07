@@ -94,18 +94,18 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   
-  /* Custom scrollbar for mobile */
+  /* Custom scrollbar for mobile - lightweight version */
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: #424242 #1A1A1A;
   }
   
   .scrollbar-thin::-webkit-scrollbar {
-    width: 4px;
+    width: 3px;
   }
   
   .scrollbar-thin::-webkit-scrollbar-track {
-    background: #1A1A1A;
+    background: transparent;
   }
   
   .scrollbar-thin::-webkit-scrollbar-thumb {
@@ -116,34 +116,54 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: #00E676;
   }
+  
+  /* Performance optimizations */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  .hardware-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
-/* Custom scrollbar styles */
+/* Optimized scrollbar styles */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1A1A1A;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #424242;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #00E676;
 }
 
-/* Smooth animations for all interactive elements */
+/* Simplified animations for better performance */
 * {
-  transition-property: color, background-color, border-color, opacity, transform;
+  transition-property: opacity, transform;
   transition-duration: 150ms;
-  transition-timing-function: ease-in-out;
+  transition-timing-function: ease-out;
 }
 
-/* Enhanced mobile interactions */
+/* Enhanced mobile interactions - optimized */
 @media (max-width: 768px) {
   /* Improved button sizing for mobile */
   button {
@@ -171,16 +191,27 @@
     font-size: 1.25rem;
     line-height: 1.4;
   }
+  
+  /* Reduce heavy effects on mobile */
+  .card-hover {
+    @apply hover:scale-[1.02];
+  }
 }
 
-/* Focus states for accessibility */
+/* Focus states for accessibility - simplified */
 button:focus-visible,
 a:focus-visible {
   outline: 2px solid #00E676;
-  outline-offset: 2px;
+  outline-offset: 1px;
 }
 
-/* Loading states */
+/* Loading states - optimized */
 .loading {
   @apply animate-pulse;
+}
+
+/* Content visibility optimization */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 200px;
 }

@@ -1,17 +1,18 @@
-
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, Suspense } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import TeacherTopNav from '@/components/teacher/TeacherTopNav';
 import TeacherSidebar from '@/components/teacher/TeacherSidebar';
-import SubjectManager from '@/components/teacher/SubjectManager';
-import ContentUploader from '@/components/teacher/ContentUploader';
-import StudentAnalytics from '@/components/teacher/StudentAnalytics';
-import LiveClassManager from '@/components/teacher/LiveClassManager';
-import QuizManager from '@/components/teacher/QuizManager';
-import StudyMaterialManager from '@/components/teacher/StudyMaterialManager';
-import SubjectChapterManager from '@/components/teacher/SubjectChapterManager';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import {
+  LazyStudentAnalytics,
+  LazySubjectManager,
+  LazyContentUploader,
+  LazyLiveClassManager,
+  LazyQuizManager,
+  LazyStudyMaterialManager,
+  LazySubjectChapterManager
+} from '@/components/LazyComponents';
 
 const TeacherDashboard = () => {
   const { user, profile } = useAuth();
@@ -20,19 +21,47 @@ const TeacherDashboard = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'subjects':
-        return <SubjectManager />;
+        return (
+          <Suspense fallback={<LoadingSpinner message="Loading subjects..." />}>
+            <LazySubjectManager />
+          </Suspense>
+        );
       case 'content':
-        return <ContentUploader />;
+        return (
+          <Suspense fallback={<LoadingSpinner message="Loading content uploader..." />}>
+            <LazyContentUploader />
+          </Suspense>
+        );
       case 'content-manager':
-        return <SubjectChapterManager />;
+        return (
+          <Suspense fallback={<LoadingSpinner message="Loading content manager..." />}>
+            <LazySubjectChapterManager />
+          </Suspense>
+        );
       case 'students':
-        return <StudentAnalytics />;
+        return (
+          <Suspense fallback={<LoadingSpinner message="Loading analytics..." />}>
+            <LazyStudentAnalytics />
+          </Suspense>
+        );
       case 'live-classes':
-        return <LiveClassManager />;
+        return (
+          <Suspense fallback={<LoadingSpinner message="Loading live classes..." />}>
+            <LazyLiveClassManager />
+          </Suspense>
+        );
       case 'quizzes':
-        return <QuizManager />;
+        return (
+          <Suspense fallback={<LoadingSpinner message="Loading quizzes..." />}>
+            <LazyQuizManager />
+          </Suspense>
+        );
       case 'study-materials':
-        return <StudyMaterialManager />;
+        return (
+          <Suspense fallback={<LoadingSpinner message="Loading study materials..." />}>
+            <LazyStudyMaterialManager />
+          </Suspense>
+        );
       default:
         return (
           <div className="p-4 md:p-6">
@@ -62,7 +91,6 @@ const TeacherDashboard = () => {
               </div>
             </div>
 
-            {/* Quick Actions */}
             <div className="bg-[#1A1A1A] p-4 md:p-6 rounded-lg border border-[#2C2C2C] mb-6">
               <h3 className="text-xl font-semibold text-white mb-4">Quick Actions</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
