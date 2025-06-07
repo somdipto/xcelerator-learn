@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, FileText, Video, Image, File, Trash2, Eye, RefreshCw, Users, BookOpen, FileSliders, Trophy } from 'lucide-react';
+import { Upload, FileText, Video, Image, File, Trash2, Eye, RefreshCw, Users, BookOpen, FileSliders, Trophy, FileAudio, FilePdf } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabaseService, StudyMaterial, Subject } from '@/services/supabaseService';
 import { subjects } from '@/data/subjects';
@@ -30,7 +30,8 @@ const ContentUploader = () => {
     subject_id: '',
     chapter_id: '',
     grade: '',
-    type: 'textbook' as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz'
+    type: 'textbook' as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz',
+    summaryType: 'pdf' as 'pdf' | 'audio' // New field for summary type
   });
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -56,6 +57,11 @@ const ContentUploader = () => {
     { value: 'summary', label: 'Summary Notes', icon: FileText },
     { value: 'ppt', label: 'Presentation (PPT)', icon: FileSliders },
     { value: 'quiz', label: 'Quiz/Assessment', icon: Trophy }
+  ];
+
+  const summaryTypes = [
+    { value: 'pdf', label: 'PDF Summary', icon: FilePdf },
+    { value: 'audio', label: 'Audio Summary', icon: FileAudio }
   ];
 
   useEffect(() => {
@@ -193,6 +199,15 @@ const ContentUploader = () => {
     return selectedFile;
   };
 
+  const getAcceptedFileTypes = () => {
+    if (uploadData.type === 'video') return 'video/*';
+    if (uploadData.type === 'textbook' || uploadData.type === 'ppt') return '.pdf,.ppt,.pptx';
+    if (uploadData.type === 'summary') {
+      return uploadData.summaryType === 'audio' ? 'audio/*,.mp3,.wav,.m4a' : '.pdf';
+    }
+    return '*/*';
+  };
+
   const handleUpload = async () => {
     const fileToUpload = getFileForUpload();
     
@@ -227,10 +242,17 @@ const ContentUploader = () => {
     setSyncStatus('syncing');
     
     try {
+      // Create description based on summary type if it's a summary
+      let description = uploadData.description;
+      if (uploadData.type === 'summary') {
+        const summaryTypeLabel = uploadData.summaryType === 'audio' ? 'Audio Summary' : 'PDF Summary';
+        description = description ? `${summaryTypeLabel}: ${description}` : summaryTypeLabel;
+      }
+
       const materialData = {
         teacher_id: currentUser.id,
         title: uploadData.title,
-        description: uploadData.description || undefined,
+        description: description || undefined,
         type: uploadData.type,
         url: uploadData.type === 'quiz' ? linkUrl : undefined,
         file_path: uploadData.type !== 'quiz' ? `content/${Date.now()}-${fileToUpload?.name}` : undefined,
@@ -255,7 +277,8 @@ const ContentUploader = () => {
         subject_id: '',
         chapter_id: '',
         grade: '',
-        type: 'textbook'
+        type: 'textbook',
+        summaryType: 'pdf'
       });
       setSelectedFile(null);
       setLinkUrl('');
@@ -482,10 +505,41 @@ const ContentUploader = () => {
               </Select>
             </div>
 
+            {/* Summary Type Selection - Only show when Summary Notes is selected */}
+            {uploadData.type === 'summary' && (
+              <div>
+                <Label className="text-[#E0E0E0]">Step 5b: Summary Type *</Label>
+                <Select 
+                  value={uploadData.summaryType} 
+                  onValueChange={(value: 'pdf' | 'audio') => setUploadData({...uploadData, summaryType: value})}
+                >
+                  <SelectTrigger className="bg-[#121212] border-[#424242] text-white">
+                    <SelectValue placeholder="Choose summary type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1A1A1A] border-[#2C2C2C]">
+                    {summaryTypes.map((type) => {
+                      const IconComponent = type.icon;
+                      return (
+                        <SelectItem key={type.value} value={type.value} className="text-white">
+                          <div className="flex items-center gap-2">
+                            <IconComponent className="h-4 w-4" />
+                            {type.label}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Step 6: File Upload or Link */}
             <div>
               <Label htmlFor="file" className="text-[#E0E0E0]">
-                Step 6: {uploadData.type === 'quiz' ? 'Quiz URL (Optional)' : 'Choose File *'}
+                Step 6: {uploadData.type === 'quiz' ? 'Quiz URL (Optional)' : 
+                uploadData.type === 'summary' && uploadData.summaryType === 'audio' ? 'Choose Audio File *' :
+                uploadData.type === 'summary' && uploadData.summaryType === 'pdf' ? 'Choose PDF Summary *' :
+                'Choose File *'}
               </Label>
               {uploadData.type === 'quiz' ? (
                 <Input
@@ -501,13 +555,15 @@ const ContentUploader = () => {
                   type="file"
                   onChange={handleFileSelect}
                   className="bg-[#121212] border-[#424242] text-white file:bg-[#2979FF] file:text-white file:border-0 file:rounded file:px-4 file:py-2"
-                  accept={
-                    uploadData.type === 'video' ? 'video/*' : 
-                    uploadData.type === 'textbook' ? '.pdf' :
-                    uploadData.type === 'ppt' ? '.ppt,.pptx' :
-                    '*/*'
-                  }
+                  accept={getAcceptedFileTypes()}
                 />
+              )}
+              {uploadData.type === 'summary' && (
+                <p className="text-xs text-[#999999] mt-1">
+                  {uploadData.summaryType === 'audio' 
+                    ? 'Accepted formats: MP3, WAV, M4A' 
+                    : 'Accepted format: PDF'}
+                </p>
               )}
               {((uploadData.type === 'quiz' && linkUrl) || (uploadData.type !== 'quiz' && selectedFile)) && (
                 <p className="text-sm text-[#00E676] mt-1">
