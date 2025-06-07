@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Upload, FileText, Video, Image, File, Trash2, Eye, RefreshCw, Users } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabaseService, StudyMaterial, Subject } from '@/services/supabaseService';
+import { subjects } from '@/data/subjects';
 
 interface Chapter {
   id: string;
@@ -34,19 +35,21 @@ const ContentUploader = () => {
   });
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [linkUrl, setLinkUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced'>('idle');
   
   // Data states
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [dbSubjects, setDbSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [contentList, setContentList] = useState<ContentItem[]>([]);
   
   // Filtered data based on selections
   const [filteredSubjects, setFilteredSubjects] = useState<Subject[]>([]);
   const [filteredChapters, setFilteredChapters] = useState<Chapter[]>([]);
+  const [availableChapters, setAvailableChapters] = useState<string[]>([]);
 
   const contentTypes = [
     { value: 'video', label: 'Video Lecture', icon: Video },
@@ -76,26 +79,37 @@ const ContentUploader = () => {
   // Filter subjects when grade changes
   useEffect(() => {
     if (uploadData.grade) {
-      const filtered = subjects.filter(subject => subject.grade === parseInt(uploadData.grade));
+      const filtered = dbSubjects.filter(subject => subject.grade === parseInt(uploadData.grade));
       setFilteredSubjects(filtered);
       // Reset subject and chapter when grade changes
       setUploadData(prev => ({ ...prev, subject_id: '', chapter_id: '' }));
+      setAvailableChapters([]);
     } else {
       setFilteredSubjects([]);
     }
-  }, [uploadData.grade, subjects]);
+  }, [uploadData.grade, dbSubjects]);
 
   // Filter chapters when subject changes
   useEffect(() => {
-    if (uploadData.subject_id) {
-      const filtered = chapters.filter(chapter => chapter.subject_id === uploadData.subject_id);
-      setFilteredChapters(filtered);
+    if (uploadData.subject_id && uploadData.grade) {
+      // Find the subject from our static data
+      const selectedSubject = dbSubjects.find(s => s.id === uploadData.subject_id);
+      if (selectedSubject) {
+        // Get chapters from our static subjects data
+        const subjectData = subjects[selectedSubject.name as keyof typeof subjects];
+        if (subjectData && subjectData.chapters[parseInt(uploadData.grade) as keyof typeof subjectData.chapters]) {
+          const chaptersList = subjectData.chapters[parseInt(uploadData.grade) as keyof typeof subjectData.chapters];
+          setAvailableChapters(chaptersList || []);
+        } else {
+          setAvailableChapters([]);
+        }
+      }
       // Reset chapter when subject changes
       setUploadData(prev => ({ ...prev, chapter_id: '' }));
     } else {
-      setFilteredChapters([]);
+      setAvailableChapters([]);
     }
-  }, [uploadData.subject_id, chapters]);
+  }, [uploadData.subject_id, uploadData.grade, dbSubjects]);
 
   const checkUser = async () => {
     const { user } = await supabaseService.getCurrentUser();
@@ -126,7 +140,7 @@ const ContentUploader = () => {
     try {
       const { data, error } = await supabaseService.getSubjects();
       if (error) throw error;
-      setSubjects(data || []);
+      setDbSubjects(data || []);
     } catch (error) {
       console.error('Error loading subjects:', error);
     }
@@ -172,8 +186,18 @@ const ContentUploader = () => {
     }
   };
 
+  const getFileForUpload = () => {
+    if (uploadData.type === 'link') {
+      // For links, create a dummy file object with the URL as the name
+      return { name: linkUrl } as File;
+    }
+    return selectedFile;
+  };
+
   const handleUpload = async () => {
-    if (!selectedFile && !uploadData.title && uploadData.type !== 'link') {
+    const fileToUpload = getFileForUpload();
+    
+    if (!fileToUpload && uploadData.type !== 'link') {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields and select a file or provide a link",
@@ -209,8 +233,8 @@ const ContentUploader = () => {
         title: uploadData.title,
         description: uploadData.description || undefined,
         type: uploadData.type,
-        url: uploadData.type === 'link' ? selectedFile?.name || '' : undefined,
-        file_path: uploadData.type !== 'link' ? `content/${Date.now()}-${selectedFile?.name}` : undefined,
+        url: uploadData.type === 'link' ? linkUrl : undefined,
+        file_path: uploadData.type !== 'link' ? `content/${Date.now()}-${fileToUpload?.name}` : undefined,
         subject_id: uploadData.subject_id,
         chapter_id: uploadData.chapter_id,
         grade: parseInt(uploadData.grade),
@@ -235,6 +259,7 @@ const ContentUploader = () => {
         type: 'video'
       });
       setSelectedFile(null);
+      setLinkUrl('');
       
       // Reset file input
       const fileInput = document.getElementById('file') as HTMLInputElement;
@@ -400,9 +425,9 @@ const ContentUploader = () => {
                   <SelectValue placeholder={uploadData.subject_id ? "Choose chapter" : "Select subject first"} />
                 </SelectTrigger>
                 <SelectContent className="bg-[#1A1A1A] border-[#2C2C2C]">
-                  {filteredChapters.map((chapter) => (
-                    <SelectItem key={chapter.id} value={chapter.id} className="text-white">
-                      {chapter.name}
+                  {availableChapters.map((chapter, index) => (
+                    <SelectItem key={index} value={chapter} className="text-white">
+                      {chapter}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -460,7 +485,8 @@ const ContentUploader = () => {
                 <Input
                   type="url"
                   placeholder="https://example.com/video-or-resource"
-                  onChange={(e) => setSelectedFile(new File([], e.target.value))}
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
                   className="bg-[#121212] border-[#424242] text-white"
                 />
               ) : (
@@ -472,9 +498,9 @@ const ContentUploader = () => {
                   accept={uploadData.type === 'video' ? 'video/*' : uploadData.type === 'pdf' ? '.pdf' : '*/*'}
                 />
               )}
-              {selectedFile && (
+              {((uploadData.type === 'link' && linkUrl) || (uploadData.type !== 'link' && selectedFile)) && (
                 <p className="text-sm text-[#00E676] mt-1">
-                  {uploadData.type === 'link' ? 'URL ready' : `Selected: ${selectedFile.name} (${formatFileSize(selectedFile.size)})`}
+                  {uploadData.type === 'link' ? 'URL ready' : `Selected: ${selectedFile?.name} (${selectedFile ? formatFileSize(selectedFile.size) : ''})`}
                 </p>
               )}
             </div>
@@ -482,7 +508,7 @@ const ContentUploader = () => {
             <Button
               onClick={handleUpload}
               className="w-full bg-[#2979FF] hover:bg-[#2979FF]/90 text-white"
-              disabled={uploading || !uploadData.title || !uploadData.subject_id || !uploadData.chapter_id || !uploadData.grade || !selectedFile}
+              disabled={uploading || !uploadData.title || !uploadData.subject_id || !uploadData.chapter_id || !uploadData.grade || (uploadData.type === 'link' ? !linkUrl : !selectedFile)}
             >
               <Upload className="h-4 w-4 mr-2" />
               {uploading ? 'Uploading...' : 'Upload Content'}
