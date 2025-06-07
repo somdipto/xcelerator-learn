@@ -1,68 +1,53 @@
 
 import { lazy } from 'react';
 
-// Core pages - immediate loading
+// Critical components - load immediately
 export const LazySubjectsPage = lazy(() => 
-  import('./SubjectsPage').then(module => ({ default: module.default }))
+  import('./SubjectsPage')
 );
 
 export const LazyProfilePage = lazy(() => 
-  import('./ProfilePage').then(module => ({ default: module.default }))
+  import('./ProfilePage')
 );
 
-// Secondary components - deferred loading
+// Secondary components - load on demand only
 export const LazyPDFViewer = lazy(() => 
-  import('./PDFViewer').then(module => ({ default: module.default }))
+  import('./PDFViewer')
 );
 
 export const LazyChapterStudyMaterial = lazy(() => 
-  import('./ChapterStudyMaterial').then(module => ({ default: module.default }))
+  import('./ChapterStudyMaterial')
 );
 
-// Teacher components - only load when needed
+// Teacher components - heavy lazy loading
 export const LazyTeacherDashboard = lazy(() => 
-  import('../pages/TeacherDashboard').then(module => ({ default: module.default }))
+  import('../pages/TeacherDashboard')
 );
 
 export const LazyStudentAnalytics = lazy(() => 
-  import('./teacher/StudentAnalytics').then(module => ({ default: module.default }))
+  import('./teacher/StudentAnalytics')
 );
 
 export const LazySubjectManager = lazy(() => 
-  import('./teacher/SubjectManager').then(module => ({ default: module.default }))
+  import('./teacher/SubjectManager')
 );
 
 export const LazyContentUploader = lazy(() => 
-  import('./teacher/ContentUploader').then(module => ({ default: module.default }))
+  import('./teacher/ContentUploader')
 );
 
 export const LazyLiveClassManager = lazy(() => 
-  import('./teacher/LiveClassManager').then(module => ({ default: module.default }))
+  import('./teacher/LiveClassManager')
 );
 
 export const LazyQuizManager = lazy(() => 
-  import('./teacher/QuizManager').then(module => ({ default: module.default }))
+  import('./teacher/QuizManager')
 );
 
 export const LazyStudyMaterialManager = lazy(() => 
-  import('./teacher/StudyMaterialManager').then(module => ({ default: module.default }))
+  import('./teacher/StudyMaterialManager')
 );
 
 export const LazySubjectChapterManager = lazy(() => 
-  import('./teacher/SubjectChapterManager').then(module => ({ default: module.default }))
+  import('./teacher/SubjectChapterManager')
 );
-
-// Utility function to preload components
-export const preloadComponent = (componentLoader: () => Promise<any>) => {
-  const componentImport = componentLoader();
-  return componentImport;
-};
-
-// Preload critical components
-export const preloadCriticalComponents = () => {
-  // Preload likely-to-be-used components
-  setTimeout(() => {
-    preloadComponent(() => import('./SubjectsPage'));
-    preloadComponent(() => import('./ProfilePage'));
-  }, 1000);
-};

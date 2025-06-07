@@ -4,7 +4,7 @@ import OnboardingModal from '@/components/OnboardingModal';
 import TopNavigation from '@/components/TopNavigation';
 import BottomNavigation from '@/components/BottomNavigation';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { LazySubjectsPage, LazyProfilePage, preloadCriticalComponents } from '@/components/LazyComponents';
+import { LazySubjectsPage, LazyProfilePage } from '@/components/LazyComponents';
 import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
@@ -13,10 +13,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('subjects');
 
   useEffect(() => {
-    // Preload critical components after initial render
-    preloadCriticalComponents();
-    
-    // Check if user has already selected a grade
+    // Immediate check without preloading to reduce initial bundle
     const savedGrade = localStorage.getItem('selectedGrade');
     if (savedGrade) {
       setSelectedGrade(parseInt(savedGrade));
@@ -69,7 +66,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#121212] performance-optimized">
+    <div className="min-h-screen bg-[#121212]">
       <TopNavigation 
         selectedGrade={selectedGrade} 
         onChapterSelect={handleChapterSelect}

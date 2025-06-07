@@ -7,43 +7,37 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Suspense, lazy } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import PerformanceMonitor from "@/components/PerformanceMonitor";
 
-// Aggressive lazy loading for all routes
+// Ultra-aggressive lazy loading - only load what's needed
 const LazyIndex = lazy(() => import("./pages/Index"));
 const LazyTeacherLogin = lazy(() => import("./pages/TeacherLogin"));
 const LazyTeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
 const LazyUnauthorizedPage = lazy(() => import("./pages/UnauthorizedPage"));
 const LazyNotFound = lazy(() => import("./pages/NotFound"));
 
-// Optimized query client for production
+// Optimized query client for faster performance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 15 * 60 * 1000, // 15 minutes
-      gcTime: 30 * 60 * 1000, // 30 minutes
-      retry: (failureCount, error: any) => {
-        // Don't retry on 4xx errors
-        if (error?.status >= 400 && error?.status < 500) return false;
-        return failureCount < 2;
-      },
+      staleTime: 5 * 60 * 1000, // 5 minutes - reduced from 15
+      gcTime: 10 * 60 * 1000, // 10 minutes - reduced from 30
+      retry: 1, // Reduced retries
       refetchOnWindowFocus: false,
-      refetchOnReconnect: 'always',
-      refetchOnMount: true,
-      networkMode: 'offlineFirst',
+      refetchOnReconnect: false, // Disabled for performance
+      refetchOnMount: false, // Only fetch when explicitly needed
+      networkMode: 'online', // Changed from offlineFirst
     },
     mutations: {
-      retry: 1,
-      networkMode: 'offlineFirst',
+      retry: 0, // No retries for mutations
+      networkMode: 'online',
     },
   },
 });
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <PerformanceMonitor />
     <AuthProvider>
-      <TooltipProvider delayDuration={300}>
+      <TooltipProvider delayDuration={500}>
         <Toaster />
         <Sonner />
         <BrowserRouter>

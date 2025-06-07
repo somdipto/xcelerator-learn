@@ -1,5 +1,4 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -35,7 +34,8 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground;
+    font-family: system-ui, -apple-system, sans-serif; /* Use system fonts for instant loading */
     background-color: #121212;
     overflow-x: hidden;
   }
@@ -57,7 +57,7 @@
   }
   
   .card-hover {
-    @apply transition-transform duration-150 hover:scale-[1.02];
+    @apply transition-transform duration-100 hover:scale-[1.01]; /* Reduced animation time */
   }
   
   .performance-optimized {
@@ -65,14 +65,9 @@
     transform: translateZ(0);
     backface-visibility: hidden;
   }
-  
-  .smooth-scroll {
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-  }
 }
 
-/* Minimal critical styles only */
+/* Minimal scrollbar */
 ::-webkit-scrollbar {
   width: 2px;
 }
@@ -82,7 +77,7 @@
   border-radius: 1px;
 }
 
-/* Reduce motion for better performance */
+/* Disable all animations for better performance */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -91,7 +86,7 @@
   }
 }
 
-/* Optimized focus states */
+/* Critical CSS only - remove non-essential styles */
 button:focus-visible,
 a:focus-visible {
   outline: 1px solid #00E676;
