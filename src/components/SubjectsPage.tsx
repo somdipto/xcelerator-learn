@@ -4,7 +4,7 @@ import { Settings, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import SubjectCard from './SubjectCard';
 import ChapterStudyMaterial from './ChapterStudyMaterial';
-import { supabaseService, Subject } from '@/services/supabaseService';
+import { dataService, Subject } from '@/services/dataService';
 import { subjects as subjectsData } from '@/data/subjects';
 import { toast } from '@/hooks/use-toast';
 
@@ -23,58 +23,32 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
 
   useEffect(() => {
     loadSubjects();
-    
-    // Subscribe to real-time updates from teacher content management
-    const channel = supabaseService.subscribeToStudyMaterials((payload) => {
-      console.log('New content from teachers detected:', payload);
-      setLastSyncTime(new Date());
-      // Optionally reload subjects if new materials affect subject availability
-      if (payload.eventType === 'INSERT') {
-        toast({
-          title: "New Content Available",
-          description: "New study materials have been added by teachers",
-        });
-      }
-    }, 'subjects-page');
-
-    return () => {
-      supabaseService.removeChannel(channel);
-    };
   }, [selectedGrade]);
 
   const loadSubjects = async () => {
     setIsLoading(true);
     try {
-      // Load subjects from Supabase
-      const { data: supabaseSubjects, error } = await supabaseService.getSubjects(selectedGrade);
+      // Single optimized call to get subjects for the grade
+      const { data: supabaseSubjects, error } = await dataService.getSubjects(selectedGrade);
       if (error) {
-        console.error('Error loading subjects from Supabase:', error);
+        console.error('Error loading subjects:', error);
+        // Fall back to local data if Supabase fails
+        setSubjects(createFallbackSubjects());
+        return;
       }
 
-      // Load study materials count for each subject
-      const { data: studyMaterials } = await supabaseService.getStudyMaterials({
-        grade: selectedGrade
-      });
-
-      // Merge Supabase subjects with local subjects data
+      // Merge with local data efficiently
       const mergedSubjects: Subject[] = [];
       
       // Add subjects from local data with their chapters
       Object.entries(subjectsData).forEach(([subjectName, subjectInfo]) => {
         const existingSupabaseSubject = supabaseSubjects?.find(s => s.name === subjectName);
         
-        // Count available study materials for this subject
-        const materialCount = studyMaterials?.filter(material => {
-          const materialTitle = material.title.toLowerCase();
-          return materialTitle.includes(subjectName.toLowerCase()) || 
-                 material.subject_id === subjectName;
-        }).length || 0;
-        
         mergedSubjects.push({
           id: existingSupabaseSubject?.id || `local-${subjectName}`,
           name: subjectName,
           description: existingSupabaseSubject?.description || 
-                      `${subjectName} for Class ${selectedGrade} (${materialCount} materials available)`,
+                      `${subjectName} for Class ${selectedGrade}`,
           grade: selectedGrade,
           icon: subjectInfo.icon,
           color: existingSupabaseSubject?.color || '#2979FF',
@@ -84,7 +58,7 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
         });
       });
 
-      // Add any additional Supabase subjects that aren't in local data
+      // Add any additional Supabase subjects
       supabaseSubjects?.forEach(supabaseSubject => {
         if (!Object.keys(subjectsData).includes(supabaseSubject.name)) {
           mergedSubjects.push(supabaseSubject);
@@ -92,17 +66,31 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
       });
 
       setSubjects(mergedSubjects);
-      console.log('Subjects loaded with study material counts:', mergedSubjects);
+      setLastSyncTime(new Date());
     } catch (error) {
       console.error('Failed to load subjects:', error);
+      setSubjects(createFallbackSubjects());
       toast({
-        title: "Error",
-        description: "Failed to load subjects",
-        variant: "destructive",
+        title: "Loading subjects from cache",
+        description: "Using offline data while connection is restored",
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const createFallbackSubjects = (): Subject[] => {
+    return Object.entries(subjectsData).map(([subjectName, subjectInfo]) => ({
+      id: `local-${subjectName}`,
+      name: subjectName,
+      description: `${subjectName} for Class ${selectedGrade}`,
+      grade: selectedGrade,
+      icon: subjectInfo.icon,
+      color: '#2979FF',
+      created_by: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }));
   };
 
   const handleChapterClick = (subject: string, chapter: string) => {
@@ -130,7 +118,7 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
     loadSubjects();
     toast({
       title: "Content Refreshed",
-      description: "Checking for latest updates from teachers",
+      description: "Checking for latest updates",
     });
   };
 
@@ -151,7 +139,7 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
       <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] px-4 sm:px-6 py-6 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00E676] mx-auto mb-4"></div>
-          <p className="text-[#E0E0E0]">Loading subjects and latest content...</p>
+          <p className="text-[#E0E0E0]">Loading subjects...</p>
         </div>
       </div>
     );
@@ -160,7 +148,7 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] px-4 sm:px-6 py-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header Section - Mobile Optimized */}
+        {/* Header Section */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
             <div className="flex-1 text-center sm:text-left">
@@ -184,7 +172,7 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
               <Button
                 onClick={handleClassChange}
                 variant="outline"
-                className="border-[#00E676] text-[#00E676] hover:bg-[#00E676] hover:text-black transition-all duration-200 h-10 px-4 touch-manipulation"
+                className="border-[#00E676] text-[#00E676] hover:bg-[#00E676] hover:text-black transition-all duration-200 h-10 px-4"
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Change Class
@@ -192,26 +180,17 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
             </div>
           </div>
           
-          {/* Description */}
           <p className="text-[#CCCCCC] text-base sm:text-lg text-center sm:text-left leading-relaxed max-w-2xl mx-auto sm:mx-0">
-            Choose a subject and explore its chapters. All content is synchronized in real-time with teacher uploads.
+            Choose a subject and explore its chapters.
           </p>
         </div>
 
-        {/* Real-time Sync Indicator */}
-        <div className="mb-6 p-4 bg-[#2C2C2C]/30 rounded-lg border border-[#424242]">
-          <div className="flex items-center justify-center gap-2 text-[#00E676]">
-            <div className="w-2 h-2 bg-[#00E676] rounded-full animate-pulse"></div>
-            <span className="text-sm">Live sync with teacher content - updates automatically</span>
-          </div>
-        </div>
-
-        {/* Subjects Grid - Mobile Responsive */}
+        {/* Subjects Grid */}
         {subjects.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📚</div>
             <h3 className="text-xl text-[#E0E0E0] mb-2">No subjects available yet</h3>
-            <p className="text-[#666666]">Subjects for Class {selectedGrade} will be added by teachers soon.</p>
+            <p className="text-[#666666]">Subjects for Class {selectedGrade} will be added soon.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Suspense, lazy } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Ultra-aggressive lazy loading - only load what's needed
 const LazyIndex = lazy(() => import("./pages/Index"));
@@ -19,74 +20,76 @@ const LazyNotFound = lazy(() => import("./pages/NotFound"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes - reduced from 15
-      gcTime: 10 * 60 * 1000, // 10 minutes - reduced from 30
-      retry: 1, // Reduced retries
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      gcTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
       refetchOnWindowFocus: false,
-      refetchOnReconnect: false, // Disabled for performance
-      refetchOnMount: false, // Only fetch when explicitly needed
-      networkMode: 'online', // Changed from offlineFirst
+      refetchOnReconnect: true,
+      refetchOnMount: false,
+      networkMode: 'online',
     },
     mutations: {
-      retry: 0, // No retries for mutations
+      retry: 0,
       networkMode: 'online',
     },
   },
 });
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider delayDuration={500}>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route 
-              path="/" 
-              element={
-                <Suspense fallback={<LoadingSpinner message="Loading..." />}>
-                  <LazyIndex />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="/teacher-login" 
-              element={
-                <Suspense fallback={<LoadingSpinner message="Loading login..." />}>
-                  <LazyTeacherLogin />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="/teacher-dashboard" 
-              element={
-                <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
-                  <LazyTeacherDashboard />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="/unauthorized" 
-              element={
-                <Suspense fallback={<LoadingSpinner message="Loading..." />}>
-                  <LazyUnauthorizedPage />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="*" 
-              element={
-                <Suspense fallback={<LoadingSpinner message="Loading..." />}>
-                  <LazyNotFound />
-                </Suspense>
-              } 
-            />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider delayDuration={500}>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route 
+                path="/" 
+                element={
+                  <Suspense fallback={<LoadingSpinner message="Loading..." />}>
+                    <LazyIndex />
+                  </Suspense>
+                } 
+              />
+              <Route 
+                path="/teacher-login" 
+                element={
+                  <Suspense fallback={<LoadingSpinner message="Loading login..." />}>
+                    <LazyTeacherLogin />
+                  </Suspense>
+                } 
+              />
+              <Route 
+                path="/teacher-dashboard" 
+                element={
+                  <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
+                    <LazyTeacherDashboard />
+                  </Suspense>
+                } 
+              />
+              <Route 
+                path="/unauthorized" 
+                element={
+                  <Suspense fallback={<LoadingSpinner message="Loading..." />}>
+                    <LazyUnauthorizedPage />
+                  </Suspense>
+                } 
+              />
+              <Route 
+                path="*" 
+                element={
+                  <Suspense fallback={<LoadingSpinner message="Loading..." />}>
+                    <LazyNotFound />
+                  </Suspense>
+                } 
+              />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
