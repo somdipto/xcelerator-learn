@@ -1,6 +1,6 @@
 
 // Re-export from split services for backwards compatibility
-export { authService as supabaseService } from './authService';
+export { authService } from './authService';
 export { dataService } from './dataService';
 export { realtimeService } from './realtimeService';
 
@@ -12,9 +12,13 @@ export type { StudyMaterial, Subject } from './dataService';
 import { authService } from './authService';
 import { dataService } from './dataService';
 import { realtimeService } from './realtimeService';
+import { supabase } from '@/integrations/supabase/client';
 
 // Combined service for legacy compatibility
 class LegacySupabaseService {
+  // Add supabase client access for compatibility
+  supabase = supabase;
+
   // Auth methods
   signUp = authService.signUp.bind(authService);
   signIn = authService.signIn.bind(authService);

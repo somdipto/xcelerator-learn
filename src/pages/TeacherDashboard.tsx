@@ -1,3 +1,4 @@
+
 import React, { useState, Suspense } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import TeacherTopNav from '@/components/teacher/TeacherTopNav';

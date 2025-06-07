@@ -36,6 +36,22 @@ export const LazyContentUploader = lazy(() =>
   import('./teacher/ContentUploader').then(module => ({ default: module.default }))
 );
 
+export const LazyLiveClassManager = lazy(() => 
+  import('./teacher/LiveClassManager').then(module => ({ default: module.default }))
+);
+
+export const LazyQuizManager = lazy(() => 
+  import('./teacher/QuizManager').then(module => ({ default: module.default }))
+);
+
+export const LazyStudyMaterialManager = lazy(() => 
+  import('./teacher/StudyMaterialManager').then(module => ({ default: module.default }))
+);
+
+export const LazySubjectChapterManager = lazy(() => 
+  import('./teacher/SubjectChapterManager').then(module => ({ default: module.default }))
+);
+
 // Utility function to preload components
 export const preloadComponent = (componentLoader: () => Promise<any>) => {
   const componentImport = componentLoader();
