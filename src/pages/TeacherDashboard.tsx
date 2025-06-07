@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/components/auth/AuthProvider';
 import TeacherTopNav from '@/components/teacher/TeacherTopNav';
 import TeacherSidebar from '@/components/teacher/TeacherSidebar';
 import SubjectManager from '@/components/teacher/SubjectManager';
@@ -10,33 +11,11 @@ import LiveClassManager from '@/components/teacher/LiveClassManager';
 import QuizManager from '@/components/teacher/QuizManager';
 import StudyMaterialManager from '@/components/teacher/StudyMaterialManager';
 import SubjectChapterManager from '@/components/teacher/SubjectChapterManager';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 const TeacherDashboard = () => {
-  const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const [activeSection, setActiveSection] = useState('overview');
-  const [teacherData, setTeacherData] = useState(null);
-
-  useEffect(() => {
-    const isAuthenticated = localStorage.getItem('teacherAuth');
-    const storedTeacherData = localStorage.getItem('teacherData');
-    
-    if (!isAuthenticated) {
-      navigate('/teacher-login');
-      return;
-    }
-    
-    if (storedTeacherData) {
-      setTeacherData(JSON.parse(storedTeacherData));
-    }
-  }, [navigate]);
-
-  if (!teacherData) {
-    return (
-      <div className="min-h-screen bg-[#121212] flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
-    );
-  }
 
   const renderContent = () => {
     switch (activeSection) {
@@ -134,20 +113,22 @@ const TeacherDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] flex">
-      <TeacherSidebar 
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-      />
-      
-      <div className="flex-1 flex flex-col md:ml-0 w-full">
-        <TeacherTopNav teacherData={teacherData} />
+    <ProtectedRoute requiredRole="teacher">
+      <div className="min-h-screen bg-[#121212] flex">
+        <TeacherSidebar 
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+        />
         
-        <main className="flex-1 overflow-auto">
-          {renderContent()}
-        </main>
+        <div className="flex-1 flex flex-col md:ml-0 w-full">
+          <TeacherTopNav teacherData={{ ...user, profile }} />
+          
+          <main className="flex-1 overflow-auto">
+            {renderContent()}
+          </main>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 };
 

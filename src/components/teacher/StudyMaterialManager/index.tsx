@@ -6,63 +6,53 @@ import { Plus, RefreshCw, Upload, Users } from 'lucide-react';
 import StudyMaterialList from './StudyMaterialList';
 import StudyMaterialForm from './StudyMaterialForm';
 import { supabaseService, StudyMaterial } from '../../../services/supabaseService';
+import { useAuth } from '../../auth/AuthProvider';
 import { toast } from '@/hooks/use-toast';
 
 const StudyMaterialManager: React.FC = () => {
+  const { user } = useAuth();
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
 
   useEffect(() => {
-    checkUser();
-    loadMaterials();
-    
-    // Subscribe to real-time updates for immediate sync with student portal
-    const channel = supabaseService.subscribeToStudyMaterials((payload) => {
-      console.log('Real-time update detected:', payload);
-      setSyncStatus('syncing');
-      loadMaterials(); // Reload materials when changes occur
-      
-      // Show sync notification
-      setTimeout(() => {
-        setSyncStatus('synced');
-        toast({
-          title: "Content Synced",
-          description: "Your changes are now live for students",
-        });
-        
-        // Reset status after 3 seconds
-        setTimeout(() => setSyncStatus('idle'), 3000);
-      }, 1000);
-    }, 'study-material-manager');
-
-    return () => {
-      supabaseService.removeChannel(channel);
-    };
-  }, []);
-
-  const checkUser = async () => {
-    const { user } = await supabaseService.getCurrentUser();
     if (user) {
-      const { data: profile } = await supabaseService.getProfile(user.id);
-      setCurrentUser({ ...user, profile });
+      loadMaterials();
+      
+      // Subscribe to real-time updates for immediate sync with student portal
+      const channel = supabaseService.subscribeToStudyMaterials((payload) => {
+        console.log('Real-time update detected:', payload);
+        setSyncStatus('syncing');
+        loadMaterials(); // Reload materials when changes occur
+        
+        // Show sync notification
+        setTimeout(() => {
+          setSyncStatus('synced');
+          toast({
+            title: "Content Synced",
+            description: "Your changes are now live for students",
+          });
+          
+          // Reset status after 3 seconds
+          setTimeout(() => setSyncStatus('idle'), 3000);
+        }, 1000);
+      }, 'study-material-manager');
+
+      return () => {
+        supabaseService.removeChannel(channel);
+      };
     }
-  };
+  }, [user]);
 
   const loadMaterials = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
     setError(null);
     try {
-      const { user } = await supabaseService.getCurrentUser();
-      if (!user) {
-        setError('Please log in to view materials');
-        return;
-      }
-
       const { data, error: fetchError } = await supabaseService.getTeacherStudyMaterials(user.id);
       
       if (fetchError) {
@@ -102,14 +92,11 @@ const StudyMaterialManager: React.FC = () => {
   };
 
   const handleFormSubmit = async (formData: FormData) => {
+    if (!user) return;
+    
     setIsLoading(true);
     setSyncStatus('syncing');
     try {
-      const { user } = await supabaseService.getCurrentUser();
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
       const materialData = {
         teacher_id: user.id,
         title: formData.get('title') as string,
@@ -227,17 +214,11 @@ const StudyMaterialManager: React.FC = () => {
     }
   };
 
-  if (!currentUser) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <p className="text-[#E0E0E0] mb-4">Please log in to access the study materials manager.</p>
-          <Button 
-            onClick={() => window.location.href = '/teacher-login'}
-            className="bg-[#2979FF] text-white hover:bg-[#2979FF]/90"
-          >
-            Go to Login
-          </Button>
+          <p className="text-[#E0E0E0] mb-4">Authentication required.</p>
         </div>
       </div>
     );
