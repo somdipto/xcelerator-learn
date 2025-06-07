@@ -8,7 +8,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, BookOpen, Save, X, Upload, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { supabaseService, Subject, StudyMaterial } from '@/services/supabaseService';
+import { supabaseService, Subject } from '@/services/supabaseService';
+
+// Define the extended StudyMaterial type that includes relations
+interface StudyMaterialWithRelations {
+  id: string;
+  teacher_id: string;
+  title: string;
+  description?: string;
+  type: 'video' | 'pdf' | 'link' | 'other';
+  url?: string;
+  file_path?: string;
+  subject_id?: string;
+  chapter_id?: string;
+  grade?: number;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+  subjects?: { name: string; grade: number };
+  chapters?: { name: string };
+}
 
 interface Chapter {
   id: string;
@@ -21,7 +40,7 @@ interface Chapter {
 const SubjectChapterManager = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
+  const [studyMaterials, setStudyMaterials] = useState<StudyMaterialWithRelations[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [selectedChapter, setSelectedChapter] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -104,7 +123,12 @@ const SubjectChapterManager = () => {
     
     const { data, error } = await supabaseService.getTeacherStudyMaterials(currentUser.id);
     if (!error && data) {
-      setStudyMaterials(data);
+      // Cast the data to ensure type compatibility
+      const typedData: StudyMaterialWithRelations[] = data.map(item => ({
+        ...item,
+        type: item.type as 'video' | 'pdf' | 'link' | 'other'
+      }));
+      setStudyMaterials(typedData);
     }
   };
 
@@ -380,7 +404,7 @@ const SubjectChapterManager = () => {
                 <Label className="text-[#E0E0E0]">Type</Label>
                 <Select 
                   value={newMaterial.type} 
-                  onValueChange={(value: any) => setNewMaterial({...newMaterial, type: value})}
+                  onValueChange={(value: 'video' | 'pdf' | 'link' | 'other') => setNewMaterial({...newMaterial, type: value})}
                 >
                   <SelectTrigger className="bg-[#121212] border-[#424242] text-white">
                     <SelectValue />
