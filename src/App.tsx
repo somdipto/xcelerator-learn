@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Suspense, lazy } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import PerformanceOptimizer from "@/components/PerformanceOptimizer";
 import Index from "./pages/Index";
 import TeacherLogin from "./pages/TeacherLogin";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
@@ -15,20 +16,26 @@ import NotFound from "./pages/NotFound";
 // Lazy load heavy components
 const LazyTeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
 
-// Optimized query client configuration
+// Highly optimized query client configuration for production
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
-      retry: 1, // Reduce retries
-      refetchOnWindowFocus: false, // Disable auto-refetch
+      staleTime: 10 * 60 * 1000, // 10 minutes - increased for better caching
+      gcTime: 30 * 60 * 1000, // 30 minutes - increased for better memory management
+      retry: 1, // Minimal retries for faster failure handling
+      refetchOnWindowFocus: false, // Disable to prevent unnecessary requests
+      refetchOnReconnect: false, // Disable auto-refetch on reconnect
+      refetchOnMount: false, // Prevent refetch on component mount
+    },
+    mutations: {
+      retry: 1,
     },
   },
 });
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <PerformanceOptimizer />
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
@@ -40,7 +47,7 @@ const App = () => (
             <Route 
               path="/teacher-dashboard" 
               element={
-                <Suspense fallback={<LoadingSpinner message="Loading teacher dashboard..." />}>
+                <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
                   <LazyTeacherDashboard />
                 </Suspense>
               } 
