@@ -35,11 +35,17 @@ const TopNavigation = ({ selectedGrade, onClassChange }: TopNavigationProps) => 
   return (
     <nav className="bg-[#1A1A1A]/95 backdrop-blur-lg border-b border-[#2C2C2C] p-4 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Logo Section */}
+        {/* Logo Section with Xcelerator Branding */}
         <div className="flex items-center gap-3">
-          <div className="text-xl sm:text-2xl font-bold">
-            <span className="text-[#00E676]">Xcel</span>
-            <span className="text-white">erator</span>
+          <div className="flex items-center gap-2">
+            {/* Xcelerator Logo Icon */}
+            <div className="w-8 h-8 bg-gradient-to-br from-[#00E676] to-[#2979FF] rounded-lg flex items-center justify-center">
+              <span className="text-black font-bold text-sm">X</span>
+            </div>
+            <div className="text-xl sm:text-2xl font-bold">
+              <span className="text-[#00E676]">Xcel</span>
+              <span className="text-white">erator</span>
+            </div>
           </div>
           <button 
             onClick={handleClassClick}

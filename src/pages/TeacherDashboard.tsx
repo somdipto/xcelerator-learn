@@ -9,6 +9,7 @@ import StudentAnalytics from '@/components/teacher/StudentAnalytics';
 import LiveClassManager from '@/components/teacher/LiveClassManager';
 import QuizManager from '@/components/teacher/QuizManager';
 import StudyMaterialManager from '@/components/teacher/StudyMaterialManager';
+import SubjectChapterManager from '@/components/teacher/SubjectChapterManager';
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -43,6 +44,8 @@ const TeacherDashboard = () => {
         return <SubjectManager />;
       case 'content':
         return <ContentUploader />;
+      case 'content-manager':
+        return <SubjectChapterManager />;
       case 'students':
         return <StudentAnalytics />;
       case 'live-classes':
@@ -77,6 +80,34 @@ const TeacherDashboard = () => {
                 <h3 className="text-lg font-semibold text-white mb-2">Avg. Progress</h3>
                 <p className="text-2xl md:text-3xl font-bold text-[#E91E63]">78%</p>
                 <p className="text-sm text-[#E0E0E0]">Student completion</p>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-[#1A1A1A] p-4 md:p-6 rounded-lg border border-[#2C2C2C] mb-6">
+              <h3 className="text-xl font-semibold text-white mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button
+                  onClick={() => setActiveSection('content-manager')}
+                  className="p-4 bg-[#00E676]/10 border border-[#00E676] rounded-lg text-[#00E676] hover:bg-[#00E676]/20 transition-colors"
+                >
+                  <h4 className="font-medium mb-2">Manage Content</h4>
+                  <p className="text-sm opacity-80">Add chapters and study materials</p>
+                </button>
+                <button
+                  onClick={() => setActiveSection('subjects')}
+                  className="p-4 bg-[#2979FF]/10 border border-[#2979FF] rounded-lg text-[#2979FF] hover:bg-[#2979FF]/20 transition-colors"
+                >
+                  <h4 className="font-medium mb-2">Manage Subjects</h4>
+                  <p className="text-sm opacity-80">Create and edit subjects</p>
+                </button>
+                <button
+                  onClick={() => setActiveSection('study-materials')}
+                  className="p-4 bg-[#FFA726]/10 border border-[#FFA726] rounded-lg text-[#FFA726] hover:bg-[#FFA726]/20 transition-colors"
+                >
+                  <h4 className="font-medium mb-2">Study Materials</h4>
+                  <p className="text-sm opacity-80">Upload and organize resources</p>
+                </button>
               </div>
             </div>
 

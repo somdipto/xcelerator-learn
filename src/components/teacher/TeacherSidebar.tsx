@@ -7,11 +7,12 @@ import {
   Upload, 
   Users, 
   Video, 
-  FileQuestion,
-  FileText, // Added for Study Materials
+  FileQuestion, 
   GraduationCap,
   Menu,
-  X
+  X,
+  Settings,
+  BarChart3
 } from 'lucide-react';
 
 interface TeacherSidebarProps {
@@ -20,80 +21,97 @@ interface TeacherSidebarProps {
 }
 
 const TeacherSidebar = ({ activeSection, onSectionChange }: TeacherSidebarProps) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
     { id: 'overview', label: 'Dashboard', icon: Home },
+    { id: 'content-manager', label: 'Content Manager', icon: Settings },
     { id: 'subjects', label: 'Subjects', icon: BookOpen },
-    { id: 'content', label: 'Content Upload', icon: Upload },
-    { id: 'study-materials', label: 'Study Materials', icon: FileText }, // Added this line
-    { id: 'students', label: 'Student Analytics', icon: Users },
+    { id: 'study-materials', label: 'Study Materials', icon: Upload },
+    { id: 'students', label: 'Students', icon: Users },
     { id: 'live-classes', label: 'Live Classes', icon: Video },
-    { id: 'quizzes', label: 'Quiz Manager', icon: FileQuestion },
+    { id: 'quizzes', label: 'Quizzes', icon: FileQuestion },
+    { id: 'content', label: 'Content Upload', icon: GraduationCap },
   ];
 
-  const handleSectionChange = (section: string) => {
-    onSectionChange(section);
-    setIsMobileMenuOpen(false); // Close mobile menu when item is selected
+  const handleItemClick = (sectionId: string) => {
+    onSectionChange(sectionId);
+    setIsOpen(false); // Close mobile menu
   };
 
   return (
     <>
       {/* Mobile Menu Button */}
       <Button
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        variant="ghost"
+        onClick={() => setIsOpen(!isOpen)}
+        className="fixed top-4 left-4 z-50 md:hidden bg-[#2979FF] hover:bg-[#2979FF]/90"
         size="icon"
-        className="md:hidden fixed top-4 left-4 z-50 bg-[#1A1A1A] border border-[#2C2C2C] text-white hover:bg-[#2C2C2C]"
       >
-        {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
 
-      {/* Mobile Overlay */}
-      {isMobileMenuOpen && (
+      {/* Overlay for mobile */}
+      {isOpen && (
         <div 
-          className="md:hidden fixed inset-0 bg-black/50 z-30"
-          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <div className={`
-        fixed md:static inset-y-0 left-0 z-40 w-64 bg-[#1A1A1A] border-r border-[#2C2C2C] min-h-screen
+        fixed md:sticky top-0 left-0 h-screen w-64 bg-[#1A1A1A] border-r border-[#2C2C2C] z-40
         transform transition-transform duration-300 ease-in-out
-        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        <div className="p-4 border-b border-[#2C2C2C] mt-16 md:mt-0">
+        <div className="p-4 border-b border-[#2C2C2C]">
           <div className="flex items-center gap-3">
-            <div className="bg-[#2979FF] rounded-lg p-2">
-              <GraduationCap className="h-6 w-6 text-white" />
+            <div className="w-8 h-8 bg-gradient-to-r from-[#2979FF] to-[#00E676] rounded-lg flex items-center justify-center">
+              <GraduationCap className="h-5 w-5 text-white" />
             </div>
             <div>
-              <div className="font-semibold text-white">Xcelerator</div>
-              <div className="text-xs text-[#E0E0E0]">Teacher Portal</div>
+              <h2 className="text-lg font-bold text-white">Teacher CMS</h2>
+              <p className="text-xs text-[#E0E0E0]">Content Management</p>
             </div>
           </div>
         </div>
 
         <nav className="p-4">
           <div className="space-y-2">
-            {menuItems.map((item) => (
-              <Button
-                key={item.id}
-                onClick={() => handleSectionChange(item.id)}
-                variant="ghost"
-                className={`w-full justify-start text-left ${
-                  activeSection === item.id
-                    ? 'bg-[#2979FF]/20 text-[#2979FF] border-r-2 border-[#2979FF]'
-                    : 'text-[#E0E0E0] hover:text-white hover:bg-[#2C2C2C]'
-                }`}
-              >
-                <item.icon className="h-4 w-4 mr-3" />
-                {item.label}
-              </Button>
-            ))}
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeSection === item.id;
+              
+              return (
+                <Button
+                  key={item.id}
+                  onClick={() => handleItemClick(item.id)}
+                  variant={isActive ? "default" : "ghost"}
+                  className={`
+                    w-full justify-start text-left transition-all duration-200
+                    ${isActive 
+                      ? 'bg-[#2979FF] text-white hover:bg-[#2979FF]/90' 
+                      : 'text-[#E0E0E0] hover:text-white hover:bg-[#2C2C2C]'
+                    }
+                  `}
+                >
+                  <Icon className="h-4 w-4 mr-3" />
+                  {item.label}
+                </Button>
+              );
+            })}
           </div>
         </nav>
+
+        {/* Real-time sync indicator */}
+        <div className="absolute bottom-4 left-4 right-4">
+          <div className="bg-[#2C2C2C]/50 rounded-lg p-3 border border-[#424242]">
+            <div className="flex items-center gap-2 text-[#00E676]">
+              <div className="w-2 h-2 bg-[#00E676] rounded-full animate-pulse"></div>
+              <span className="text-xs">Live sync with student portal</span>
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );
