@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, Upload, Users } from 'lucide-react';
 import StudyMaterialList from './StudyMaterialList';
 import StudyMaterialForm from './StudyMaterialForm';
 import { supabaseService, StudyMaterial } from '../../../services/supabaseService';
@@ -15,15 +15,29 @@ const StudyMaterialManager: React.FC = () => {
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
 
   useEffect(() => {
     checkUser();
     loadMaterials();
     
-    // Subscribe to real-time updates
+    // Subscribe to real-time updates for immediate sync with student portal
     const channel = supabaseService.subscribeToStudyMaterials((payload) => {
-      console.log('Real-time update:', payload);
+      console.log('Real-time update detected:', payload);
+      setSyncStatus('syncing');
       loadMaterials(); // Reload materials when changes occur
+      
+      // Show sync notification
+      setTimeout(() => {
+        setSyncStatus('synced');
+        toast({
+          title: "Content Synced",
+          description: "Your changes are now live for students",
+        });
+        
+        // Reset status after 3 seconds
+        setTimeout(() => setSyncStatus('idle'), 3000);
+      }, 1000);
     });
 
     return () => {
@@ -61,7 +75,7 @@ const StudyMaterialManager: React.FC = () => {
         teacher_id: item.teacher_id,
         title: item.title,
         description: item.description,
-        type: item.type as 'video' | 'pdf' | 'link' | 'other', // Type assertion for safety
+        type: item.type as 'video' | 'pdf' | 'link' | 'other',
         url: item.url,
         file_path: item.file_path,
         subject_id: item.subject_id,
@@ -87,44 +101,9 @@ const StudyMaterialManager: React.FC = () => {
     }
   };
 
-  const handleAddClick = () => {
-    setEditingMaterial(null);
-    setShowForm(true);
-  };
-
-  const handleEdit = (material: StudyMaterial) => {
-    setEditingMaterial(material);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (materialId: string) => {
-    if (window.confirm('Are you sure you want to delete this material?')) {
-      try {
-        const { error } = await supabaseService.deleteStudyMaterial(materialId);
-        
-        if (error) {
-          throw error;
-        }
-
-        await loadMaterials();
-        toast({
-          title: "Success",
-          description: "Study material deleted successfully",
-        });
-      } catch (err: any) {
-        console.error("Failed to delete material:", err);
-        setError('Failed to delete material. Please try again.');
-        toast({
-          title: "Error",
-          description: "Failed to delete material",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
   const handleFormSubmit = async (formData: FormData) => {
     setIsLoading(true);
+    setSyncStatus('syncing');
     try {
       const { user } = await supabaseService.getCurrentUser();
       if (!user) {
@@ -160,13 +139,13 @@ const StudyMaterialManager: React.FC = () => {
         result = await supabaseService.updateStudyMaterial(editingMaterial.id, materialData);
         toast({
           title: "Success",
-          description: "Study material updated successfully",
+          description: "Study material updated and synced to student portal",
         });
       } else {
         result = await supabaseService.createStudyMaterial(materialData);
         toast({
           title: "Success",
-          description: "Study material added successfully",
+          description: "Study material added and synced to student portal",
         });
       }
 
@@ -176,10 +155,12 @@ const StudyMaterialManager: React.FC = () => {
 
       setShowForm(false);
       setEditingMaterial(null);
+      setSyncStatus('synced');
       await loadMaterials();
     } catch (err: any) {
       console.error("Failed to save material:", err);
       setError('Failed to save material. Please try again.');
+      setSyncStatus('error');
       toast({
         title: "Error",
         description: err.message || "Failed to save material",
@@ -190,9 +171,60 @@ const StudyMaterialManager: React.FC = () => {
     }
   };
 
-  const handleFormCancel = () => {
-    setShowForm(false);
-    setEditingMaterial(null);
+  const handleDelete = async (materialId: string) => {
+    if (window.confirm('Are you sure? This will remove the content from the student portal immediately.')) {
+      setSyncStatus('syncing');
+      try {
+        const { error } = await supabaseService.deleteStudyMaterial(materialId);
+        
+        if (error) {
+          throw error;
+        }
+
+        await loadMaterials();
+        setSyncStatus('synced');
+        toast({
+          title: "Success",
+          description: "Study material deleted and removed from student portal",
+        });
+      } catch (err: any) {
+        console.error("Failed to delete material:", err);
+        setError('Failed to delete material. Please try again.');
+        setSyncStatus('error');
+        toast({
+          title: "Error",
+          description: "Failed to delete material",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const getSyncStatusIndicator = () => {
+    switch (syncStatus) {
+      case 'syncing':
+        return (
+          <div className="flex items-center gap-2 text-[#FFA726]">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            <span className="text-sm">Syncing to student portal...</span>
+          </div>
+        );
+      case 'synced':
+        return (
+          <div className="flex items-center gap-2 text-[#00E676]">
+            <Users className="h-4 w-4" />
+            <span className="text-sm">✓ Synced with student portal</span>
+          </div>
+        );
+      case 'error':
+        return (
+          <div className="flex items-center gap-2 text-[#FF6B6B]">
+            <span className="text-sm">⚠ Sync error - please try again</span>
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   if (!currentUser) {
@@ -227,16 +259,25 @@ const StudyMaterialManager: React.FC = () => {
       <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
         <CardHeader>
           <CardTitle className="text-white flex items-center justify-between">
-            <span>Study Materials Management</span>
-            <Button
-              onClick={loadMaterials}
-              variant="outline"
-              size="sm"
-              className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-3">
+              <Upload className="h-5 w-5" />
+              <span>Study Materials Management</span>
+              <div className="text-sm bg-[#2979FF]/20 text-[#2979FF] px-2 py-1 rounded">
+                {materials.length} materials
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              {getSyncStatusIndicator()}
+              <Button
+                onClick={loadMaterials}
+                variant="outline"
+                size="sm"
+                className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -245,6 +286,22 @@ const StudyMaterialManager: React.FC = () => {
               <p className="text-red-400 text-sm">{error}</p>
             </div>
           )}
+          
+          {/* Sync Status Banner */}
+          <div className="mb-6 p-4 bg-[#2C2C2C]/50 rounded-lg border border-[#424242]">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-[#E0E0E0] font-medium mb-1">Real-time Sync with Student Portal</h4>
+                <p className="text-[#999999] text-sm">
+                  All changes you make here are instantly available to students. No manual publishing required.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-[#00E676]">
+                <Users className="h-5 w-5" />
+                <span className="text-sm font-medium">Live Sync Active</span>
+              </div>
+            </div>
+          </div>
           
           {!showForm ? (
             <div className="space-y-4">
@@ -270,72 +327,7 @@ const StudyMaterialManager: React.FC = () => {
             </div>
           ) : (
             <StudyMaterialForm
-              onSubmit={async (formData: FormData) => {
-                setIsLoading(true);
-                try {
-                  const { user } = await supabaseService.getCurrentUser();
-                  if (!user) {
-                    throw new Error('User not authenticated');
-                  }
-
-                  const materialData = {
-                    teacher_id: user.id,
-                    title: formData.get('title') as string,
-                    description: formData.get('description') as string || undefined,
-                    type: formData.get('type') as 'video' | 'pdf' | 'link' | 'other',
-                    url: formData.get('url') as string || undefined,
-                    file_path: undefined as string | undefined,
-                    subject_id: formData.get('subjectId') as string || undefined,
-                    chapter_id: formData.get('chapterId') as string || undefined,
-                    grade: formData.get('grade') ? parseInt(formData.get('grade') as string) : undefined,
-                    is_public: true
-                  };
-
-                  // Handle file upload if present
-                  const file = formData.get('file') as File;
-                  if (file && file.size > 0) {
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-                    const filePath = `study-materials/${fileName}`;
-                    
-                    materialData.file_path = filePath;
-                    materialData.url = undefined;
-                  }
-
-                  let result;
-                  if (editingMaterial) {
-                    result = await supabaseService.updateStudyMaterial(editingMaterial.id, materialData);
-                    toast({
-                      title: "Success",
-                      description: "Study material updated successfully",
-                    });
-                  } else {
-                    result = await supabaseService.createStudyMaterial(materialData);
-                    toast({
-                      title: "Success",
-                      description: "Study material added successfully",
-                    });
-                  }
-
-                  if (result.error) {
-                    throw result.error;
-                  }
-
-                  setShowForm(false);
-                  setEditingMaterial(null);
-                  await loadMaterials();
-                } catch (err: any) {
-                  console.error("Failed to save material:", err);
-                  setError('Failed to save material. Please try again.');
-                  toast({
-                    title: "Error",
-                    description: err.message || "Failed to save material",
-                    variant: "destructive",
-                  });
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
+              onSubmit={handleFormSubmit}
               initialData={editingMaterial}
               onCancel={() => {
                 setShowForm(false);

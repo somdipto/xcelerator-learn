@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { ExternalLink, Maximize2, Minimize2, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ExternalLink, Maximize2, Minimize2, AlertCircle, RefreshCw, Fullscreen, MinimizeIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PDFViewerProps {
@@ -10,9 +10,11 @@ interface PDFViewerProps {
 
 const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Convert various PDF URLs to proper embed format
   const getEmbedUrl = (url: string, attempt: number = 0) => {
@@ -25,9 +27,9 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
         if (attempt === 0) {
           return `https://drive.google.com/file/d/${fileId}/preview`;
         } else if (attempt === 1) {
-          return `https://drive.google.com/file/d/${fileId}/view?embedded=true`;
+          return `https://drive.google.com/uc?id=${fileId}&export=download`;
         } else if (attempt === 2) {
-          return `https://docs.google.com/viewer?url=https://drive.google.com/uc?id=${fileId}&embedded=true`;
+          return `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(`https://drive.google.com/uc?id=${fileId}&export=download`)}`;
         }
       }
     }
@@ -36,15 +38,94 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
     if (attempt === 0) {
       return url;
     } else if (attempt === 1) {
-      return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-    } else if (attempt === 2) {
       return `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(url)}`;
+    } else if (attempt === 2) {
+      return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
     }
     
     return url;
   };
 
   const [embedUrl, setEmbedUrl] = useState(() => getEmbedUrl(pdfUrl, 0));
+
+  // Fullscreen functionality
+  const enterFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (containerRef.current.requestFullscreen) {
+        await containerRef.current.requestFullscreen();
+      } else if ((containerRef.current as any).webkitRequestFullscreen) {
+        await (containerRef.current as any).webkitRequestFullscreen();
+      } else if ((containerRef.current as any).msRequestFullscreen) {
+        await (containerRef.current as any).msRequestFullscreen();
+      } else {
+        // Fallback to expanded mode if fullscreen API is not supported
+        setIsExpanded(true);
+        return;
+      }
+    } catch (error) {
+      console.error('Error entering fullscreen:', error);
+      // Fallback to expanded mode
+      setIsExpanded(true);
+    }
+  };
+
+  const exitFullscreen = async () => {
+    try {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        await (document as any).webkitExitFullscreen();
+      } else if ((document as any).msExitFullscreen) {
+        await (document as any).msExitFullscreen();
+      } else {
+        // Fallback to contracted mode
+        setIsExpanded(false);
+      }
+    } catch (error) {
+      console.error('Error exiting fullscreen:', error);
+      setIsExpanded(false);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (isFullscreen) {
+      exitFullscreen();
+    } else {
+      enterFullscreen();
+    }
+  };
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
+    };
+
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isFullscreen) {
+        exitFullscreen();
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+    document.addEventListener('keydown', handleKeyPress);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [isFullscreen]);
 
   const openInNewTab = () => {
     let originalUrl = pdfUrl;
@@ -62,7 +143,7 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
     if (pdfUrl.includes('drive.google.com')) {
       const fileId = pdfUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
       if (fileId) {
-        targetUrl = `https://drive.google.com/uc?id=${fileId}`;
+        targetUrl = `https://drive.google.com/uc?id=${fileId}&export=download`;
       }
     }
     const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(targetUrl)}`;
@@ -74,7 +155,7 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
     if (pdfUrl.includes('drive.google.com')) {
       const fileId = pdfUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
       if (fileId) {
-        targetUrl = `https://drive.google.com/uc?id=${fileId}`;
+        targetUrl = `https://drive.google.com/uc?id=${fileId}&export=download`;
       }
     }
     const viewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(targetUrl)}`;
@@ -117,7 +198,7 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
         setHasError(true);
         setIsLoading(false);
       }
-    }, 15000); // 15 second timeout
+    }, 10000); // 10 second timeout
 
     return () => clearTimeout(timeout);
   }, [isLoading, retryCount]);
@@ -129,6 +210,12 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
     setIsLoading(true);
     setEmbedUrl(getEmbedUrl(pdfUrl, 0));
   }, [pdfUrl]);
+
+  const getContainerHeight = () => {
+    if (isFullscreen) return '100vh';
+    if (isExpanded) return '80vh';
+    return '400px sm:500px';
+  };
 
   return (
     <div className="space-y-4">
@@ -149,9 +236,17 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
             variant="outline"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="border-[#00E676] text-[#00E676] hover:bg-[#00E676] hover:text-black"
+            className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white"
           >
             {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleFullscreen}
+            className="border-[#E91E63] text-[#E91E63] hover:bg-[#E91E63] hover:text-white"
+          >
+            {isFullscreen ? <MinimizeIcon className="h-4 w-4" /> : <Fullscreen className="h-4 w-4" />}
           </Button>
           <Button
             variant="outline"
@@ -164,9 +259,13 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
         </div>
       </div>
       
-      <div className={`rounded-lg overflow-hidden border border-[#2C2C2C] ${
-        isExpanded ? 'h-[80vh]' : 'h-[400px] sm:h-[500px]'
-      }`}>
+      <div 
+        ref={containerRef}
+        className={`rounded-lg overflow-hidden border border-[#2C2C2C] ${
+          isFullscreen ? 'fixed inset-0 z-50 bg-black' : ''
+        }`}
+        style={{ height: getContainerHeight() }}
+      >
         {hasError ? (
           <div className="flex flex-col items-center justify-center h-full bg-[#1A1A1A] text-center p-6">
             <AlertCircle className="h-12 w-12 text-[#FF6B6B] mb-4" />
@@ -239,6 +338,19 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
                 display: isLoading ? 'none' : 'block'
               }}
             />
+            {isFullscreen && (
+              <div className="absolute top-4 right-4 z-10">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exitFullscreen}
+                  className="bg-black/50 border-white/20 text-white hover:bg-white/10"
+                >
+                  <MinimizeIcon className="h-4 w-4 mr-2" />
+                  Exit Fullscreen
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -248,7 +360,7 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
           📚 <strong>Study Tip:</strong> All viewing options maintain your progress in the LMS
         </p>
         <div className="flex flex-wrap justify-center gap-2 text-xs text-[#999999]">
-          <span>• Bookmark important pages</span>
+          <span>• Use fullscreen for better focus</span>
           <span>• Take notes as you read</span>
           <span>• Return here for quizzes</span>
         </div>
