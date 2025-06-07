@@ -64,6 +64,10 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				}
 			},
+			screens: {
+				'tablet': {'min': '768px', 'max': '1023px'},
+				'touch': {'raw': '(hover: none) and (pointer: coarse)'},
+			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
@@ -115,6 +119,9 @@ export default {
 			},
 			fontFamily: {
 				sans: ['Inter', 'system-ui', 'sans-serif'],
+			},
+			spacing: {
+				'touch': '44px', // Minimum touch target size
 			}
 		}
 	},

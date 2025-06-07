@@ -214,47 +214,51 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
   const getContainerHeight = () => {
     if (isFullscreen) return '100vh';
     if (isExpanded) return '80vh';
-    return '400px sm:500px';
+    return '50vh md:60vh'; // Tablet-optimized height
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
-        <div className="flex gap-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <h3 className="text-base md:text-lg font-semibold text-white truncate">{title}</h3>
+        <div className="flex gap-2 flex-wrap">
           {hasError && retryCount < 3 && (
             <Button
               variant="outline"
               size="sm"
               onClick={retryLoading}
-              className="border-[#FFA726] text-[#FFA726] hover:bg-[#FFA726] hover:text-black"
+              className="border-[#FFA726] text-[#FFA726] hover:bg-[#FFA726] hover:text-black h-11 px-3 touch-manipulation"
             >
               <RefreshCw className="h-4 w-4" />
+              <span className="hidden md:inline ml-2">Retry</span>
             </Button>
           )}
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white"
+            className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white h-11 px-3 touch-manipulation"
           >
             {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            <span className="hidden md:inline ml-2">{isExpanded ? 'Minimize' : 'Expand'}</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={toggleFullscreen}
-            className="border-[#E91E63] text-[#E91E63] hover:bg-[#E91E63] hover:text-white"
+            className="border-[#E91E63] text-[#E91E63] hover:bg-[#E91E63] hover:text-white h-11 px-3 touch-manipulation"
           >
             {isFullscreen ? <MinimizeIcon className="h-4 w-4" /> : <Fullscreen className="h-4 w-4" />}
+            <span className="hidden md:inline ml-2">Full</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={openInNewTab}
-            className="border-[#00E676] text-[#00E676] hover:bg-[#00E676] hover:text-black"
+            className="border-[#00E676] text-[#00E676] hover:bg-[#00E676] hover:text-black h-11 px-3 touch-manipulation"
           >
             <ExternalLink className="h-4 w-4" />
+            <span className="hidden md:inline ml-2">Open</span>
           </Button>
         </div>
       </div>
@@ -267,30 +271,30 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
         style={{ height: getContainerHeight() }}
       >
         {hasError ? (
-          <div className="flex flex-col items-center justify-center h-full bg-[#1A1A1A] text-center p-6">
-            <AlertCircle className="h-12 w-12 text-[#FF6B6B] mb-4" />
+          <div className="flex flex-col items-center justify-center h-full bg-[#1A1A1A] text-center p-4 md:p-6">
+            <AlertCircle className="h-10 w-10 md:h-12 md:w-12 text-[#FF6B6B] mb-4" />
             <h3 className="text-white text-lg font-semibold mb-2">PDF Viewer Options</h3>
-            <p className="text-[#CCCCCC] mb-6 max-w-md">
+            <p className="text-[#CCCCCC] mb-6 max-w-md text-sm md:text-base">
               The PDF couldn't be embedded directly. Choose one of these viewing options to continue studying:
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-md">
               <Button
                 onClick={openInNewTab}
-                className="bg-[#00E676] text-black hover:bg-[#00E676]/80 h-12"
+                className="bg-[#00E676] text-black hover:bg-[#00E676]/80 h-12 touch-manipulation"
               >
                 📄 Original Source
               </Button>
               <Button
                 onClick={openWithGoogleViewer}
                 variant="outline"
-                className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white h-12"
+                className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white h-12 touch-manipulation"
               >
                 🔍 Google Viewer
               </Button>
               <Button
                 onClick={openWithMozillaViewer}
                 variant="outline"
-                className="border-[#FFA726] text-[#FFA726] hover:bg-[#FFA726] hover:text-black h-12"
+                className="border-[#FFA726] text-[#FFA726] hover:bg-[#FFA726] hover:text-black h-12 touch-manipulation"
               >
                 📖 PDF.js Viewer
               </Button>
@@ -298,7 +302,7 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
                 <Button
                   onClick={retryLoading}
                   variant="outline"
-                  className="border-[#E91E63] text-[#E91E63] hover:bg-[#E91E63] hover:text-white h-12"
+                  className="border-[#E91E63] text-[#E91E63] hover:bg-[#E91E63] hover:text-white h-12 touch-manipulation"
                 >
                   🔄 Try Again
                 </Button>
@@ -313,7 +317,7 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-[#1A1A1A] z-10">
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00E676] mx-auto mb-4"></div>
+                  <div className="animate-spin rounded-full h-10 w-10 md:h-12 md:w-12 border-b-2 border-[#00E676] mx-auto mb-4"></div>
                   <p className="text-white mb-2">Loading PDF...</p>
                   {retryCount > 0 && (
                     <p className="text-sm text-[#CCCCCC]">
@@ -344,7 +348,7 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
                   variant="outline"
                   size="sm"
                   onClick={exitFullscreen}
-                  className="bg-black/50 border-white/20 text-white hover:bg-white/10"
+                  className="bg-black/50 border-white/20 text-white hover:bg-white/10 h-12 px-4 touch-manipulation"
                 >
                   <MinimizeIcon className="h-4 w-4 mr-2" />
                   Exit Fullscreen
@@ -355,8 +359,8 @@ const PDFViewer = ({ pdfUrl, title }: PDFViewerProps) => {
         )}
       </div>
       
-      <div className="bg-[#2C2C2C]/50 rounded-lg p-3 text-center">
-        <p className="text-xs text-[#CCCCCC] mb-2">
+      <div className="bg-[#2C2C2C]/50 rounded-lg p-3 md:p-4 text-center">
+        <p className="text-xs md:text-sm text-[#CCCCCC] mb-2">
           📚 <strong>Study Tip:</strong> All viewing options maintain your progress in the LMS
         </p>
         <div className="flex flex-wrap justify-center gap-2 text-xs text-[#999999]">

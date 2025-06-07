@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Clock, Users, Trophy, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -87,7 +88,9 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
             teacher_id: material.teacher_id,
             title: material.title,
             description: material.description,
-            type: material.type as 'video' | 'pdf' | 'link' | 'other', // Type assertion
+            type: ['video', 'pdf', 'link', 'other'].includes(material.type) 
+              ? material.type as 'video' | 'pdf' | 'link' | 'other'
+              : 'other',
             url: material.url,
             file_path: material.file_path,
             subject_id: material.subject_id,
@@ -132,22 +135,22 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
   } : null);
 
   const renderMaterialCard = (material: StudyMaterial, icon: string, color: string) => (
-    <Card key={material.id} className="bg-[#2C2C2C]/50 backdrop-blur-sm border-[#424242] hover:bg-[#2C2C2C]/70 transition-all duration-300">
-      <CardHeader>
-        <CardTitle className={`text-${color} text-lg flex items-center gap-2`}>
+    <Card key={material.id} className="bg-[#2C2C2C]/50 backdrop-blur-sm border-[#424242] hover:bg-[#2C2C2C]/70 transition-all duration-300 touch-manipulation">
+      <CardHeader className="pb-3">
+        <CardTitle className={`text-${color} text-base md:text-lg flex items-center gap-2 flex-wrap`}>
           <span className="text-xl">{icon}</span>
-          {material.title}
-          <Badge variant="secondary" className={`bg-${color}/20 text-${color} border-${color}/30`}>
+          <span className="flex-1 min-w-0 truncate">{material.title}</span>
+          <Badge variant="secondary" className={`bg-${color}/20 text-${color} border-${color}/30 text-xs`}>
             {material.type.toUpperCase()}
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         {material.description && (
-          <p className="text-[#E0E0E0] mb-4">{material.description}</p>
+          <p className="text-[#E0E0E0] mb-3 text-sm md:text-base line-clamp-2">{material.description}</p>
         )}
         <div className="flex items-center gap-2 text-xs text-[#666666] mb-4">
-          <Clock className="h-3 w-3" />
+          <Clock className="h-3 w-3 flex-shrink-0" />
           <span>Added {new Date(material.created_at).toLocaleDateString()}</span>
         </div>
         <Button 
@@ -160,7 +163,7 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
               window.open(fileUrl, '_blank');
             }
           }}
-          className={`w-full bg-${color} text-black hover:bg-${color}/90 font-medium`}
+          className={`w-full bg-${color} text-black hover:bg-${color}/90 font-medium h-11 md:h-12 touch-manipulation`}
         >
           {material.type === 'video' ? 'Watch Video' : 
            material.type === 'pdf' ? 'View PDF' : 
@@ -172,22 +175,22 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
 
   const renderComingSoonCard = (title: string, description: string, icon: string, color: string, estimatedTime: string) => (
     <Card className="bg-[#2C2C2C]/50 backdrop-blur-sm border-[#424242] hover:bg-[#2C2C2C]/70 transition-all duration-300">
-      <CardHeader>
-        <CardTitle className={`text-${color} text-lg flex items-center gap-2`}>
+      <CardHeader className="pb-3">
+        <CardTitle className={`text-${color} text-base md:text-lg flex items-center gap-2`}>
           <span className="text-xl">{icon}</span>
-          {title}
-          <Badge variant="secondary" className="bg-[#666666]/20 text-[#666666] border-[#666666]/30">
+          <span className="flex-1">{title}</span>
+          <Badge variant="secondary" className="bg-[#666666]/20 text-[#666666] border-[#666666]/30 text-xs">
             Coming Soon
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <p className="text-[#E0E0E0] mb-4">{description}</p>
+      <CardContent className="pt-0">
+        <p className="text-[#E0E0E0] mb-3 text-sm md:text-base">{description}</p>
         <div className="flex items-center gap-2 text-xs text-[#666666] mb-4">
           <Clock className="h-3 w-3" />
           <span>{estimatedTime}</span>
         </div>
-        <Button disabled className="w-full bg-[#666666] text-[#CCCCCC] font-medium">
+        <Button disabled className="w-full bg-[#666666] text-[#CCCCCC] font-medium h-11 md:h-12">
           Coming Soon
         </Button>
       </CardContent>
@@ -196,49 +199,49 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
 
   if (isLoading) {
     return (
-      <div className="p-4 sm:p-6 min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] flex items-center justify-center">
+      <div className="p-4 md:p-6 min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4 text-[#00E676]" />
-          <p className="text-[#E0E0E0]">Loading study materials...</p>
+          <p className="text-[#E0E0E0] text-lg">Loading study materials...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6 min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A]">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
+    <div className="p-4 md:p-6 min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A]">
+      <div className="max-w-7xl mx-auto">
+        {/* Header - Tablet Optimized */}
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6">
           <Button 
             variant="ghost" 
             onClick={onBack}
-            className="text-[#E0E0E0] hover:text-[#00E676] hover:bg-[#00E676]/10 transition-all duration-200 touch-manipulation"
+            className="text-[#E0E0E0] hover:text-[#00E676] hover:bg-[#00E676]/10 transition-all duration-200 touch-manipulation h-12 px-4"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-5 w-5 mr-2" />
             Back to Subjects
           </Button>
           <Button
             variant="outline"
-            size="sm"
             onClick={loadStudyMaterials}
-            className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white"
+            className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white h-12 px-4 touch-manipulation"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className="h-5 w-5 mr-2" />
             Refresh Content
           </Button>
         </div>
         
         <Card className="bg-[#1A1A1A]/80 backdrop-blur-md border-[#2C2C2C] shadow-2xl">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-3">
-              <div className={`p-3 rounded-xl bg-gradient-to-r ${subjectData.gradient}`}>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-white flex flex-col md:flex-row md:items-center gap-4">
+              <div className={`p-3 rounded-xl bg-gradient-to-r ${subjectData.gradient} flex-shrink-0`}>
                 <span className="text-2xl">{subjectData.icon}</span>
               </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl bg-gradient-to-r from-white to-[#E0E0E0] bg-clip-text text-transparent">
+              <div className="flex-1">
+                <h1 className="text-xl md:text-2xl lg:text-3xl bg-gradient-to-r from-white to-[#E0E0E0] bg-clip-text text-transparent leading-tight">
                   {subject} - {chapter}
                 </h1>
-                <p className="text-[#E0E0E0] text-sm font-normal">
+                <p className="text-[#E0E0E0] text-sm md:text-base font-normal mt-1">
                   Class {selectedGrade} Study Material ({studyMaterials.length} items available)
                 </p>
               </div>
@@ -246,30 +249,34 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 bg-[#2C2C2C] border border-[#424242] mb-6">
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-[#2C2C2C] border border-[#424242] mb-6 h-auto">
                 <TabsTrigger 
                   value="theory" 
-                  className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-[#E0E0E0]"
+                  className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-[#E0E0E0] h-12 md:h-10 text-sm touch-manipulation"
                 >
-                  📚 Theory
+                  <span className="hidden md:inline">📚 Theory</span>
+                  <span className="md:hidden">📚</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="videos" 
-                  className="data-[state=active]:bg-[#2979FF] data-[state=active]:text-white text-[#E0E0E0]"
+                  className="data-[state=active]:bg-[#2979FF] data-[state=active]:text-white text-[#E0E0E0] h-12 md:h-10 text-sm touch-manipulation"
                 >
-                  🎥 Videos
+                  <span className="hidden md:inline">🎥 Videos</span>
+                  <span className="md:hidden">🎥</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="practice" 
-                  className="data-[state=active]:bg-[#FFA726] data-[state=active]:text-black text-[#E0E0E0]"
+                  className="data-[state=active]:bg-[#FFA726] data-[state=active]:text-black text-[#E0E0E0] h-12 md:h-10 text-sm touch-manipulation"
                 >
-                  📝 Practice
+                  <span className="hidden md:inline">📝 Practice</span>
+                  <span className="md:hidden">📝</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="quiz" 
-                  className="data-[state=active]:bg-[#E91E63] data-[state=active]:text-white text-[#E0E0E0]"
+                  className="data-[state=active]:bg-[#E91E63] data-[state=active]:text-white text-[#E0E0E0] h-12 md:h-10 text-sm touch-manipulation"
                 >
-                  🏆 Quiz
+                  <span className="hidden md:inline">🏆 Quiz</span>
+                  <span className="md:hidden">🏆</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -277,7 +284,7 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
                 {primaryPDF ? (
                   <Card className="bg-[#2C2C2C]/50 backdrop-blur-sm border-[#424242]">
                     <CardHeader>
-                      <CardTitle className="text-[#00E676] text-lg flex items-center gap-2">
+                      <CardTitle className="text-[#00E676] text-lg md:text-xl flex items-center gap-2">
                         📚 {primaryPDF.title}
                         <Badge variant="secondary" className="bg-[#00E676]/20 text-[#00E676] border-[#00E676]/30">
                           PDF
@@ -293,15 +300,15 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
                   </Card>
                 ) : (
                   <div className="text-center py-12">
-                    <div className="text-6xl mb-4">📚</div>
-                    <h3 className="text-xl text-[#E0E0E0] mb-2">No theory materials yet</h3>
-                    <p className="text-[#666666]">Theory materials for {chapter} will be uploaded by teachers soon.</p>
+                    <div className="text-4xl md:text-6xl mb-4">📚</div>
+                    <h3 className="text-lg md:text-xl text-[#E0E0E0] mb-2">No theory materials yet</h3>
+                    <p className="text-[#666666] text-sm md:text-base">Theory materials for {chapter} will be uploaded by teachers soon.</p>
                   </div>
                 )}
 
                 {/* Additional PDF materials */}
                 {pdfMaterials.length > 1 && (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {pdfMaterials.slice(1).map(material => 
                       renderMaterialCard(material, '📄', '[#00E676]')
                     )}
@@ -311,13 +318,13 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
 
               <TabsContent value="videos" className="space-y-6">
                 {videoMaterials.length > 0 ? (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {videoMaterials.map(material => 
                       renderMaterialCard(material, '🎥', '[#2979FF]')
                     )}
                   </div>
                 ) : (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {renderComingSoonCard(
                       'Video Lectures',
                       'Interactive video lessons with detailed explanations.',
@@ -338,13 +345,13 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
 
               <TabsContent value="practice" className="space-y-6">
                 {otherMaterials.length > 0 ? (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {otherMaterials.map(material => 
                       renderMaterialCard(material, '📝', '[#FFA726]')
                     )}
                   </div>
                 ) : (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {renderComingSoonCard(
                       'Practice Questions',
                       'Solve practice questions to test your understanding.',
@@ -365,13 +372,13 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
 
               <TabsContent value="quiz" className="space-y-6">
                 {linkMaterials.length > 0 ? (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {linkMaterials.map(material => 
                       renderMaterialCard(material, '🏆', '[#E91E63]')
                     )}
                   </div>
                 ) : (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {renderComingSoonCard(
                       'Chapter Quiz',
                       'Take a quiz to evaluate your knowledge of this chapter.',
