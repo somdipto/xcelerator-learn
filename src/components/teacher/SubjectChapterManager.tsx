@@ -16,7 +16,7 @@ interface StudyMaterialWithRelations {
   teacher_id: string;
   title: string;
   description?: string;
-  type: 'video' | 'pdf' | 'link' | 'other';
+  type: 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz';
   url?: string;
   file_path?: string;
   subject_id?: string;
@@ -57,7 +57,7 @@ const SubjectChapterManager = () => {
   const [newMaterial, setNewMaterial] = useState({
     title: '',
     description: '',
-    type: 'pdf' as 'video' | 'pdf' | 'link' | 'other',
+    type: 'textbook' as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz',
     url: '',
     grade: 8
   });
@@ -126,7 +126,7 @@ const SubjectChapterManager = () => {
       // Cast the data to ensure type compatibility
       const typedData: StudyMaterialWithRelations[] = data.map(item => ({
         ...item,
-        type: item.type as 'video' | 'pdf' | 'link' | 'other'
+        type: item.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz'
       }));
       setStudyMaterials(typedData);
     }
@@ -199,7 +199,7 @@ const SubjectChapterManager = () => {
       setNewMaterial({
         title: '',
         description: '',
-        type: 'pdf',
+        type: 'textbook',
         url: '',
         grade: 8
       });
@@ -404,16 +404,17 @@ const SubjectChapterManager = () => {
                 <Label className="text-[#E0E0E0]">Type</Label>
                 <Select 
                   value={newMaterial.type} 
-                  onValueChange={(value: 'video' | 'pdf' | 'link' | 'other') => setNewMaterial({...newMaterial, type: value})}
+                  onValueChange={(value: 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz') => setNewMaterial({...newMaterial, type: value})}
                 >
                   <SelectTrigger className="bg-[#121212] border-[#424242] text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pdf">PDF Document</SelectItem>
+                    <SelectItem value="textbook">Textbook/PDF</SelectItem>
                     <SelectItem value="video">Video</SelectItem>
-                    <SelectItem value="link">External Link</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="summary">Summary Notes</SelectItem>
+                    <SelectItem value="ppt">Presentation (PPT)</SelectItem>
+                    <SelectItem value="quiz">Quiz/Assessment</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
