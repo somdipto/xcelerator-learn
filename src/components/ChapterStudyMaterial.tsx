@@ -33,6 +33,23 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
     const channel = supabaseService.subscribeToStudyMaterials((payload) => {
       console.log('Real-time study material update:', payload);
       loadStudyMaterials(); // Reload materials when changes occur
+      
+      if (payload.eventType === 'INSERT') {
+        toast({
+          title: "New Content Available",
+          description: "New study materials have been added by teachers",
+        });
+      } else if (payload.eventType === 'UPDATE') {
+        toast({
+          title: "Content Updated",
+          description: "Study materials have been updated by teachers",
+        });
+      } else if (payload.eventType === 'DELETE') {
+        toast({
+          title: "Content Removed",
+          description: "Some study materials have been removed",
+        });
+      }
     });
 
     return () => {
@@ -56,18 +73,34 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
           variant: "destructive",
         });
       } else {
-        // Filter materials that match the current subject and chapter
-        const filteredMaterials = (data || []).filter(material => {
-          const materialTitle = material.title.toLowerCase();
-          const subjectMatch = materialTitle.includes(subject.toLowerCase()) || 
+        // Filter and transform materials to match our type
+        const transformedMaterials: StudyMaterial[] = (data || [])
+          .filter(material => {
+            const materialTitle = material.title.toLowerCase();
+            const subjectMatch = materialTitle.includes(subject.toLowerCase()) || 
                                material.subject_id === subject;
-          const chapterMatch = materialTitle.includes(chapter.toLowerCase()) || 
+            const chapterMatch = materialTitle.includes(chapter.toLowerCase()) || 
                                material.chapter_id === chapter;
-          return subjectMatch && chapterMatch;
-        });
+            return subjectMatch && chapterMatch;
+          })
+          .map(material => ({
+            id: material.id,
+            teacher_id: material.teacher_id,
+            title: material.title,
+            description: material.description,
+            type: material.type as 'video' | 'pdf' | 'link' | 'other', // Type assertion
+            url: material.url,
+            file_path: material.file_path,
+            subject_id: material.subject_id,
+            chapter_id: material.chapter_id,
+            grade: material.grade,
+            is_public: material.is_public,
+            created_at: material.created_at,
+            updated_at: material.updated_at
+          }));
         
-        setStudyMaterials(filteredMaterials);
-        console.log('Loaded study materials:', filteredMaterials);
+        setStudyMaterials(transformedMaterials);
+        console.log('Loaded and transformed study materials:', transformedMaterials);
       }
     } catch (error) {
       console.error('Failed to load study materials:', error);
@@ -123,7 +156,9 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
             if (material.url) {
               window.open(material.url, '_blank');
             } else if (material.file_path) {
-              window.open(`/uploads/${material.file_path}`, '_blank');
+              // Use Supabase storage URL for uploaded files
+              const fileUrl = supabaseService.getFileUrl('study-materials', material.file_path);
+              window.open(fileUrl, '_blank');
             }
           }}
           className={`w-full bg-${color} text-black hover:bg-${color}/90 font-medium`}
@@ -252,7 +287,7 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
                     </CardHeader>
                     <CardContent>
                       <PDFViewer 
-                        pdfUrl={primaryPDF.url || `http://localhost:3001/${primaryPDF.file_path}`} 
+                        pdfUrl={primaryPDF.url || supabaseService.getFileUrl('study-materials', primaryPDF.file_path || '')} 
                         title={primaryPDF.title}
                       />
                     </CardContent>
