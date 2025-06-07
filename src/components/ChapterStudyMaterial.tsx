@@ -50,10 +50,10 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
           description: "Some study materials have been removed",
         });
       }
-    });
+    }, 'chapter-study-material');
 
     return () => {
-      supabaseService.supabase.removeChannel(channel);
+      supabaseService.removeChannel(channel);
     };
   }, [subject, chapter, selectedGrade]);
 

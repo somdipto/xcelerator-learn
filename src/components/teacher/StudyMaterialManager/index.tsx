@@ -38,10 +38,10 @@ const StudyMaterialManager: React.FC = () => {
         // Reset status after 3 seconds
         setTimeout(() => setSyncStatus('idle'), 3000);
       }, 1000);
-    });
+    }, 'study-material-manager');
 
     return () => {
-      supabaseService.supabase.removeChannel(channel);
+      supabaseService.removeChannel(channel);
     };
   }, []);
 

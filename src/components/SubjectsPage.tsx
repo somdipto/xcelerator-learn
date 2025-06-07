@@ -35,10 +35,10 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
           description: "New study materials have been added by teachers",
         });
       }
-    });
+    }, 'subjects-page');
 
     return () => {
-      supabaseService.supabase.removeChannel(channel);
+      supabaseService.removeChannel(channel);
     };
   }, [selectedGrade]);
 

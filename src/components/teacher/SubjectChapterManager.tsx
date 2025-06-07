@@ -66,17 +66,17 @@ const SubjectChapterManager = () => {
     loadData();
     checkUser();
     
-    // Real-time sync setup
+    // Real-time sync setup with unique channel name
     const channel = supabaseService.subscribeToStudyMaterials((payload) => {
       console.log('Real-time update:', payload);
       setSyncStatus('syncing');
       loadStudyMaterials();
       setTimeout(() => setSyncStatus('synced'), 1000);
       setTimeout(() => setSyncStatus('idle'), 3000);
-    });
+    }, 'subject-chapter-manager');
 
     return () => {
-      supabaseService.supabase.removeChannel(channel);
+      supabaseService.removeChannel(channel);
     };
   }, []);
 

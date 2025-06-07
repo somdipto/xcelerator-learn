@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface StudyMaterial {
@@ -40,6 +41,9 @@ export interface Profile {
 class SupabaseService {
   // Expose the supabase client
   public supabase = supabase;
+
+  // Track active channels to prevent duplicates
+  private activeChannels = new Map<string, any>();
 
   // Authentication methods
   async signUp(email: string, password: string, userData: { full_name?: string; role?: string } = {}) {
@@ -199,10 +203,18 @@ class SupabaseService {
     return { error };
   }
 
-  // Real-time subscriptions
-  subscribeToStudyMaterials(callback: (payload: any) => void) {
-    return supabase
-      .channel('study_materials_changes')
+  // Real-time subscriptions with unique channel names
+  subscribeToStudyMaterials(callback: (payload: any) => void, channelName?: string) {
+    const uniqueChannelName = channelName || `study_materials_${Date.now()}_${Math.random()}`;
+    
+    // Remove existing channel if it exists
+    if (this.activeChannels.has(uniqueChannelName)) {
+      const existingChannel = this.activeChannels.get(uniqueChannelName);
+      supabase.removeChannel(existingChannel);
+    }
+
+    const channel = supabase
+      .channel(uniqueChannelName)
       .on(
         'postgres_changes',
         {
@@ -213,6 +225,21 @@ class SupabaseService {
         callback
       )
       .subscribe();
+
+    this.activeChannels.set(uniqueChannelName, channel);
+    return channel;
+  }
+
+  // Method to cleanup a specific channel
+  removeChannel(channel: any) {
+    // Find and remove from active channels
+    for (const [name, activeChannel] of this.activeChannels.entries()) {
+      if (activeChannel === channel) {
+        this.activeChannels.delete(name);
+        break;
+      }
+    }
+    supabase.removeChannel(channel);
   }
 
   // File upload methods
