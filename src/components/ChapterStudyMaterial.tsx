@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Clock, Users, Trophy, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';

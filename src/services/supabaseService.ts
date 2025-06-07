@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface StudyMaterial {
@@ -224,7 +223,7 @@ class SupabaseService {
     return { data, error };
   }
 
-  async getFileUrl(bucket: string, path: string) {
+  getFileUrl(bucket: string, path: string): string {
     const { data } = supabase.storage
       .from(bucket)
       .getPublicUrl(path);
