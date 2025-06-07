@@ -21,29 +21,21 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    // Optimize build for production
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
+    // Use default minification (esbuild) which is faster and lighter
+    minify: true,
     rollupOptions: {
       output: {
         manualChunks: {
-          // Split vendor libraries
+          // Simplified chunk splitting for better performance
           'react-vendor': ['react', 'react-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-toast'],
+          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
           'query-vendor': ['@tanstack/react-query'],
-          'router-vendor': ['react-router-dom'],
-          'supabase-vendor': ['@supabase/supabase-js'],
         },
       },
     },
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
-    // Enable source maps only for debugging
+    // Disable source maps for production builds
     sourcemap: false,
   },
   // Optimize dependencies
@@ -52,8 +44,7 @@ export default defineConfig(({ mode }) => ({
       'react',
       'react-dom',
       'react-router-dom',
-      '@tanstack/react-query',
-      '@supabase/supabase-js'
+      '@tanstack/react-query'
     ],
   },
 }));
