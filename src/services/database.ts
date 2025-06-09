@@ -113,10 +113,10 @@ class DatabaseService {
     }
   }
 
-  // Supabase integration methods
-  async getSupabaseData<T>(table: string, query?: any): Promise<DatabaseResponse<T[]>> {
+  // Supabase integration methods with fixed typing
+  async getSupabaseData<T>(tableName: 'subjects' | 'chapters' | 'profiles' | 'study_materials', query?: any): Promise<DatabaseResponse<T[]>> {
     try {
-      let supabaseQuery = supabase.from(table).select('*');
+      let supabaseQuery = supabase.from(tableName).select('*');
       
       if (query) {
         Object.keys(query).forEach(key => {
@@ -140,10 +140,10 @@ class DatabaseService {
     }
   }
 
-  async insertSupabaseData<T>(table: string, payload: any): Promise<DatabaseResponse<T>> {
+  async insertSupabaseData<T>(tableName: 'subjects' | 'chapters' | 'profiles' | 'study_materials', payload: any): Promise<DatabaseResponse<T>> {
     try {
       const { data, error } = await supabase
-        .from(table)
+        .from(tableName)
         .insert(payload)
         .select()
         .single();

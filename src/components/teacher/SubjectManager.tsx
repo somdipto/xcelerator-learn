@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,15 +6,19 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Edit, Trash2, BookOpen, Save, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import DatabaseService from '@/services/database';
+import { dataService } from '@/services/dataService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Subject {
-  _id: string;
+  id: string;
   name: string;
-  description: string;
+  description?: string;
   grade: number;
-  chapters: string[];
-  color: string;
+  icon?: string;
+  color?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const SubjectManager = () => {
@@ -32,29 +35,20 @@ const SubjectManager = () => {
 
   useEffect(() => {
     loadSubjects();
-    
-    // Real-time listeners
-    DatabaseService.onSubjectAdded((subject) => {
-      setSubjects(prev => [...prev, subject]);
-    });
-    
-    DatabaseService.onSubjectUpdated((subject) => {
-      setSubjects(prev => prev.map(s => s._id === subject._id ? {...s, ...subject} : s));
-    });
-    
-    DatabaseService.onSubjectDeleted((id) => {
-      setSubjects(prev => prev.filter(s => s._id !== id));
-    });
-
-    return () => {
-      DatabaseService.disconnect();
-    };
   }, []);
 
   const loadSubjects = async () => {
     try {
-      const subjectsData = await DatabaseService.getSubjects();
-      setSubjects(subjectsData);
+      const { data, error } = await dataService.getSubjects();
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load subjects",
+          variant: "destructive"
+        });
+      } else {
+        setSubjects(data || []);
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -82,7 +76,20 @@ const SubjectManager = () => {
         chapters: newSubject.chapters.filter(ch => ch.trim() !== '')
       };
       
-      await DatabaseService.createSubject(subjectData);
+      const { data, error } = await dataService.createSubject(subjectData);
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to add subject",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (data) {
+        setSubjects(prev => [...prev, data]);
+      }
       
       setNewSubject({
         name: '',
@@ -113,7 +120,31 @@ const SubjectManager = () => {
     if (!editingSubject) return;
     
     try {
-      await DatabaseService.updateSubject(editingSubject._id, editingSubject);
+      const { data, error } = await supabase
+        .from('subjects')
+        .update({
+          name: editingSubject.name,
+          description: editingSubject.description,
+          grade: editingSubject.grade,
+          color: editingSubject.color
+        })
+        .eq('id', editingSubject.id)
+        .select()
+        .single();
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to update subject",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data) {
+        setSubjects(prev => prev.map(s => s.id === data.id ? data : s));
+      }
+      
       setEditingSubject(null);
       
       toast({
@@ -131,7 +162,21 @@ const SubjectManager = () => {
 
   const handleDeleteSubject = async (id: string, name: string) => {
     try {
-      await DatabaseService.deleteSubject(id);
+      const { error } = await supabase
+        .from('subjects')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete subject",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setSubjects(prev => prev.filter(s => s.id !== id));
       
       toast({
         title: "Subject Deleted",
@@ -276,8 +321,8 @@ const SubjectManager = () => {
           </div>
         ) : (
           subjects.map((subject) => (
-            <Card key={subject._id} className="bg-[#1A1A1A] border-[#2C2C2C]">
-              {editingSubject?._id === subject._id ? (
+            <Card key={subject.id} className="bg-[#1A1A1A] border-[#2C2C2C]">
+              {editingSubject?.id === subject.id ? (
                 <CardContent className="p-4">
                   <div className="space-y-3">
                     <Input
@@ -286,7 +331,7 @@ const SubjectManager = () => {
                       className="bg-[#121212] border-[#424242] text-white"
                     />
                     <Textarea
-                      value={editingSubject.description}
+                      value={editingSubject.description || ''}
                       onChange={(e) => setEditingSubject({...editingSubject, description: e.target.value})}
                       className="bg-[#121212] border-[#424242] text-white"
                     />
@@ -322,7 +367,7 @@ const SubjectManager = () => {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <BookOpen className="h-5 w-5" style={{ color: subject.color }} />
+                        <BookOpen className="h-5 w-5" style={{ color: subject.color || '#2979FF' }} />
                         <CardTitle className="text-white text-lg">{subject.name}</CardTitle>
                       </div>
                       <div className="flex gap-1">
@@ -335,7 +380,7 @@ const SubjectManager = () => {
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
-                          onClick={() => handleDeleteSubject(subject._id, subject.name)}
+                          onClick={() => handleDeleteSubject(subject.id, subject.name)}
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 text-[#FF7043] hover:bg-[#FF7043]/10"
@@ -348,9 +393,6 @@ const SubjectManager = () => {
                   <CardContent>
                     <p className="text-[#E0E0E0] text-sm mb-3">{subject.description}</p>
                     <p className="text-xs text-[#666666] mb-2">Grade {subject.grade}</p>
-                    <div className="text-xs text-[#666666]">
-                      {subject.chapters.length} chapter{subject.chapters.length !== 1 ? 's' : ''}
-                    </div>
                   </CardContent>
                 </>
               )}
