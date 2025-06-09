@@ -27,38 +27,39 @@ export default defineConfig(({ mode }) => ({
     chunkSizeWarningLimit: 200,
     rollupOptions: {
       output: {
-        manualChunks: {
+        manualChunks: (id: string) => {
           // Core React - always needed
-          'react-core': ['react', 'react-dom'],
+          if (id.includes('react') || id.includes('react-dom')) {
+            return 'react-core';
+          }
           
           // Router - needed for navigation
-          'router': ['react-router-dom'],
+          if (id.includes('react-router-dom')) {
+            return 'router';
+          }
           
           // Auth and data - heavy but essential
-          'supabase': ['@supabase/supabase-js'],
-          'query': ['@tanstack/react-query'],
+          if (id.includes('@supabase/supabase-js')) {
+            return 'supabase';
+          }
+          
+          if (id.includes('@tanstack/react-query')) {
+            return 'query';
+          }
           
           // UI components - only load what's used
-          'ui-core': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-label',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-select',
-            '@radix-ui/react-separator',
-            '@radix-ui/react-slot',
-            '@radix-ui/react-toast',
-            '@radix-ui/react-tooltip'
-          ],
+          if (id.includes('@radix-ui')) {
+            return 'ui-core';
+          }
           
           // Icons - separate chunk since they're heavy
-          'icons': ['lucide-react'],
+          if (id.includes('lucide-react')) {
+            return 'icons';
+          }
           
-          // Everything else
-          'vendor': (id) => {
-            if (id.includes('node_modules')) {
-              return 'vendor';
-            }
+          // Everything else from node_modules
+          if (id.includes('node_modules')) {
+            return 'vendor';
           }
         },
       },
