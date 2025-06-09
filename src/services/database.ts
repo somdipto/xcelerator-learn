@@ -1,142 +1,70 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export interface DatabaseError {
-  message: string;
-  details?: string;
-  hint?: string;
-  code?: string;
-}
-
-export interface DatabaseResponse<T = any> {
-  data: T | null;
-  error: DatabaseError | null;
-}
-
-class DatabaseService {
-  // Subjects
-  async getSubjects(): Promise<DatabaseResponse<any[]>> {
+export class DatabaseService {
+  // Simple utility methods for direct database access
+  
+  async query(table: string, options: any = {}) {
     try {
-      const { data, error } = await supabase
-        .from('subjects')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        return { data: null, error: { message: error.message } };
+      let query = supabase.from(table).select(options.select || '*');
+      
+      if (options.filters) {
+        Object.entries(options.filters).forEach(([key, value]) => {
+          query = query.eq(key, value);
+        });
       }
-
-      return { data: data || [], error: null };
-    } catch (err) {
-      return { 
-        data: null, 
-        error: { message: err instanceof Error ? err.message : 'Unknown error' } 
-      };
+      
+      if (options.order) {
+        query = query.order(options.order.column, { ascending: options.order.ascending });
+      }
+      
+      if (options.limit) {
+        query = query.limit(options.limit);
+      }
+      
+      const { data, error } = await query;
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
     }
   }
-
-  async createSubject(subjectData: any): Promise<DatabaseResponse<any>> {
+  
+  async insert(table: string, data: Record<string, any>) {
     try {
-      const { data, error } = await supabase
-        .from('subjects')
-        .insert([subjectData])
+      const { data: result, error } = await supabase
+        .from(table)
+        .insert(data)
         .select()
         .single();
-
-      if (error) {
-        return { data: null, error: { message: error.message } };
-      }
-
-      return { data, error: null };
-    } catch (err) {
-      return { 
-        data: null, 
-        error: { message: err instanceof Error ? err.message : 'Unknown error' } 
-      };
+      return { data: result, error };
+    } catch (error) {
+      return { data: null, error };
     }
   }
-
-  async updateSubject(id: string, updates: any): Promise<DatabaseResponse<any>> {
+  
+  async update(table: string, id: string, data: Record<string, any>) {
     try {
-      const { data, error } = await supabase
-        .from('subjects')
-        .update(updates)
+      const { data: result, error } = await supabase
+        .from(table)
+        .update(data)
         .eq('id', id)
         .select()
         .single();
-
-      if (error) {
-        return { data: null, error: { message: error.message } };
-      }
-
-      return { data, error: null };
-    } catch (err) {
-      return { 
-        data: null, 
-        error: { message: err instanceof Error ? err.message : 'Unknown error' } 
-      };
+      return { data: result, error };
+    } catch (error) {
+      return { data: null, error };
     }
   }
-
-  async deleteSubject(id: string): Promise<DatabaseResponse<boolean>> {
+  
+  async delete(table: string, id: string) {
     try {
       const { error } = await supabase
-        .from('subjects')
+        .from(table)
         .delete()
         .eq('id', id);
-
-      if (error) {
-        return { data: null, error: { message: error.message } };
-      }
-
-      return { data: true, error: null };
-    } catch (err) {
-      return { 
-        data: null, 
-        error: { message: err instanceof Error ? err.message : 'Unknown error' } 
-      };
-    }
-  }
-
-  // Study Materials
-  async getStudyMaterials(): Promise<DatabaseResponse<any[]>> {
-    try {
-      const { data, error } = await supabase
-        .from('study_materials')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        return { data: null, error: { message: error.message } };
-      }
-
-      return { data: data || [], error: null };
-    } catch (err) {
-      return { 
-        data: null, 
-        error: { message: err instanceof Error ? err.message : 'Unknown error' } 
-      };
-    }
-  }
-
-  async createStudyMaterial(materialData: any): Promise<DatabaseResponse<any>> {
-    try {
-      const { data, error } = await supabase
-        .from('study_materials')
-        .insert([materialData])
-        .select()
-        .single();
-
-      if (error) {
-        return { data: null, error: { message: error.message } };
-      }
-
-      return { data, error: null };
-    } catch (err) {
-      return { 
-        data: null, 
-        error: { message: err instanceof Error ? err.message : 'Unknown error' } 
-      };
+      return { error };
+    } catch (error) {
+      return { error };
     }
   }
 }

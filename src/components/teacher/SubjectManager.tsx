@@ -6,20 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Edit, Trash2, BookOpen, Save, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { dataService } from '@/services/dataService';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Subject {
-  id: string;
-  name: string;
-  description?: string;
-  grade: number;
-  icon?: string;
-  color?: string;
-  created_by?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { dataService, Subject } from '@/services/dataService';
 
 const SubjectManager = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -72,8 +59,10 @@ const SubjectManager = () => {
     
     try {
       const subjectData = {
-        ...newSubject,
-        chapters: newSubject.chapters.filter(ch => ch.trim() !== '')
+        name: newSubject.name,
+        description: newSubject.description,
+        grade: newSubject.grade,
+        color: newSubject.color
       };
       
       const { data, error } = await dataService.createSubject(subjectData);
@@ -120,17 +109,12 @@ const SubjectManager = () => {
     if (!editingSubject) return;
     
     try {
-      const { data, error } = await supabase
-        .from('subjects')
-        .update({
-          name: editingSubject.name,
-          description: editingSubject.description,
-          grade: editingSubject.grade,
-          color: editingSubject.color
-        })
-        .eq('id', editingSubject.id)
-        .select()
-        .single();
+      const { data, error } = await dataService.updateSubject(editingSubject.id, {
+        name: editingSubject.name,
+        description: editingSubject.description,
+        grade: editingSubject.grade,
+        color: editingSubject.color
+      });
 
       if (error) {
         toast({
@@ -162,10 +146,7 @@ const SubjectManager = () => {
 
   const handleDeleteSubject = async (id: string, name: string) => {
     try {
-      const { error } = await supabase
-        .from('subjects')
-        .delete()
-        .eq('id', id);
+      const { error } = await dataService.deleteSubject(id);
 
       if (error) {
         toast({

@@ -89,6 +89,24 @@ class DataService {
     return { data, error };
   }
 
+  async updateSubject(id: string, updates: Partial<Subject>) {
+    const { data, error } = await supabase
+      .from('subjects')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    return { data, error };
+  }
+
+  async deleteSubject(id: string) {
+    const { error } = await supabase
+      .from('subjects')
+      .delete()
+      .eq('id', id);
+    return { error };
+  }
+
   // File upload methods
   async uploadFile(bucket: string, path: string, file: File) {
     const { data, error } = await supabase.storage

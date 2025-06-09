@@ -32,6 +32,8 @@ class LegacySupabaseService {
   createStudyMaterial = dataService.createStudyMaterial.bind(dataService);
   getSubjects = dataService.getSubjects.bind(dataService);
   createSubject = dataService.createSubject.bind(dataService);
+  updateSubject = dataService.updateSubject.bind(dataService);
+  deleteSubject = dataService.deleteSubject.bind(dataService);
   uploadFile = dataService.uploadFile.bind(dataService);
   getFileUrl = dataService.getFileUrl.bind(dataService);
 
@@ -51,16 +53,6 @@ class LegacySupabaseService {
 
   async deleteStudyMaterial(id: string) {
     console.log('deleteStudyMaterial not implemented in optimized service');
-    return { error: new Error('Not implemented') };
-  }
-
-  async updateSubject(id: string, updates: any) {
-    console.log('updateSubject not implemented in optimized service');
-    return { data: null, error: new Error('Not implemented') };
-  }
-
-  async deleteSubject(id: string) {
-    console.log('deleteSubject not implemented in optimized service');
     return { error: new Error('Not implemented') };
   }
 }
