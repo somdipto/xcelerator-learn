@@ -1,167 +1,144 @@
 
-// Updated database service to use fetch instead of axios and remove socket.io
 import { supabase } from '@/integrations/supabase/client';
 
-interface DatabaseResponse<T> {
+export interface DatabaseError {
+  message: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+}
+
+export interface DatabaseResponse<T = any> {
   data: T | null;
-  error: string | null;
-  status: number;
+  error: DatabaseError | null;
 }
 
 class DatabaseService {
-  private baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-
-  async get<T>(endpoint: string): Promise<DatabaseResponse<T>> {
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-      
-      return {
-        data: response.ok ? data : null,
-        error: response.ok ? null : data.message || 'Request failed',
-        status: response.status,
-      };
-    } catch (error) {
-      return {
-        data: null,
-        error: error instanceof Error ? error.message : 'Network error',
-        status: 0,
-      };
-    }
-  }
-
-  async post<T>(endpoint: string, payload: any): Promise<DatabaseResponse<T>> {
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      
-      return {
-        data: response.ok ? data : null,
-        error: response.ok ? null : data.message || 'Request failed',
-        status: response.status,
-      };
-    } catch (error) {
-      return {
-        data: null,
-        error: error instanceof Error ? error.message : 'Network error',
-        status: 0,
-      };
-    }
-  }
-
-  async put<T>(endpoint: string, payload: any): Promise<DatabaseResponse<T>> {
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      
-      return {
-        data: response.ok ? data : null,
-        error: response.ok ? null : data.message || 'Request failed',
-        status: response.status,
-      };
-    } catch (error) {
-      return {
-        data: null,
-        error: error instanceof Error ? error.message : 'Network error',
-        status: 0,
-      };
-    }
-  }
-
-  async delete<T>(endpoint: string): Promise<DatabaseResponse<T>> {
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-      
-      return {
-        data: response.ok ? data : null,
-        error: response.ok ? null : data.message || 'Request failed',
-        status: response.status,
-      };
-    } catch (error) {
-      return {
-        data: null,
-        error: error instanceof Error ? error.message : 'Network error',
-        status: 0,
-      };
-    }
-  }
-
-  // Supabase integration methods with fixed typing
-  async getSupabaseData<T>(tableName: 'subjects' | 'chapters' | 'profiles' | 'study_materials', query?: any): Promise<DatabaseResponse<T[]>> {
-    try {
-      let supabaseQuery = supabase.from(tableName).select('*');
-      
-      if (query) {
-        Object.keys(query).forEach(key => {
-          supabaseQuery = supabaseQuery.eq(key, query[key]);
-        });
-      }
-
-      const { data, error } = await supabaseQuery;
-      
-      return {
-        data: error ? null : data as T[],
-        error: error ? error.message : null,
-        status: error ? 400 : 200,
-      };
-    } catch (error) {
-      return {
-        data: null,
-        error: error instanceof Error ? error.message : 'Database error',
-        status: 500,
-      };
-    }
-  }
-
-  async insertSupabaseData<T>(tableName: 'subjects' | 'chapters' | 'profiles' | 'study_materials', payload: any): Promise<DatabaseResponse<T>> {
+  // Subjects
+  async getSubjects(): Promise<DatabaseResponse<any[]>> {
     try {
       const { data, error } = await supabase
-        .from(tableName)
-        .insert(payload)
+        .from('subjects')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return { data: null, error: { message: error.message } };
+      }
+
+      return { data: data || [], error: null };
+    } catch (err) {
+      return { 
+        data: null, 
+        error: { message: err instanceof Error ? err.message : 'Unknown error' } 
+      };
+    }
+  }
+
+  async createSubject(subjectData: any): Promise<DatabaseResponse<any>> {
+    try {
+      const { data, error } = await supabase
+        .from('subjects')
+        .insert([subjectData])
         .select()
         .single();
-      
-      return {
-        data: error ? null : data as T,
-        error: error ? error.message : null,
-        status: error ? 400 : 201,
+
+      if (error) {
+        return { data: null, error: { message: error.message } };
+      }
+
+      return { data, error: null };
+    } catch (err) {
+      return { 
+        data: null, 
+        error: { message: err instanceof Error ? err.message : 'Unknown error' } 
       };
-    } catch (error) {
-      return {
-        data: null,
-        error: error instanceof Error ? error.message : 'Database error',
-        status: 500,
+    }
+  }
+
+  async updateSubject(id: string, updates: any): Promise<DatabaseResponse<any>> {
+    try {
+      const { data, error } = await supabase
+        .from('subjects')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        return { data: null, error: { message: error.message } };
+      }
+
+      return { data, error: null };
+    } catch (err) {
+      return { 
+        data: null, 
+        error: { message: err instanceof Error ? err.message : 'Unknown error' } 
+      };
+    }
+  }
+
+  async deleteSubject(id: string): Promise<DatabaseResponse<boolean>> {
+    try {
+      const { error } = await supabase
+        .from('subjects')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        return { data: null, error: { message: error.message } };
+      }
+
+      return { data: true, error: null };
+    } catch (err) {
+      return { 
+        data: null, 
+        error: { message: err instanceof Error ? err.message : 'Unknown error' } 
+      };
+    }
+  }
+
+  // Study Materials
+  async getStudyMaterials(): Promise<DatabaseResponse<any[]>> {
+    try {
+      const { data, error } = await supabase
+        .from('study_materials')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return { data: null, error: { message: error.message } };
+      }
+
+      return { data: data || [], error: null };
+    } catch (err) {
+      return { 
+        data: null, 
+        error: { message: err instanceof Error ? err.message : 'Unknown error' } 
+      };
+    }
+  }
+
+  async createStudyMaterial(materialData: any): Promise<DatabaseResponse<any>> {
+    try {
+      const { data, error } = await supabase
+        .from('study_materials')
+        .insert([materialData])
+        .select()
+        .single();
+
+      if (error) {
+        return { data: null, error: { message: error.message } };
+      }
+
+      return { data, error: null };
+    } catch (err) {
+      return { 
+        data: null, 
+        error: { message: err instanceof Error ? err.message : 'Unknown error' } 
       };
     }
   }
 }
 
 export const databaseService = new DatabaseService();
-export default databaseService;
