@@ -9,19 +9,19 @@ import { Suspense, lazy } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
-// Ultra-aggressive lazy loading - only load what's needed
+// Aggressive lazy loading for better performance
 const LazyIndex = lazy(() => import("./pages/Index"));
 const LazyTeacherLogin = lazy(() => import("./pages/TeacherLogin"));
 const LazyTeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
 const LazyUnauthorizedPage = lazy(() => import("./pages/UnauthorizedPage"));
 const LazyNotFound = lazy(() => import("./pages/NotFound"));
 
-// Optimized query client for faster performance
+// Optimized query client for production performance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60 * 1000, // 2 minutes
-      gcTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
       retry: 1,
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
@@ -29,7 +29,7 @@ const queryClient = new QueryClient({
       networkMode: 'online',
     },
     mutations: {
-      retry: 0,
+      retry: 1,
       networkMode: 'online',
     },
   },
@@ -39,7 +39,7 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider delayDuration={500}>
+        <TooltipProvider delayDuration={300}>
           <Toaster />
           <Sonner />
           <BrowserRouter>

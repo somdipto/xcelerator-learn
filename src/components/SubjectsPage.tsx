@@ -19,7 +19,6 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
 
   useEffect(() => {
     loadSubjects();
@@ -28,54 +27,33 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
   const loadSubjects = async () => {
     setIsLoading(true);
     try {
-      // Single optimized call to get subjects for the grade
+      // Create fallback subjects immediately for faster UI
+      const fallbackSubjects = createFallbackSubjects();
+      setSubjects(fallbackSubjects);
+      setIsLoading(false);
+
+      // Then try to load from Supabase in background
       const { data: supabaseSubjects, error } = await dataService.getSubjects(selectedGrade);
-      if (error) {
-        console.error('Error loading subjects:', error);
-        // Fall back to local data if Supabase fails
-        setSubjects(createFallbackSubjects());
-        return;
-      }
-
-      // Merge with local data efficiently
-      const mergedSubjects: Subject[] = [];
       
-      // Add subjects from local data with their chapters
-      Object.entries(subjectsData).forEach(([subjectName, subjectInfo]) => {
-        const existingSupabaseSubject = supabaseSubjects?.find(s => s.name === subjectName);
-        
-        mergedSubjects.push({
-          id: existingSupabaseSubject?.id || `local-${subjectName}`,
-          name: subjectName,
-          description: existingSupabaseSubject?.description || 
-                      `${subjectName} for Class ${selectedGrade}`,
-          grade: selectedGrade,
-          icon: subjectInfo.icon,
-          color: existingSupabaseSubject?.color || '#2979FF',
-          created_by: existingSupabaseSubject?.created_by,
-          created_at: existingSupabaseSubject?.created_at || new Date().toISOString(),
-          updated_at: existingSupabaseSubject?.updated_at || new Date().toISOString()
+      if (!error && supabaseSubjects?.length) {
+        // Merge with local data efficiently
+        const mergedSubjects = fallbackSubjects.map(fallback => {
+          const existing = supabaseSubjects.find(s => s.name === fallback.name);
+          return existing ? { ...fallback, ...existing } : fallback;
         });
-      });
-
-      // Add any additional Supabase subjects
-      supabaseSubjects?.forEach(supabaseSubject => {
-        if (!Object.keys(subjectsData).includes(supabaseSubject.name)) {
-          mergedSubjects.push(supabaseSubject);
-        }
-      });
-
-      setSubjects(mergedSubjects);
-      setLastSyncTime(new Date());
+        
+        // Add any additional Supabase subjects
+        supabaseSubjects.forEach(supabaseSubject => {
+          if (!fallbackSubjects.find(f => f.name === supabaseSubject.name)) {
+            mergedSubjects.push(supabaseSubject);
+          }
+        });
+        
+        setSubjects(mergedSubjects);
+      }
     } catch (error) {
       console.error('Failed to load subjects:', error);
-      setSubjects(createFallbackSubjects());
-      toast({
-        title: "Loading subjects from cache",
-        description: "Using offline data while connection is restored",
-      });
-    } finally {
-      setIsLoading(false);
+      // Already showing fallback, no need to toast
     }
   };
 
@@ -107,10 +85,6 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
   const handleClassChange = () => {
     if (onClassChange) {
       onClassChange();
-      toast({
-        title: "Change Class",
-        description: "Select your new class to continue learning",
-      });
     }
   };
 
@@ -134,17 +108,6 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] px-4 sm:px-6 py-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00E676] mx-auto mb-4"></div>
-          <p className="text-[#E0E0E0]">Loading subjects...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] px-4 sm:px-6 py-6">
       <div className="max-w-6xl mx-auto">
@@ -155,9 +118,6 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-white via-[#E0E0E0] to-[#00E676] bg-clip-text text-transparent leading-tight">
                 Class {selectedGrade} Subjects
               </h1>
-              <p className="text-sm text-[#999999] mt-2">
-                Last updated: {lastSyncTime.toLocaleTimeString()}
-              </p>
             </div>
             <div className="flex gap-2 self-center sm:self-auto">
               <Button
@@ -165,6 +125,7 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
                 variant="outline"
                 size="sm"
                 className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white transition-all duration-200"
+                disabled={isLoading}
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
@@ -185,14 +146,14 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
           </p>
         </div>
 
-        {/* Subjects Grid */}
-        {subjects.length === 0 ? (
+        {/* Loading State */}
+        {isLoading ? (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">📚</div>
-            <h3 className="text-xl text-[#E0E0E0] mb-2">No subjects available yet</h3>
-            <p className="text-[#666666]">Subjects for Class {selectedGrade} will be added soon.</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00E676] mx-auto mb-4"></div>
+            <p className="text-[#E0E0E0]">Loading subjects...</p>
           </div>
         ) : (
+          /* Subjects Grid */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {subjects.map((subject) => {
               const subjectData = subjectsData[subject.name as keyof typeof subjectsData];

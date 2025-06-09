@@ -22,67 +22,55 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     minify: 'esbuild',
+    target: 'esnext',
+    sourcemap: false,
+    chunkSizeWarningLimit: 200,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          // Critical path - smallest possible chunks
-          if (id.includes('react/') || id.includes('react-dom/')) {
-            return 'react-core';
-          }
-          if (id.includes('react-router')) {
-            return 'router';
-          }
-          // UI library - load only when needed
-          if (id.includes('@radix-ui')) {
-            return 'ui-components';
-          }
-          // Supabase - separate chunk
-          if (id.includes('@supabase') || id.includes('supabase')) {
-            return 'supabase';
-          }
-          // Query library
-          if (id.includes('@tanstack/react-query')) {
-            return 'query';
-          }
+        manualChunks: {
+          // Core React - always needed
+          'react-core': ['react', 'react-dom'],
+          
+          // Router - needed for navigation
+          'router': ['react-router-dom'],
+          
+          // Auth and data - heavy but essential
+          'supabase': ['@supabase/supabase-js'],
+          'query': ['@tanstack/react-query'],
+          
+          // UI components - only load what's used
+          'ui-core': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-label',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-separator',
+            '@radix-ui/react-slot',
+            '@radix-ui/react-toast',
+            '@radix-ui/react-tooltip'
+          ],
+          
           // Icons - separate chunk since they're heavy
-          if (id.includes('lucide-react')) {
-            return 'icons';
-          }
+          'icons': ['lucide-react'],
+          
           // Everything else
-          if (id.includes('node_modules')) {
-            return 'vendor';
+          'vendor': (id) => {
+            if (id.includes('node_modules')) {
+              return 'vendor';
+            }
           }
         },
       },
     },
-    chunkSizeWarningLimit: 300, // Smaller chunks
-    sourcemap: false,
-    target: 'esnext', // Modern browsers only for better performance
   },
   optimizeDeps: {
     include: [
       'react',
       'react-dom',
-      'react-router-dom'
-    ],
-    exclude: [
-      '@radix-ui/react-accordion',
-      '@radix-ui/react-alert-dialog',
-      '@radix-ui/react-aspect-ratio',
-      '@radix-ui/react-avatar',
-      '@radix-ui/react-checkbox',
-      '@radix-ui/react-collapsible',
-      '@radix-ui/react-context-menu',
-      '@radix-ui/react-hover-card',
-      '@radix-ui/react-menubar',
-      '@radix-ui/react-navigation-menu',
-      '@radix-ui/react-radio-group',
-      '@radix-ui/react-scroll-area',
-      '@radix-ui/react-slider',
-      '@radix-ui/react-switch',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-toggle',
-      '@radix-ui/react-toggle-group'
+      'react-router-dom',
+      '@supabase/supabase-js',
+      '@tanstack/react-query'
     ],
     force: true,
   },
