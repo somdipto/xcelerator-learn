@@ -1,116 +1,167 @@
 
-import axios from 'axios';
-import { io, Socket } from 'socket.io-client';
+// Updated database service to use fetch instead of axios and remove socket.io
+import { supabase } from '@/integrations/supabase/client';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+interface DatabaseResponse<T> {
+  data: T | null;
+  error: string | null;
+  status: number;
+}
 
 class DatabaseService {
-  private socket: Socket;
+  private baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-  constructor() {
-    this.socket = io('http://localhost:3001');
-  }
-
-  // Content methods
-  async uploadContent(formData: FormData) {
+  async get<T>(endpoint: string): Promise<DatabaseResponse<T>> {
     try {
-      const response = await axios.post(`${API_BASE_URL}/content/upload`, formData, {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'GET',
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': 'application/json',
         },
       });
-      return response.data;
+
+      const data = await response.json();
+      
+      return {
+        data: response.ok ? data : null,
+        error: response.ok ? null : data.message || 'Request failed',
+        status: response.status,
+      };
     } catch (error) {
-      console.error('Upload error:', error);
-      throw error;
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Network error',
+        status: 0,
+      };
     }
   }
 
-  async getContent() {
+  async post<T>(endpoint: string, payload: any): Promise<DatabaseResponse<T>> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/content`);
-      return response.data;
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      
+      return {
+        data: response.ok ? data : null,
+        error: response.ok ? null : data.message || 'Request failed',
+        status: response.status,
+      };
     } catch (error) {
-      console.error('Fetch content error:', error);
-      throw error;
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Network error',
+        status: 0,
+      };
     }
   }
 
-  async deleteContent(id: string) {
+  async put<T>(endpoint: string, payload: any): Promise<DatabaseResponse<T>> {
     try {
-      const response = await axios.delete(`${API_BASE_URL}/content/${id}`);
-      return response.data;
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      
+      return {
+        data: response.ok ? data : null,
+        error: response.ok ? null : data.message || 'Request failed',
+        status: response.status,
+      };
     } catch (error) {
-      console.error('Delete content error:', error);
-      throw error;
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Network error',
+        status: 0,
+      };
     }
   }
 
-  // Subject methods
-  async getSubjects() {
+  async delete<T>(endpoint: string): Promise<DatabaseResponse<T>> {
     try {
-      const response = await axios.get(`${API_BASE_URL}/subjects`);
-      return response.data;
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      
+      return {
+        data: response.ok ? data : null,
+        error: response.ok ? null : data.message || 'Request failed',
+        status: response.status,
+      };
     } catch (error) {
-      console.error('Fetch subjects error:', error);
-      throw error;
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Network error',
+        status: 0,
+      };
     }
   }
 
-  async createSubject(subjectData: any) {
+  // Supabase integration methods
+  async getSupabaseData<T>(table: string, query?: any): Promise<DatabaseResponse<T[]>> {
     try {
-      const response = await axios.post(`${API_BASE_URL}/subjects`, subjectData);
-      return response.data;
+      let supabaseQuery = supabase.from(table).select('*');
+      
+      if (query) {
+        Object.keys(query).forEach(key => {
+          supabaseQuery = supabaseQuery.eq(key, query[key]);
+        });
+      }
+
+      const { data, error } = await supabaseQuery;
+      
+      return {
+        data: error ? null : data as T[],
+        error: error ? error.message : null,
+        status: error ? 400 : 200,
+      };
     } catch (error) {
-      console.error('Create subject error:', error);
-      throw error;
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Database error',
+        status: 500,
+      };
     }
   }
 
-  async updateSubject(id: string, subjectData: any) {
+  async insertSupabaseData<T>(table: string, payload: any): Promise<DatabaseResponse<T>> {
     try {
-      const response = await axios.put(`${API_BASE_URL}/subjects/${id}`, subjectData);
-      return response.data;
+      const { data, error } = await supabase
+        .from(table)
+        .insert(payload)
+        .select()
+        .single();
+      
+      return {
+        data: error ? null : data as T,
+        error: error ? error.message : null,
+        status: error ? 400 : 201,
+      };
     } catch (error) {
-      console.error('Update subject error:', error);
-      throw error;
+      return {
+        data: null,
+        error: error instanceof Error ? error.message : 'Database error',
+        status: 500,
+      };
     }
-  }
-
-  async deleteSubject(id: string) {
-    try {
-      const response = await axios.delete(`${API_BASE_URL}/subjects/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error('Delete subject error:', error);
-      throw error;
-    }
-  }
-
-  // Real-time event listeners
-  onContentUploaded(callback: (content: any) => void) {
-    this.socket.on('contentUploaded', callback);
-  }
-
-  onContentDeleted(callback: (id: string) => void) {
-    this.socket.on('contentDeleted', callback);
-  }
-
-  onSubjectAdded(callback: (subject: any) => void) {
-    this.socket.on('subjectAdded', callback);
-  }
-
-  onSubjectUpdated(callback: (subject: any) => void) {
-    this.socket.on('subjectUpdated', callback);
-  }
-
-  onSubjectDeleted(callback: (id: string) => void) {
-    this.socket.on('subjectDeleted', callback);
-  }
-
-  disconnect() {
-    this.socket.disconnect();
   }
 }
 
-export default new DatabaseService();
+export const databaseService = new DatabaseService();
+export default databaseService;
