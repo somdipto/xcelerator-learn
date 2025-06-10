@@ -47,13 +47,53 @@ class LegacySupabaseService {
   }
 
   async updateStudyMaterial(id: string, updates: any) {
-    console.log('updateStudyMaterial not implemented in optimized service');
-    return { data: null, error: new Error('Not implemented') };
+    return dataService.updateStudyMaterial(id, updates);
   }
 
   async deleteStudyMaterial(id: string) {
-    console.log('deleteStudyMaterial not implemented in optimized service');
-    return { error: new Error('Not implemented') };
+    return dataService.deleteStudyMaterial(id);
+  }
+
+  // Chapter methods
+  async getChapters(filters: { subject_id?: string; grade?: number } = {}) {
+    return dataService.getChapters(filters);
+  }
+
+  async createChapter(chapter: any) {
+    return dataService.createChapter(chapter);
+  }
+
+  async updateChapter(id: string, updates: any) {
+    return dataService.updateChapter(id, updates);
+  }
+
+  async deleteChapter(id: string) {
+    return dataService.deleteChapter(id);
+  }
+
+  // Utility methods
+  isGoogleDriveUrl(url: string) {
+    return dataService.isGoogleDriveUrl(url);
+  }
+
+  convertGoogleDriveUrl(url: string) {
+    return dataService.convertGoogleDriveUrl(url);
+  }
+
+  getGoogleDriveEmbedUrl(url: string) {
+    return dataService.getGoogleDriveEmbedUrl(url);
+  }
+
+  validateContentData(material: any) {
+    return dataService.validateContentData(material);
+  }
+
+  validateFileType(fileName: string, allowedTypes: string[]) {
+    return dataService.validateFileType(fileName, allowedTypes);
+  }
+
+  validateFileSize(file: File, maxSizeMB: number) {
+    return dataService.validateFileSize(file, maxSizeMB);
   }
 }
 

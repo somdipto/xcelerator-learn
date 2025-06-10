@@ -39,9 +39,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [profileLoaded, setProfileLoaded] = useState(false);
 
-  const loadUserProfile = useCallback(async (userId: string) => {
+  const loadUserProfile = useCallback(async (userId: string, userEmail?: string, userMetadata?: any) => {
     if (profileLoaded) return; // Prevent multiple calls
-    
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -56,28 +56,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!data) {
         // Create profile if it doesn't exist
+        const profileData = {
+          id: userId,
+          email: userEmail,
+          full_name: userMetadata?.full_name || userEmail?.split('@')[0] || 'User',
+          role: userMetadata?.role || 'student'
+        };
+
+        console.log('Creating new profile:', profileData);
+
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
-          .insert({
-            id: userId,
-            email: user?.email,
-            full_name: user?.user_metadata?.full_name || user?.email,
-            role: user?.user_metadata?.role || 'student'
-          })
+          .insert(profileData)
           .select()
           .maybeSingle();
 
-        if (!createError && newProfile) {
+        if (createError) {
+          console.error('Error creating profile:', createError);
+          return;
+        }
+
+        if (newProfile) {
           setProfile(newProfile as Profile);
+          console.log('Profile created successfully:', newProfile);
         }
       } else {
         setProfile(data as Profile);
+        console.log('Profile loaded successfully:', data);
       }
       setProfileLoaded(true);
     } catch (error) {
       console.error('Failed to load user profile:', error);
     }
-  }, [profileLoaded, user]);
+  }, [profileLoaded]);
 
   useEffect(() => {
     let mounted = true;
@@ -93,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Defer profile loading to prevent blocking
         profileTimeout = setTimeout(() => {
           if (mounted && !profileLoaded) {
-            loadUserProfile(session.user.id);
+            loadUserProfile(session.user.id, session.user.email, session.user.user_metadata);
           }
         }, 100);
       } else {

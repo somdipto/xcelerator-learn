@@ -8,13 +8,14 @@ import { GraduationCap, Eye, EyeOff, ArrowLeft, AlertCircle } from 'lucide-react
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth/AuthProvider';
+import AuthDebug from '@/components/debug/AuthDebug';
 
 const TeacherLogin = () => {
   const navigate = useNavigate();
   const { user, profile, signIn, signUp } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('teacher@test.com'); // Pre-filled for testing
+  const [password, setPassword] = useState('teacher123'); // Pre-filled for testing
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,7 +24,11 @@ const TeacherLogin = () => {
   useEffect(() => {
     // Redirect if already authenticated as teacher
     if (user && profile?.role === 'teacher') {
+      console.log('User authenticated as teacher, redirecting to dashboard');
       navigate('/teacher-dashboard');
+    } else if (user && profile && profile.role !== 'teacher') {
+      console.log('User authenticated but not as teacher, role:', profile.role);
+      setError('Access denied. Teacher account required.');
     }
   }, [user, profile, navigate]);
 
@@ -33,23 +38,31 @@ const TeacherLogin = () => {
     setError('');
 
     try {
-      const { error: authError } = await signIn(email, password);
-      
+      console.log('Attempting login for:', email);
+      const { data, error: authError } = await signIn(email, password);
+
       if (authError) {
+        console.error('Login error:', authError);
         setError(authError.message);
         toast({
           title: "Login Failed",
           description: authError.message,
           variant: "destructive",
         });
-      } else {
+      } else if (data?.user) {
+        console.log('Login successful, user:', data.user);
         toast({
           title: "Login Successful! 👩‍🏫",
           description: "Welcome to the Teacher CMS Dashboard",
         });
-        // Navigation will be handled by the useEffect above
+
+        // Wait a moment for profile to load, then check role
+        setTimeout(() => {
+          // Navigation will be handled by the useEffect above
+        }, 1000);
       }
     } catch (err: any) {
+      console.error('Login exception:', err);
       setError('An unexpected error occurred');
       toast({
         title: "Error",
@@ -104,7 +117,8 @@ const TeacherLogin = () => {
 
   return (
     <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-[#1A1A1A] border-[#2C2C2C]">
+      <div className="flex gap-6 items-start">
+        <Card className="w-full max-w-md bg-[#1A1A1A] border-[#2C2C2C]">
         <CardHeader className="text-center">
           <Button
             onClick={handleBackToHome}
@@ -217,6 +231,10 @@ const TeacherLogin = () => {
           </form>
         </CardContent>
       </Card>
+
+      {/* Debug panel for testing */}
+      <AuthDebug />
+      </div>
     </div>
   );
 };

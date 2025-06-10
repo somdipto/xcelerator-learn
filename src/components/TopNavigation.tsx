@@ -2,8 +2,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Video, Book } from 'lucide-react';
+import { Calendar, Video, Book, GraduationCap } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface TopNavigationProps {
   selectedGrade: number;
@@ -12,6 +13,8 @@ interface TopNavigationProps {
 }
 
 const TopNavigation = ({ selectedGrade, onClassChange }: TopNavigationProps) => {
+  const navigate = useNavigate();
+
   const handleLiveClasses = () => {
     toast({
       title: "Live Classes",
@@ -30,6 +33,10 @@ const TopNavigation = ({ selectedGrade, onClassChange }: TopNavigationProps) => 
     if (onClassChange) {
       onClassChange();
     }
+  };
+
+  const handleTeacherLogin = () => {
+    navigate('/teacher-login');
   };
 
   return (
@@ -57,26 +64,45 @@ const TopNavigation = ({ selectedGrade, onClassChange }: TopNavigationProps) => 
 
         {/* Center Navigation - Hidden on mobile */}
         <div className="hidden lg:flex items-center gap-4">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={handleLiveClasses}
             className="text-white hover:text-[#2979FF] hover:bg-[#2979FF]/10 transition-all duration-200 touch-manipulation"
           >
             <Video className="h-4 w-4 mr-2" />
             Live Classes
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={handlePracticeTests}
             className="text-white hover:text-[#2979FF] hover:bg-[#2979FF]/10 transition-all duration-200 touch-manipulation"
           >
             <Calendar className="h-4 w-4 mr-2" />
             Practice Tests
           </Button>
+          <Button
+            variant="ghost"
+            onClick={handleTeacherLogin}
+            className="text-[#00E676] hover:text-white hover:bg-[#00E676]/10 transition-all duration-200 touch-manipulation border border-[#00E676]/30"
+          >
+            <GraduationCap className="h-4 w-4 mr-2" />
+            Teacher Portal
+          </Button>
         </div>
 
-        {/* Avatar */}
-        <div className="flex items-center">
+        {/* Right Section */}
+        <div className="flex items-center gap-3">
+          {/* Mobile Teacher Login Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleTeacherLogin}
+            className="lg:hidden text-[#00E676] hover:text-white hover:bg-[#00E676]/10 transition-all duration-200 touch-manipulation border border-[#00E676]/30 px-3 py-1.5"
+          >
+            <GraduationCap className="h-4 w-4" />
+          </Button>
+
+          {/* Avatar */}
           <Avatar className="h-9 w-9 border-2 border-[#00E676] cursor-pointer hover:border-[#2979FF] transition-colors duration-200 touch-manipulation">
             <AvatarFallback className="bg-gradient-to-r from-[#00E676] to-[#2979FF] text-black font-bold text-sm">
               S

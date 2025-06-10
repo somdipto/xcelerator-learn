@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 interface TeacherTopNavProps {
   teacherData: any;
@@ -12,15 +13,24 @@ interface TeacherTopNavProps {
 
 const TeacherTopNav = ({ teacherData }: TeacherTopNavProps) => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem('teacherAuth');
-    localStorage.removeItem('teacherData');
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out"
-    });
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out"
+      });
+      navigate('/teacher-login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Logout Error",
+        description: "There was an issue logging out. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

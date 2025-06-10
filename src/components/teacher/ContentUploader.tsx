@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Upload, FileText, Video, Image, File, Trash2, Eye, RefreshCw, Users, BookOpen, FileSliders, Trophy, FileAudio } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabaseService, StudyMaterial, Subject } from '@/services/supabaseService';
+import { chapterSyncService } from '@/services/chapterSyncService';
 import { subjects } from '@/data/subjects';
 
 interface Chapter {
@@ -142,6 +143,37 @@ const ContentUploader = () => {
     }
   };
 
+  const handleSyncChapters = async () => {
+    setSyncStatus('syncing');
+    try {
+      const result = await chapterSyncService.fullSync();
+
+      if (result.success) {
+        toast({
+          title: "Sync Successful",
+          description: `Created ${result.created} items, updated ${result.updated} items`,
+        });
+        await loadAllData(); // Reload all data
+      } else {
+        toast({
+          title: "Sync Completed with Issues",
+          description: `${result.errors.length} errors occurred. Check console for details.`,
+          variant: "destructive"
+        });
+        console.error('Sync errors:', result.errors);
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      toast({
+        title: "Sync Failed",
+        description: "Failed to sync chapters from curriculum data",
+        variant: "destructive"
+      });
+    } finally {
+      setSyncStatus('idle');
+    }
+  };
+
   const loadSubjects = async () => {
     try {
       const { data, error } = await supabaseService.getSubjects();
@@ -209,21 +241,43 @@ const ContentUploader = () => {
   };
 
   const handleUpload = async () => {
-    const fileToUpload = getFileForUpload();
-    
-    if (!fileToUpload && uploadData.type !== 'quiz') {
+    // Enhanced validation
+    const validation = supabaseService.validateContentData({
+      title: uploadData.title,
+      type: uploadData.type,
+      subject_id: uploadData.subject_id,
+      chapter_id: uploadData.chapter_id,
+      grade: parseInt(uploadData.grade),
+      url: linkUrl
+    });
+
+    if (!validation.isValid) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields and select a file or provide a link",
+        title: "Validation Error",
+        description: validation.errors.join(', '),
         variant: "destructive"
       });
       return;
     }
 
-    if (!uploadData.title || !uploadData.subject_id || !uploadData.chapter_id || !uploadData.grade) {
+    // Check file requirements
+    const fileToUpload = getFileForUpload();
+    const needsFile = uploadData.type !== 'quiz' && uploadData.type !== 'video';
+    const needsUrl = uploadData.type === 'quiz' || uploadData.type === 'video';
+
+    if (needsFile && !fileToUpload && !linkUrl) {
       toast({
-        title: "Missing Information", 
-        description: "Please fill in all required fields: title, grade, subject, and chapter",
+        title: "Missing File or URL",
+        description: "Please provide either a file or a Google Drive link",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (needsUrl && !linkUrl) {
+      toast({
+        title: "Missing URL",
+        description: `Please provide a URL for ${uploadData.type} content`,
         variant: "destructive"
       });
       return;
@@ -238,9 +292,32 @@ const ContentUploader = () => {
       return;
     }
 
+    // File validation if file is provided
+    if (fileToUpload && fileToUpload.size > 0) {
+      const maxSize = uploadData.type === 'video' ? 500 : 50; // MB
+      if (!supabaseService.validateFileSize(fileToUpload, maxSize)) {
+        toast({
+          title: "File Too Large",
+          description: `File size must be less than ${maxSize}MB`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const allowedTypes = getAcceptedFileTypes().split(',').map(t => t.replace('.', ''));
+      if (!supabaseService.validateFileType(fileToUpload.name, allowedTypes)) {
+        toast({
+          title: "Invalid File Type",
+          description: `Please select a valid file type: ${getAcceptedFileTypes()}`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     setUploading(true);
     setSyncStatus('syncing');
-    
+
     try {
       // Create description based on summary type if it's a summary
       let description = uploadData.description;
@@ -249,13 +326,23 @@ const ContentUploader = () => {
         description = description ? `${summaryTypeLabel}: ${description}` : summaryTypeLabel;
       }
 
+      // Prepare material data with Google Drive URL handling
+      let finalUrl = linkUrl;
+      if (linkUrl && supabaseService.isGoogleDriveUrl(linkUrl)) {
+        finalUrl = supabaseService.convertGoogleDriveUrl(linkUrl);
+        toast({
+          title: "Google Drive Link Detected",
+          description: "Converting to proper sharing format...",
+        });
+      }
+
       const materialData = {
         teacher_id: currentUser.id,
         title: uploadData.title,
         description: description || undefined,
         type: uploadData.type,
-        url: uploadData.type === 'quiz' ? linkUrl : undefined,
-        file_path: uploadData.type !== 'quiz' ? `content/${Date.now()}-${fileToUpload?.name}` : undefined,
+        url: finalUrl || undefined,
+        file_path: (!finalUrl && fileToUpload) ? `content/${Date.now()}-${fileToUpload.name}` : undefined,
         subject_id: uploadData.subject_id,
         chapter_id: uploadData.chapter_id,
         grade: parseInt(uploadData.grade),
@@ -264,7 +351,7 @@ const ContentUploader = () => {
 
       const { error } = await supabaseService.createStudyMaterial(materialData);
       if (error) throw error;
-      
+
       toast({
         title: "Upload Successful",
         description: `${uploadData.title} has been uploaded and synced to student portal`,
@@ -282,19 +369,19 @@ const ContentUploader = () => {
       });
       setSelectedFile(null);
       setLinkUrl('');
-      
+
       // Reset file input
       const fileInput = document.getElementById('file') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
-      
+
       setSyncStatus('synced');
       await loadContent();
-      
+
     } catch (error) {
       console.error('Upload error:', error);
       toast({
         title: "Upload Failed",
-        description: "Failed to upload content. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to upload content. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -384,7 +471,41 @@ const ContentUploader = () => {
     <div className="p-4 md:p-6 space-y-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-2">Content Upload & Management</h1>
-        <p className="text-[#E0E0E0]">Upload and manage educational content with real-time sync to student portal</p>
+        <p className="text-[#E0E0E0] mb-4">Upload and manage educational content with real-time sync to student portal</p>
+
+        {/* Enhanced Status Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <Card className="bg-[#1A1A1A] border-[#2C2C2C] p-4">
+            <div className="flex items-center gap-3">
+              <BookOpen className="h-8 w-8 text-[#2979FF]" />
+              <div>
+                <div className="text-white font-medium">{dbSubjects.length} Subjects</div>
+                <div className="text-[#999999] text-sm">Available in database</div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bg-[#1A1A1A] border-[#2C2C2C] p-4">
+            <div className="flex items-center gap-3">
+              <FileText className="h-8 w-8 text-[#00E676]" />
+              <div>
+                <div className="text-white font-medium">{chapters.length} Chapters</div>
+                <div className="text-[#999999] text-sm">Synced from curriculum</div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="bg-[#1A1A1A] border-[#2C2C2C] p-4">
+            <div className="flex items-center gap-3">
+              <Upload className="h-8 w-8 text-[#FFA726]" />
+              <div>
+                <div className="text-white font-medium">{contentList.length} Content Items</div>
+                <div className="text-[#999999] text-sm">Uploaded by you</div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
         {getSyncStatusIndicator()}
       </div>
 
@@ -534,52 +655,105 @@ const ContentUploader = () => {
             )}
 
             {/* Step 6: File Upload or Link */}
-            <div>
-              <Label htmlFor="file" className="text-[#E0E0E0]">
-                Step 6: {uploadData.type === 'quiz' ? 'Quiz URL (Optional)' : 
-                uploadData.type === 'summary' && uploadData.summaryType === 'audio' ? 'Choose Audio File *' :
-                uploadData.type === 'summary' && uploadData.summaryType === 'pdf' ? 'Choose PDF Summary *' :
-                'Choose File *'}
+            <div className="space-y-3">
+              <Label className="text-[#E0E0E0]">
+                Step 6: Upload Content *
               </Label>
-              {uploadData.type === 'quiz' ? (
+
+              {/* Google Drive URL Input - Always show for easier content management */}
+              <div>
+                <Label htmlFor="url" className="text-[#E0E0E0] text-sm">
+                  Google Drive Link (Recommended - saves database space)
+                </Label>
                 <Input
+                  id="url"
                   type="url"
-                  placeholder="https://forms.google.com/quiz-link (optional)"
+                  placeholder={uploadData.type === 'quiz' ?
+                    "https://forms.google.com/quiz-link" :
+                    uploadData.type === 'video' ?
+                    "https://drive.google.com/file/d/your-video-id/view" :
+                    "https://drive.google.com/file/d/your-file-id/view"
+                  }
                   value={linkUrl}
                   onChange={(e) => setLinkUrl(e.target.value)}
                   className="bg-[#121212] border-[#424242] text-white"
                 />
-              ) : (
-                <Input
-                  id="file"
-                  type="file"
-                  onChange={handleFileSelect}
-                  className="bg-[#121212] border-[#424242] text-white file:bg-[#2979FF] file:text-white file:border-0 file:rounded file:px-4 file:py-2"
-                  accept={getAcceptedFileTypes()}
-                />
+                {linkUrl && supabaseService.isGoogleDriveUrl(linkUrl) && (
+                  <p className="text-sm text-[#00E676] mt-1 flex items-center gap-2">
+                    <span>✓ Valid Google Drive link detected</span>
+                  </p>
+                )}
+                {linkUrl && !supabaseService.isGoogleDriveUrl(linkUrl) && uploadData.type !== 'quiz' && (
+                  <p className="text-sm text-[#FFA726] mt-1">
+                    ⚠ For best compatibility, use Google Drive links
+                  </p>
+                )}
+              </div>
+
+              {/* File Upload - Alternative option */}
+              {uploadData.type !== 'quiz' && uploadData.type !== 'video' && (
+                <div>
+                  <Label htmlFor="file" className="text-[#E0E0E0] text-sm">
+                    Or Upload File Directly
+                  </Label>
+                  <Input
+                    id="file"
+                    type="file"
+                    onChange={handleFileSelect}
+                    className="bg-[#121212] border-[#424242] text-white file:bg-[#2979FF] file:text-white file:border-0 file:rounded file:px-4 file:py-2"
+                    accept={getAcceptedFileTypes()}
+                  />
+                  {uploadData.type === 'summary' && (
+                    <p className="text-xs text-[#999999] mt-1">
+                      {uploadData.summaryType === 'audio'
+                        ? 'Accepted formats: MP3, WAV, M4A'
+                        : 'Accepted format: PDF'}
+                    </p>
+                  )}
+                </div>
               )}
-              {uploadData.type === 'summary' && (
-                <p className="text-xs text-[#999999] mt-1">
-                  {uploadData.summaryType === 'audio' 
-                    ? 'Accepted formats: MP3, WAV, M4A' 
-                    : 'Accepted format: PDF'}
-                </p>
-              )}
-              {((uploadData.type === 'quiz' && linkUrl) || (uploadData.type !== 'quiz' && selectedFile)) && (
+
+              {/* Status indicators */}
+              {selectedFile && (
                 <p className="text-sm text-[#00E676] mt-1">
-                  {uploadData.type === 'quiz' ? 'Quiz URL ready' : `Selected: ${selectedFile?.name} (${selectedFile ? formatFileSize(selectedFile.size) : ''})`}
+                  File selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
                 </p>
               )}
+
+              {/* Help text */}
+              <div className="bg-[#2979FF]/10 border border-[#2979FF]/20 rounded-lg p-3">
+                <p className="text-xs text-[#E0E0E0] mb-2">
+                  <strong>💡 Pro Tip:</strong> Use Google Drive links to:
+                </p>
+                <ul className="text-xs text-[#CCCCCC] space-y-1 ml-4">
+                  <li>• Save database storage space</li>
+                  <li>• Enable easy content updates</li>
+                  <li>• Share large files efficiently</li>
+                  <li>• Maintain version control</li>
+                </ul>
+              </div>
             </div>
 
-            <Button
-              onClick={handleUpload}
-              className="w-full bg-[#2979FF] hover:bg-[#2979FF]/90 text-white"
-              disabled={uploading || !uploadData.title || !uploadData.subject_id || !uploadData.chapter_id || !uploadData.grade || (uploadData.type !== 'quiz' && !selectedFile)}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              {uploading ? 'Uploading...' : 'Upload Content'}
-            </Button>
+            <div className="space-y-3">
+              <Button
+                onClick={handleUpload}
+                className="w-full bg-[#2979FF] hover:bg-[#2979FF]/90 text-white"
+                disabled={uploading || !uploadData.title || !uploadData.subject_id || !uploadData.chapter_id || !uploadData.grade || (!linkUrl && !selectedFile)}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {uploading ? 'Uploading...' : 'Upload Content'}
+              </Button>
+
+              <Button
+                onClick={handleSyncChapters}
+                variant="outline"
+                className="w-full border-[#00E676] text-[#00E676] hover:bg-[#00E676]/10"
+                disabled={syncStatus === 'syncing'}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+                {syncStatus === 'syncing' ? 'Syncing Chapters...' : 'Sync Chapters from Curriculum'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
