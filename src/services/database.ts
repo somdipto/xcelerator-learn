@@ -4,8 +4,6 @@ import type { Database } from '@/integrations/supabase/types';
 
 type TableName = keyof Database['public']['Tables'];
 type TableRow<T extends TableName> = Database['public']['Tables'][T]['Row'];
-type TableInsert<T extends TableName> = Database['public']['Tables'][T]['Insert'];
-type TableUpdate<T extends TableName> = Database['public']['Tables'][T]['Update'];
 
 export class DatabaseService {
   // Simple utility methods for direct database access
@@ -75,7 +73,7 @@ export class DatabaseService {
       const { data: result, error } = await supabase
         .from(table)
         .update(data)
-        .eq('id', id)
+        .eq('id' as any, id)
         .select()
         .single();
       return { data: result, error };
@@ -93,7 +91,7 @@ export class DatabaseService {
       const { error } = await supabase
         .from(table)
         .delete()
-        .eq('id', id);
+        .eq('id' as any, id);
       return { error };
     } catch (error) {
       return { error };
