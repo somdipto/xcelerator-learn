@@ -9,6 +9,8 @@ interface AuthContextType {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
+  signUp: (email: string, password: string, userData?: { full_name?: string; role?: string }) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -44,8 +46,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(initialSession?.user ?? null);
 
         if (initialSession?.user) {
-          const { data: profileData } = await authService.getProfile(initialSession.user.id);
-          setProfile(profileData);
+          // Use setTimeout to defer the profile fetch to avoid auth state conflicts
+          setTimeout(async () => {
+            try {
+              const { data: profileData } = await authService.getProfile(initialSession.user.id);
+              setProfile(profileData);
+            } catch (error) {
+              console.error('Error fetching profile:', error);
+              setProfile(null);
+            }
+          }, 0);
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
@@ -58,19 +68,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          try {
-            const { data: profileData } = await authService.getProfile(session.user.id);
-            setProfile(profileData);
-          } catch (error) {
-            console.error('Error fetching profile:', error);
-            setProfile(null);
-          }
+          // Use setTimeout to defer profile fetching and avoid infinite loops
+          setTimeout(async () => {
+            try {
+              const { data: profileData } = await authService.getProfile(session.user.id);
+              setProfile(profileData);
+            } catch (error) {
+              console.error('Error fetching profile:', error);
+              setProfile(null);
+            }
+          }, 0);
         } else {
           setProfile(null);
         }
@@ -81,6 +94,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const signIn = async (email: string, password: string) => {
+    if (!supabase) {
+      return { data: null, error: new Error('Supabase not configured') };
+    }
+    return authService.signIn(email, password);
+  };
+
+  const signUp = async (email: string, password: string, userData: { full_name?: string; role?: string } = {}) => {
+    if (!supabase) {
+      return { data: null, error: new Error('Supabase not configured') };
+    }
+    return authService.signUp(email, password, userData);
+  };
 
   const signOut = async () => {
     if (!supabase) {
@@ -100,6 +127,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     session,
     loading,
+    signIn,
+    signUp,
     signOut,
   };
 

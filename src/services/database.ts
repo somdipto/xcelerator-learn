@@ -1,10 +1,17 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+
+type TableName = keyof Database['public']['Tables'];
 
 export class DatabaseService {
   // Simple utility methods for direct database access
   
-  async query(table: string, options: any = {}) {
+  async query(table: TableName, options: any = {}) {
+    if (!supabase) {
+      return { data: null, error: new Error('Supabase not configured') };
+    }
+
     try {
       let query = supabase.from(table).select(options.select || '*');
       
@@ -29,7 +36,11 @@ export class DatabaseService {
     }
   }
   
-  async insert(table: string, data: Record<string, any>) {
+  async insert(table: TableName, data: Record<string, any>) {
+    if (!supabase) {
+      return { data: null, error: new Error('Supabase not configured') };
+    }
+
     try {
       const { data: result, error } = await supabase
         .from(table)
@@ -42,7 +53,11 @@ export class DatabaseService {
     }
   }
   
-  async update(table: string, id: string, data: Record<string, any>) {
+  async update(table: TableName, id: string, data: Record<string, any>) {
+    if (!supabase) {
+      return { data: null, error: new Error('Supabase not configured') };
+    }
+
     try {
       const { data: result, error } = await supabase
         .from(table)
@@ -56,7 +71,11 @@ export class DatabaseService {
     }
   }
   
-  async delete(table: string, id: string) {
+  async delete(table: TableName, id: string) {
+    if (!supabase) {
+      return { error: new Error('Supabase not configured') };
+    }
+
     try {
       const { error } = await supabase
         .from(table)
