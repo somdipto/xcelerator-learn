@@ -42,6 +42,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const getInitialSession = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
+        
+        // Validate session security
+        if (initialSession) {
+          const now = new Date();
+          const sessionTime = new Date(initialSession.user.created_at);
+          const sessionAge = now.getTime() - sessionTime.getTime();
+          const maxSessionAge = 24 * 60 * 60 * 1000; // 24 hours
+          
+          if (sessionAge > maxSessionAge) {
+            console.warn('Session expired due to age, signing out');
+            await supabase.auth.signOut();
+            return;
+          }
+        }
+        
         setSession(initialSession);
         setUser(initialSession?.user ?? null);
 
@@ -59,6 +74,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
+        // Clear potentially corrupted session
+        setSession(null);
+        setUser(null);
+        setProfile(null);
       } finally {
         setLoading(false);
       }
@@ -66,10 +85,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     getInitialSession();
 
-    // Listen for auth changes
+    // Listen for auth changes with enhanced security
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
+        
+        // Enhanced security checks for auth events
+        if (event === 'SIGNED_IN' && session) {
+          // Verify the session is recent
+          const now = new Date();
+          const sessionTime = new Date(session.user.created_at);
+          const sessionAge = now.getTime() - sessionTime.getTime();
+          
+          if (sessionAge > 5 * 60 * 1000) { // 5 minutes for new sessions
+            console.warn('Potentially stale session detected');
+          }
+          
+          // Log successful authentication for audit
+          console.log('User authenticated:', {
+            userId: session.user.id,
+            email: session.user.email,
+            timestamp: now.toISOString()
+          });
+        }
+        
+        if (event === 'SIGNED_OUT') {
+          // Clear all local state on signout
+          setProfile(null);
+          console.log('User signed out, clearing local state');
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -99,14 +144,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!supabase) {
       return { data: null, error: new Error('Supabase not configured') };
     }
-    return authService.signIn(email, password);
+    
+    try {
+      const result = await authService.signIn(email, password);
+      
+      // Additional security logging for failed attempts
+      if (result.error) {
+        console.warn('Authentication failed:', {
+          email: email.substring(0, 3) + '***', // Partially mask email
+          error: result.error.message,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Unexpected error during sign in:', error);
+      return { data: null, error: { message: 'An unexpected error occurred' } };
+    }
   };
 
   const signUp = async (email: string, password: string, userData: { full_name?: string; role?: string } = {}) => {
     if (!supabase) {
       return { data: null, error: new Error('Supabase not configured') };
     }
-    return authService.signUp(email, password, userData);
+    
+    try {
+      // Sanitize user data before signup
+      const sanitizedUserData = { ...userData };
+      if (sanitizedUserData.full_name) {
+        sanitizedUserData.full_name = sanitizedUserData.full_name.trim().substring(0, 100);
+      }
+      if (sanitizedUserData.role && !['teacher', 'student', 'admin'].includes(sanitizedUserData.role)) {
+        sanitizedUserData.role = 'student'; // Default to student for security
+      }
+      
+      const result = await authService.signUp(email, password, sanitizedUserData);
+      
+      // Log registration attempts for audit
+      if (!result.error) {
+        console.log('New user registered:', {
+          email: email.substring(0, 3) + '***',
+          role: sanitizedUserData.role || 'student',
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Unexpected error during sign up:', error);
+      return { data: null, error: { message: 'An unexpected error occurred' } };
+    }
   };
 
   const signOut = async () => {
@@ -116,9 +204,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
+      // Log signout for audit
+      if (user) {
+        console.log('User signing out:', {
+          userId: user.id,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
       await authService.signOut();
+      
+      // Ensure complete cleanup
+      setUser(null);
+      setProfile(null);
+      setSession(null);
     } catch (error) {
       console.error('Error signing out:', error);
+      // Force cleanup even if signout fails
+      setUser(null);
+      setProfile(null);
+      setSession(null);
     }
   };
 
