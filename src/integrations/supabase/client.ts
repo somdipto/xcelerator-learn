@@ -1,17 +1,46 @@
+
 // Supabase client configuration for production deployment
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Use environment variables for production, fallback to hardcoded values for development
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://tjgyskkfhmcabtscsbvh.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqZ3lza2tmaG1jYWJ0c2NzYnZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyMzMxNTIsImV4cCI6MjA2NDgwOTE1Mn0.aw-Rmpl0VMw2_iU8baNKMW1HmQfIdMbY3H7xzJF8mZU";
+// Environment variables with proper fallbacks for build process
+const getSupabaseUrl = () => {
+  // In production/build, use environment variables
+  if (typeof window === 'undefined') {
+    return import.meta.env.VITE_SUPABASE_URL || '';
+  }
+  // In browser, use environment variables or show error in console
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  if (!url) {
+    console.warn('VITE_SUPABASE_URL not found. Please set up your environment variables.');
+    return '';
+  }
+  return url;
+};
 
-// Validate environment variables
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  throw new Error('Missing Supabase environment variables. Please check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
-}
+const getSupabaseAnonKey = () => {
+  // In production/build, use environment variables
+  if (typeof window === 'undefined') {
+    return import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+  }
+  // In browser, use environment variables or show error in console
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  if (!key) {
+    console.warn('VITE_SUPABASE_ANON_KEY not found. Please set up your environment variables.');
+    return '';
+  }
+  return key;
+};
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
+const SUPABASE_URL = getSupabaseUrl();
+const SUPABASE_PUBLISHABLE_KEY = getSupabaseAnonKey();
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// Create client with graceful fallback
+export const supabase = SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY 
+  ? createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+  : null;
+
+// Runtime validation helper
+export const isSupabaseConfigured = () => {
+  return Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+};

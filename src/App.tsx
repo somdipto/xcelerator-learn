@@ -9,14 +9,14 @@ import { Suspense, lazy } from "react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
-// Aggressive lazy loading for better performance
+// Lazy load components for better performance
 const LazyIndex = lazy(() => import("./pages/Index"));
 const LazyTeacherLogin = lazy(() => import("./pages/TeacherLogin"));
 const LazyTeacherDashboard = lazy(() => import("./pages/TeacherDashboard"));
 const LazyUnauthorizedPage = lazy(() => import("./pages/UnauthorizedPage"));
 const LazyNotFound = lazy(() => import("./pages/NotFound"));
 
-// Optimized query client for production performance
+// Optimized query client for production
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

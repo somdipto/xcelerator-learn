@@ -13,6 +13,10 @@ export interface Profile {
 class AuthService {
   // Authentication methods
   async signUp(email: string, password: string, userData: { full_name?: string; role?: string } = {}) {
+    if (!supabase) {
+      throw new Error('Supabase not configured');
+    }
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -24,6 +28,10 @@ class AuthService {
   }
 
   async signIn(email: string, password: string) {
+    if (!supabase) {
+      throw new Error('Supabase not configured');
+    }
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -32,17 +40,29 @@ class AuthService {
   }
 
   async signOut() {
+    if (!supabase) {
+      throw new Error('Supabase not configured');
+    }
+    
     const { error } = await supabase.auth.signOut();
     return { error };
   }
 
   async getCurrentUser() {
+    if (!supabase) {
+      throw new Error('Supabase not configured');
+    }
+    
     const { data: { user }, error } = await supabase.auth.getUser();
     return { user, error };
   }
 
   // Profile methods
   async getProfile(userId: string): Promise<{ data: Profile | null; error: any }> {
+    if (!supabase) {
+      return { data: null, error: new Error('Supabase not configured') };
+    }
+    
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -52,6 +72,10 @@ class AuthService {
   }
 
   async updateProfile(userId: string, updates: Partial<Profile>) {
+    if (!supabase) {
+      throw new Error('Supabase not configured');
+    }
+    
     const { data, error } = await supabase
       .from('profiles')
       .update(updates)

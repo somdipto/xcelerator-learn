@@ -1,39 +1,79 @@
-Follow these steps:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <https://github.com/somdipto/xcelerator-k12-learn.git>
+# Teacher CMS
 
-# Step 2: Navigate to the project directory.
-cd <PROJECT_NAME>
+A modern Teacher Content Management System built with React, TypeScript, and Supabase.
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Features
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+- 🎓 Teacher Dashboard with content management
+- 📚 Study materials upload and organization
+- 🔐 Secure authentication system
+- 📱 Responsive design for all devices
+- 🚀 Fast performance with optimized builds
+
+## Quick Start
+
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd teacher-cms
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   ```
+   Edit `.env.local` with your Supabase credentials.
+
+4. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+## Environment Variables
+
+Required environment variables for deployment:
+
+- `VITE_SUPABASE_URL` - Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Your Supabase anon/public key
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Connect your repository to Vercel
+2. Add environment variables in Vercel dashboard
+3. Deploy automatically on git push
+
+### Manual Build
+
+```bash
+npm run build
 ```
 
-**Edit a file directly in GitHub**
+The build output will be in the `dist` directory.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Technology Stack
 
-**Use GitHub Codespaces**
+- **Frontend**: React 18, TypeScript, Vite
+- **Styling**: Tailwind CSS, shadcn/ui
+- **Backend**: Supabase (Database, Auth, Storage)
+- **State Management**: TanStack Query
+- **Routing**: React Router DOM
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Contributing
 
-## What technologies are used for this project?
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-This project is built with:
+## License
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+MIT License

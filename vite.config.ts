@@ -12,8 +12,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -24,43 +23,16 @@ export default defineConfig(({ mode }) => ({
     minify: 'esbuild',
     target: 'esnext',
     sourcemap: false,
-    chunkSizeWarningLimit: 200,
+    chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
-        manualChunks: (id: string) => {
-          // Core React - always needed
-          if (id.includes('react') || id.includes('react-dom')) {
-            return 'react-core';
-          }
-          
-          // Router - needed for navigation
-          if (id.includes('react-router-dom')) {
-            return 'router';
-          }
-          
-          // Auth and data - heavy but essential
-          if (id.includes('@supabase/supabase-js')) {
-            return 'supabase';
-          }
-          
-          if (id.includes('@tanstack/react-query')) {
-            return 'query';
-          }
-          
-          // UI components - only load what's used
-          if (id.includes('@radix-ui')) {
-            return 'ui-core';
-          }
-          
-          // Icons - separate chunk since they're heavy
-          if (id.includes('lucide-react')) {
-            return 'icons';
-          }
-          
-          // Everything else from node_modules
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'router': ['react-router-dom'],
+          'ui': ['@radix-ui/react-slot', '@radix-ui/react-toast'],
+          'supabase': ['@supabase/supabase-js'],
+          'query': ['@tanstack/react-query'],
+          'icons': ['lucide-react'],
         },
       },
     },
@@ -73,6 +45,10 @@ export default defineConfig(({ mode }) => ({
       '@supabase/supabase-js',
       '@tanstack/react-query'
     ],
-    force: true,
   },
+  define: {
+    // Ensure environment variables are properly defined for build
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL || ''),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || ''),
+  }
 }));
