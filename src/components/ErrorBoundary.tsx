@@ -28,14 +28,33 @@ class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const errorMessage = this.state.error?.message || 'An unexpected error occurred';
+      
       return this.props.fallback || (
         <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-6xl mb-4">⚠️</div>
-            <h2 className="text-xl font-bold text-white mb-4">Something went wrong</h2>
-            <p className="text-[#E0E0E0] mb-6">
-              Don't worry, we're working to fix this. Please try refreshing the page.
+            <h2 className="text-xl font-bold text-white mb-4">Error Loading Content</h2>
+            <p className="text-[#E0E0E0] mb-4">
+              {errorMessage}
             </p>
+            <p className="text-[#E0E0E0] mb-6">
+              It seems there might be a problem with the database connection. Please:
+            </p>
+            <div className="space-y-2 text-[#E0E0E0] mb-6">
+              <div className="flex items-center gap-2">
+                <span className="text-[#00E676]">1.</span>
+                <span>Make sure you have internet connection</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[#00E676]">2.</span>
+                <span>Check if the database is properly configured</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[#00E676]">3.</span>
+                <span>Try refreshing the page</span>
+              </div>
+            </div>
             <Button 
               onClick={() => window.location.reload()}
               className="bg-[#00E676] text-black hover:bg-[#00E676]/90"
