@@ -49,7 +49,7 @@ export class DatabaseService {
     }
   }
   
-  async insert<T extends TableName>(table: T, data: TableInsert<T>) {
+  async insert<T extends TableName>(table: T, data: any) {
     if (!supabase) {
       return { data: null, error: new Error('Supabase not configured') };
     }
@@ -66,7 +66,7 @@ export class DatabaseService {
     }
   }
   
-  async update<T extends TableName>(table: T, id: string, data: TableUpdate<T>) {
+  async update<T extends TableName>(table: T, id: string, data: any) {
     if (!supabase) {
       return { data: null, error: new Error('Supabase not configured') };
     }
