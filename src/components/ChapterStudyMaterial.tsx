@@ -126,8 +126,8 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
           <Clock className="h-3 w-3 flex-shrink-0" />
           <span>Added {new Date(material.created_at).toLocaleDateString()}</span>
         </div>
-        {(material.url || material.filePath) ? (
-          renderEmbeddedContent(material.url || material.filePath || '', material.title, material.type)
+        {(material.url || material.file_path) ? (
+          renderEmbeddedContent(material.url || material.file_path || '', material.title, material.type)
         ) : (
           <div className="text-center py-8">
             <p className="text-[#666666]">Content not available</p>
