@@ -22,8 +22,6 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('textbook');
-  const [hasSupabaseError, setHasSupabaseError] = useState(false);
-  const [showError, setShowError] = useState(false);
   
   const subjectData = subjects[subject];
   const localStudyMaterial = getStudyMaterial(subject, selectedGrade, chapter);
@@ -35,194 +33,43 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
   const loadStudyMaterials = async () => {
     setIsLoading(true);
     try {
-      // First try to load from Supabase
-      if (supabaseService.client) {
-        const { data, error } = await supabaseService.getStudyMaterials({
-          grade: selectedGrade
+      // Get all study materials from Supabase
+      const { data, error } = await supabaseService.getStudyMaterials();
+
+      if (error) {
+        console.error('Error loading study materials:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load study materials",
+          variant: "destructive",
+        });
+        setStudyMaterials([]);
+      } else {
+        // Filter materials to match current context
+        const filteredMaterials = (data || []).filter(material => {
+          const materialTitle = material.title.toLowerCase();
+          const subjectMatch = materialTitle.includes(subject.toLowerCase()) ||
+                             material.chapter_id?.includes(subject.toLowerCase());
+          const chapterMatch = materialTitle.includes(chapter.toLowerCase()) ||
+                             material.chapter_id?.includes(chapter.toLowerCase());
+          return subjectMatch && chapterMatch;
         });
 
-        if (error) {
-          console.error('Error loading study materials:', error);
-          setHasSupabaseError(true);
-          setShowError(true);
-          return;
-        }
-
-        const transformedMaterials: StudyMaterial[] = (data || [])
-          .filter(material => {
-            const materialTitle = material.title.toLowerCase();
-            const subjectMatch = materialTitle.includes(subject.toLowerCase()) || 
-                               material.subject_id === subject;
-            const chapterMatch = materialTitle.includes(chapter.toLowerCase()) || 
-                               material.chapter_id === chapter;
-            return subjectMatch && chapterMatch;
-          })
-          .map(material => ({
-            id: material.id,
-            teacher_id: material.teacher_id,
-            title: material.title,
-            description: material.description,
-            type: ['textbook', 'video', 'summary', 'ppt', 'quiz'].includes(material.type) 
-              ? material.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz'
-              : 'textbook',
-            url: material.url,
-            file_path: material.file_path,
-            subject_id: material.subject_id,
-            chapter_id: material.chapter_id,
-            grade: material.grade,
-            is_public: material.is_public,
-            created_at: material.created_at,
-            updated_at: material.updated_at
-          }));
-        
-        setStudyMaterials(transformedMaterials);
-        setShowError(false);
-      } else {
-        // If no Supabase client, just use local data
-        setShowError(false);
+        setStudyMaterials(filteredMaterials);
+        console.log('Loaded study materials:', filteredMaterials);
       }
     } catch (error) {
       console.error('Failed to load study materials:', error);
-      setHasSupabaseError(true);
-      setShowError(true);
+      toast({
+        title: "Error",
+        description: "Failed to load study materials",
+        variant: "destructive",
+      });
+      setStudyMaterials([]);
     } finally {
       setIsLoading(false);
     }
   };
-
-  // If there's an error but we have local data, show the local data
-  if (hasSupabaseError && localStudyMaterial) {
-    return (
-      <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold text-white mb-4">Database Connection Error</h2>
-          <p className="text-[#E0E0E0] mb-6">
-            We're having trouble connecting to the database. Showing local content instead.
-          </p>
-          <div className="space-y-2 text-[#E0E0E0] mb-6">
-            <div className="flex items-center gap-2">
-              <span className="text-[#00E676]">1.</span>
-              <span>Make sure you have internet connection</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[#00E676]">2.</span>
-              <span>Check if the database is properly configured</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[#00E676]">3.</span>
-              <span>Try refreshing the page</span>
-            </div>
-          </div>
-          <Button 
-            onClick={() => {
-              setHasSupabaseError(false);
-              loadStudyMaterials();
-            }}
-            className="bg-[#00E676] text-black hover:bg-[#00E676]/90"
-          >
-            Try Again
-          </Button>
-          <Button 
-            onClick={onBack}
-            variant="outline"
-            className="mt-4"
-          >
-            Back to Subjects
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // If we have local data, show it regardless of Supabase status
-  if (localStudyMaterial) {
-    return (
-      <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4">
-        <div className="max-w-4xl w-full">
-          <div className="mb-6">
-            <div className="flex items-center justify-between">
-              <Button 
-                onClick={onBack}
-                variant="outline"
-                className="text-[#00E676] hover:bg-[#00E676]/10"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to {subject}
-              </Button>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-[#00E676] to-[#2979FF] bg-clip-text text-transparent">
-                {chapter}
-              </h2>
-            </div>
-            <p className="text-[#CCCCCC] mt-2">
-              {localStudyMaterial.description || `Chapter ${chapter.split(' ')[1]} of ${subject} for Class ${selectedGrade}`}
-            </p>
-          </div>
-
-          {/* Content Tabs */}
-          <Tabs defaultValue="textbook" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="textbook" className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black">
-                <BookOpen className="h-4 w-4 mr-2" />
-                Textbook
-              </TabsTrigger>
-              <TabsTrigger value="videos" className="data-[state=active]:bg-[#2979FF] data-[state=active]:text-black">
-                <Video className="h-4 w-4 mr-2" />
-                Videos
-              </TabsTrigger>
-              <TabsTrigger value="summaries" className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black">
-                <FileText className="h-4 w-4 mr-2" />
-                Summaries
-              </TabsTrigger>
-              <TabsTrigger value="quizzes" className="data-[state=active]:bg-[#2979FF] data-[state=active]:text-black">
-                <Trophy className="h-4 w-4 mr-2" />
-                Quizzes
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="textbook" className="mt-4">
-              <div className="space-y-4">
-                {localStudyMaterial.pdfUrl && (
-                  <PDFViewer url={localStudyMaterial.pdfUrl} />
-                )}
-              </div>
-            </TabsContent>
-            <TabsContent value="videos" className="mt-4">
-              <div className="space-y-4">
-                {localStudyMaterial.videoUrls?.map((url, index) => (
-                  <div key={index} className="aspect-video">
-                    <iframe 
-                      src={url} 
-                      className="w-full h-full rounded-lg"
-                      allowFullScreen
-                    />
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-            <TabsContent value="summaries" className="mt-4">
-              <div className="space-y-4">
-                {localStudyMaterial.summary && (
-                  <div className="prose prose-invert max-w-none">
-                    {localStudyMaterial.summary}
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            <TabsContent value="quizzes" className="mt-4">
-              <div className="space-y-4">
-                {localStudyMaterial.quizzes?.map((quiz, index) => (
-                  <div key={index}>
-                    <h3 className="text-lg font-semibold text-[#00E676] mb-2">Quiz {index + 1}</h3>
-                    {/* Quiz content would go here */}
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-    );
-  }
 
   // Categorize materials by type
   const textbookMaterials = studyMaterials.filter(m => m.type === 'textbook');
@@ -231,16 +78,17 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
   const pptMaterials = studyMaterials.filter(m => m.type === 'ppt');
   const quizMaterials = studyMaterials.filter(m => m.type === 'quiz');
 
-  // Get the primary textbook for theory tab (prioritize teacher uploads)
+  // Get the primary textbook for theory tab (prioritize mock data, then local data)
   const primaryTextbook = textbookMaterials[0] || (localStudyMaterial?.pdfUrl ? {
     id: 'local-pdf',
     title: `${chapter} - Textbook`,
-    url: localStudyMaterial.pdfUrl,
-    type: 'textbook' as const,
-    teacher_id: '',
-    is_public: true,
-    created_at: '',
-    updated_at: ''
+    description: `Local textbook for ${chapter}`,
+    type: 'notes' as const,
+    content_url: localStudyMaterial.pdfUrl,
+    chapter_id: chapter,
+    order_index: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   } : null);
 
   const renderMaterialCard = (material: StudyMaterial, icon: string, color: string) => (
@@ -262,22 +110,23 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
           <Clock className="h-3 w-3 flex-shrink-0" />
           <span>Added {new Date(material.created_at).toLocaleDateString()}</span>
         </div>
-        <Button 
+        <Button
           onClick={() => {
-            if (material.url) {
-              window.open(material.url, '_blank');
-            } else if (material.file_path) {
-              // Use Supabase storage URL for uploaded files
-              const fileUrl = supabaseService.getFileUrl('study-materials', material.file_path);
-              window.open(fileUrl, '_blank');
+            if (material.content_url) {
+              window.open(material.content_url, '_blank');
+            } else {
+              toast({
+                title: "Content Not Available",
+                description: "This content is not yet available",
+                variant: "destructive",
+              });
             }
           }}
           className={`w-full bg-${color} text-black hover:bg-${color}/90 font-medium h-11 md:h-12 touch-manipulation`}
         >
-          {material.type === 'video' ? 'Watch Video' : 
-           material.type === 'textbook' ? 'View Textbook' :
-           material.type === 'summary' ? 'Read Summary' :
-           material.type === 'ppt' ? 'View Presentation' :
+          {material.type === 'video' ? 'Watch Video' :
+           material.type === 'pdf' ? 'View PDF' :
+           material.type === 'notes' ? 'Read Notes' :
            material.type === 'quiz' ? 'Take Quiz' :
            'Open Content'}
         </Button>
@@ -422,8 +271,8 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <PDFViewer 
-                        pdfUrl={primaryTextbook.url || supabaseService.getFileUrl('study-materials', primaryTextbook.file_path || '')} 
+                      <PDFViewer
+                        pdfUrl={primaryTextbook.content_url || ''}
                         title={primaryTextbook.title}
                       />
                     </CardContent>
