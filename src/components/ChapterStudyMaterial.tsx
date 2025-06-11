@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Clock, Users, Trophy, RefreshCw, BookOpen, FileText, Video, FileSliders } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -83,7 +84,7 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
     title: `${chapter} - Textbook`,
     description: `Local textbook for ${chapter}`,
     type: 'notes' as const,
-    content_url: localStudyMaterial.pdfUrl,
+    url: localStudyMaterial.pdfUrl,
     chapter_id: chapter,
     order_index: 1,
     created_at: new Date().toISOString(),
@@ -125,8 +126,8 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
           <Clock className="h-3 w-3 flex-shrink-0" />
           <span>Added {new Date(material.created_at).toLocaleDateString()}</span>
         </div>
-        {material.content_url ? (
-          renderEmbeddedContent(material.content_url, material.title, material.type)
+        {(material.url || material.filePath) ? (
+          renderEmbeddedContent(material.url || material.filePath || '', material.title, material.type)
         ) : (
           <div className="text-center py-8">
             <p className="text-[#666666]">Content not available</p>
