@@ -11,14 +11,14 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Home, ChevronRight } from 'lucide-react';
 
-interface BreadcrumbItem {
+interface BreadcrumbItemType {
   label: string;
   href?: string;
   isActive?: boolean;
 }
 
 interface EnhancedBreadcrumbProps {
-  items: BreadcrumbItem[];
+  items: BreadcrumbItemType[];
   onNavigate?: (href: string) => void;
 }
 
