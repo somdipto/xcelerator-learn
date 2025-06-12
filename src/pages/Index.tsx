@@ -1,20 +1,19 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import OnboardingModal from '@/components/OnboardingModal';
-import EnhancedTopNavigation from '@/components/EnhancedTopNavigation';
+import TopNavigation from '@/components/TopNavigation';
 import BottomNavigation from '@/components/BottomNavigation';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { LazyProfilePage } from '@/components/LazyComponents';
-import EnhancedSubjectsPage from '@/components/EnhancedSubjectsPage';
+import { LazySubjectsPage, LazyProfilePage } from '@/components/LazyComponents';
 import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeTab, setActiveTab] = useState('subjects');
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    // Immediate check without preloading to reduce initial bundle
     const savedGrade = localStorage.getItem('selectedGrade');
     if (savedGrade) {
       setSelectedGrade(parseInt(savedGrade));
@@ -44,16 +43,9 @@ const Index = () => {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    setSearchQuery(''); // Clear search when changing tabs
   };
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    if (activeTab !== 'subjects') {
-      setActiveTab('subjects'); // Switch to subjects tab when searching
-    }
-  };
-
+  // Loading states
   if (showOnboarding) {
     return (
       <div className="min-h-screen bg-[#121212] flex items-center justify-center">
@@ -75,21 +67,19 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-[#121212]">
-      <EnhancedTopNavigation 
+      <TopNavigation 
         selectedGrade={selectedGrade} 
         onChapterSelect={handleChapterSelect}
         onClassChange={handleClassChange}
-        onSearch={handleSearch}
       />
       
       <main className="pb-20">
         <Suspense fallback={<LoadingSpinner message="Loading..." />}>
           {activeTab === 'subjects' && (
-            <EnhancedSubjectsPage 
+            <LazySubjectsPage 
               selectedGrade={selectedGrade} 
               onChapterSelect={handleChapterSelect}
               onClassChange={handleClassChange}
-              searchQuery={searchQuery}
             />
           )}
           
