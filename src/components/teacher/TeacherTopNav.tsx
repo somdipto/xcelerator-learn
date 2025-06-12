@@ -5,19 +5,19 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, Bell, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useDemoAuth } from '@/components/auth/DemoAuthProvider';
 
 interface TeacherTopNavProps {
-  teacherData: any;
+  teacherData?: any;
 }
 
 const TeacherTopNav = ({ teacherData }: TeacherTopNavProps) => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { user, signOut } = useDemoAuth();
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      signOut();
       toast({
         title: "Logged Out",
         description: "You have been successfully logged out"
@@ -36,6 +36,8 @@ const TeacherTopNav = ({ teacherData }: TeacherTopNavProps) => {
   const handleBackToHome = () => {
     navigate('/');
   };
+
+  const displayUser = user || teacherData;
 
   return (
     <nav className="bg-[#1A1A1A] border-b border-[#2C2C2C] p-4">
@@ -69,16 +71,16 @@ const TeacherTopNav = ({ teacherData }: TeacherTopNavProps) => {
           <div className="flex items-center gap-2 md:gap-3">
             <div className="text-right hidden sm:block">
               <div className="text-sm font-medium text-white">
-                {teacherData?.name || 'Administrator'}
+                {displayUser?.name || 'Teacher'}
               </div>
               <div className="text-xs text-[#E0E0E0]">
-                {teacherData?.email}
+                {displayUser?.email || 'teacher@demo.com'}
               </div>
             </div>
             
             <Avatar className="h-8 w-8 border-2 border-[#2979FF]">
               <AvatarFallback className="bg-[#2979FF] text-white font-bold">
-                A
+                {displayUser?.name?.charAt(0)?.toUpperCase() || 'T'}
               </AvatarFallback>
             </Avatar>
           </div>

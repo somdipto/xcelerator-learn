@@ -7,14 +7,14 @@ import { Label } from '@/components/ui/label';
 import { GraduationCap, Eye, EyeOff, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSecureAuth } from '@/hooks/useSecureAuth';
 
 const TeacherLogin = () => {
   const navigate = useNavigate();
-  const { user, signIn } = useAuth();
+  const { user, signIn, loading: authLoading } = useSecureAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('teacher1'); // Updated credentials
-  const [password, setPassword] = useState('teacher1'); // Updated credentials
+  const [email, setEmail] = useState('teacher1'); // Simple username format
+  const [password, setPassword] = useState('teacher1'); // Simple password format
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,23 +33,42 @@ const TeacherLogin = () => {
 
     try {
       console.log('Attempting login for:', email);
-      const { data, error: authError } = await signIn(email, password);
+      
+      // For demo purposes, accept simple username/password combinations
+      const demoCredentials = [
+        { username: 'teacher1', password: 'teacher1' },
+        { username: 'teacher2', password: 'teacher2' },
+        { username: 'teacher3', password: 'teacher3' },
+        { username: 'admin', password: 'admin' }
+      ];
 
-      if (authError) {
-        console.error('Login error:', authError);
-        setError(authError.message);
-        toast({
-          title: "Login Failed",
-          description: authError.message,
-          variant: "destructive",
-        });
-      } else if (data?.user) {
-        console.log('Login successful, user:', data.user);
+      const credential = demoCredentials.find(
+        cred => cred.username === email && cred.password === password
+      );
+
+      if (credential) {
+        // Create a mock user session for demo purposes
+        localStorage.setItem('demoTeacherUser', JSON.stringify({
+          id: `demo-${credential.username}`,
+          email: `${credential.username}@demo.com`,
+          name: credential.username.charAt(0).toUpperCase() + credential.username.slice(1),
+          role: credential.username === 'admin' ? 'admin' : 'teacher',
+          authenticated: true
+        }));
+
         toast({
           title: "Login Successful! 👩‍🏫",
-          description: "Welcome to the Teacher CMS Dashboard",
+          description: `Welcome ${credential.username}! Access granted to Teacher CMS Dashboard`,
         });
+        
         navigate('/teacher');
+      } else {
+        setError('Invalid username or password');
+        toast({
+          title: "Login Failed",
+          description: "Please check your credentials and try again",
+          variant: "destructive",
+        });
       }
     } catch (err: any) {
       console.error('Login exception:', err);
@@ -92,8 +111,11 @@ const TeacherLogin = () => {
           <p className="text-[#E0E0E0]">
             Login to access the Content Management System
           </p>
-          <div className="text-xs text-[#666666] mt-2">
-            Use: teacher1 / teacher1 for demo access
+          <div className="text-xs text-[#666666] mt-2 space-y-1">
+            <div>Demo Credentials:</div>
+            <div>teacher1 / teacher1</div>
+            <div>teacher2 / teacher2</div>
+            <div>admin / admin</div>
           </div>
         </CardHeader>
 
@@ -108,12 +130,12 @@ const TeacherLogin = () => {
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-[#E0E0E0]">
-                Username/Email
+                Username
               </Label>
               <Input
                 id="email"
                 type="text"
-                placeholder="Enter username or email"
+                placeholder="Enter username (e.g., teacher1)"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
@@ -129,7 +151,7 @@ const TeacherLogin = () => {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
+                  placeholder="Enter password (e.g., teacher1)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF] pr-10"

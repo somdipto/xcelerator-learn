@@ -1,10 +1,8 @@
 
 import React, { useState, Suspense } from 'react';
-import { AuthProvider as SupabaseAuthProvider } from '@/components/auth/AuthProvider';
-import { useAuth } from '@/contexts/AuthContext';
+import { DemoAuthProvider, useDemoAuth } from '@/components/auth/DemoAuthProvider';
 import TeacherTopNav from '@/components/teacher/TeacherTopNav';
 import TeacherSidebar from '@/components/teacher/TeacherSidebar';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import {
   LazyStudentAnalytics,
@@ -15,10 +13,28 @@ import {
   LazyStudyMaterialManager,
   LazySubjectChapterManager
 } from '@/components/LazyComponents';
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 const TeacherDashboardContent = () => {
-  const { user } = useAuth();
+  const { user, loading } = useDemoAuth();
   const [activeSection, setActiveSection] = useState('overview');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (!loading && !user) {
+      navigate('/teacher-login');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return <LoadingSpinner message="Loading dashboard..." />;
+  }
+
+  if (!user) {
+    return <LoadingSpinner message="Redirecting to login..." />;
+  }
 
   const renderContent = () => {
     switch (activeSection) {
@@ -67,6 +83,15 @@ const TeacherDashboardContent = () => {
       default:
         return (
           <div className="p-4 md:p-6">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-white mb-2">
+                Welcome, {user.name}! 👋
+              </h1>
+              <p className="text-[#E0E0E0]">
+                Manage your educational content and track student progress
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
               <div className="bg-[#1A1A1A] p-4 md:p-6 rounded-lg border border-[#2C2C2C]">
                 <h3 className="text-lg font-semibold text-white mb-2">Total Students</h3>
@@ -97,25 +122,25 @@ const TeacherDashboardContent = () => {
               <h3 className="text-xl font-semibold text-white mb-4">Quick Actions</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <button
-                  onClick={() => setActiveSection('content-manager')}
+                  onClick={() => setActiveSection('content')}
                   className="p-4 bg-[#00E676]/10 border border-[#00E676] rounded-lg text-[#00E676] hover:bg-[#00E676]/20 transition-colors"
                 >
-                  <h4 className="font-medium mb-2">Manage Content</h4>
-                  <p className="text-sm opacity-80">Add chapters and study materials</p>
+                  <h4 className="font-medium mb-2">📤 Upload Content</h4>
+                  <p className="text-sm opacity-80">Add study materials and resources</p>
                 </button>
                 <button
-                  onClick={() => setActiveSection('subjects')}
+                  onClick={() => setActiveSection('content-manager')}
                   className="p-4 bg-[#2979FF]/10 border border-[#2979FF] rounded-lg text-[#2979FF] hover:bg-[#2979FF]/20 transition-colors"
                 >
-                  <h4 className="font-medium mb-2">Manage Subjects</h4>
-                  <p className="text-sm opacity-80">Create and edit subjects</p>
+                  <h4 className="font-medium mb-2">⚙️ Manage Content</h4>
+                  <p className="text-sm opacity-80">Organize chapters and subjects</p>
                 </button>
                 <button
                   onClick={() => setActiveSection('study-materials')}
                   className="p-4 bg-[#FFA726]/10 border border-[#FFA726] rounded-lg text-[#FFA726] hover:bg-[#FFA726]/20 transition-colors"
                 >
-                  <h4 className="font-medium mb-2">Study Materials</h4>
-                  <p className="text-sm opacity-80">Upload and organize resources</p>
+                  <h4 className="font-medium mb-2">📚 Study Materials</h4>
+                  <p className="text-sm opacity-80">Browse and edit materials</p>
                 </button>
               </div>
             </div>
@@ -150,7 +175,7 @@ const TeacherDashboardContent = () => {
       />
       
       <div className="flex-1 flex flex-col md:ml-0 w-full">
-        <TeacherTopNav teacherData={{ ...user, profile: null }} />
+        <TeacherTopNav />
         
         <main className="flex-1 overflow-auto">
           {renderContent()}
@@ -162,11 +187,9 @@ const TeacherDashboardContent = () => {
 
 const TeacherDashboard = () => {
   return (
-    <ProtectedRoute requiredRole="teacher">
-      <SupabaseAuthProvider>
-        <TeacherDashboardContent />
-      </SupabaseAuthProvider>
-    </ProtectedRoute>
+    <DemoAuthProvider>
+      <TeacherDashboardContent />
+    </DemoAuthProvider>
   );
 };
 
