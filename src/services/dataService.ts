@@ -1,9 +1,21 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import type { StudyMaterial } from '@/types/studyMaterial';
 
-// Export the StudyMaterial type for other services
-export type { StudyMaterial } from '@/types/studyMaterial';
+export interface StudyMaterial {
+  id: string;
+  teacher_id: string;
+  title: string;
+  description?: string;
+  type: 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz';
+  url?: string;
+  file_path?: string;
+  subject_id?: string;
+  chapter_id?: string;
+  grade?: number;
+  is_public: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface Subject {
   id: string;
@@ -21,294 +33,149 @@ export interface Chapter {
   id: string;
   name: string;
   description?: string;
-  subject_id: string;
+  subject_id?: string;
   order_index: number;
   created_at: string;
   updated_at: string;
 }
 
 class DataService {
-  // Check if Supabase is configured
-  private isSupabaseConfigured(): boolean {
-    return Boolean(supabase);
-  }
+  // Study Materials
+  async getStudyMaterials(filters: Partial<StudyMaterial> = {}) {
+    let query = supabase.from('study_materials').select(`
+      *,
+      subjects(name, grade),
+      chapters(name)
+    `);
 
-  // Study materials methods
-  async getStudyMaterials(filters: { grade?: number; subject_id?: string; teacher_id?: string } = {}) {
-    if (!this.isSupabaseConfigured()) {
-      return { data: null, error: new Error('Supabase not configured') };
-    }
-
-    try {
-      let query = supabase
-        .from('study_materials')
-        .select(`
-          *,
-          subjects:subject_id(name, grade),
-          profiles:teacher_id(full_name)
-        `)
-        .eq('is_public', true)
-        .order('created_at', { ascending: false });
-
-      if (filters.grade) {
-        query = query.eq('grade', filters.grade);
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        query = query.eq(key, value);
       }
-      if (filters.subject_id) {
-        query = query.eq('subject_id', filters.subject_id);
-      }
-      if (filters.teacher_id) {
-        query = query.eq('teacher_id', filters.teacher_id);
-      }
+    });
 
-      const { data, error } = await query;
-      return { data, error };
-    } catch (error) {
-      return { data: null, error };
-    }
+    return await query.order('created_at', { ascending: false });
   }
 
   async createStudyMaterial(material: Omit<StudyMaterial, 'id' | 'created_at' | 'updated_at'>) {
-    if (!this.isSupabaseConfigured()) {
-      return { data: null, error: new Error('Supabase not configured') };
-    }
-
-    try {
-      // Validate Google Drive URLs and convert to proper format
-      if (material.url && this.isGoogleDriveUrl(material.url)) {
-        material.url = this.convertGoogleDriveUrl(material.url);
-      }
-
-      const { data, error } = await supabase
-        .from('study_materials')
-        .insert(material)
-        .select()
-        .single();
-      return { data, error };
-    } catch (error) {
-      return { data: null, error };
-    }
+    return await supabase
+      .from('study_materials')
+      .insert(material)
+      .select()
+      .single();
   }
 
   async updateStudyMaterial(id: string, updates: Partial<StudyMaterial>) {
-    if (!this.isSupabaseConfigured()) {
-      return { data: null, error: new Error('Supabase not configured') };
-    }
-
-    try {
-      // Validate Google Drive URLs and convert to proper format
-      if (updates.url && this.isGoogleDriveUrl(updates.url)) {
-        updates.url = this.convertGoogleDriveUrl(updates.url);
-      }
-
-      const { data, error } = await supabase
-        .from('study_materials')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-      return { data, error };
-    } catch (error) {
-      return { data: null, error };
-    }
+    return await supabase
+      .from('study_materials')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
   }
 
   async deleteStudyMaterial(id: string) {
-    if (!this.isSupabaseConfigured()) {
-      return { error: new Error('Supabase not configured') };
-    }
-
-    try {
-      const { error } = await supabase
-        .from('study_materials')
-        .delete()
-        .eq('id', id);
-      return { error };
-    } catch (error) {
-      return { error };
-    }
+    return await supabase
+      .from('study_materials')
+      .delete()
+      .eq('id', id);
   }
 
-  // Subjects methods
+  // Subjects
   async getSubjects(grade?: number) {
-    if (!this.isSupabaseConfigured()) {
-      return { data: null, error: new Error('Supabase not configured') };
+    let query = supabase.from('subjects').select('*');
+    
+    if (grade) {
+      query = query.eq('grade', grade);
     }
-
-    try {
-      let query = supabase
-        .from('subjects')
-        .select('*')
-        .order('grade', { ascending: true });
-
-      if (grade) {
-        query = query.eq('grade', grade);
-      }
-
-      const { data, error } = await query;
-      return { data, error };
-    } catch (error) {
-      return { data: null, error };
-    }
+    
+    return await query.order('name');
   }
 
   async createSubject(subject: Omit<Subject, 'id' | 'created_at' | 'updated_at'>) {
-    if (!this.isSupabaseConfigured()) {
-      return { data: null, error: new Error('Supabase not configured') };
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('subjects')
-        .insert(subject)
-        .select()
-        .single();
-      return { data, error };
-    } catch (error) {
-      return { data: null, error };
-    }
+    return await supabase
+      .from('subjects')
+      .insert(subject)
+      .select()
+      .single();
   }
 
   async updateSubject(id: string, updates: Partial<Subject>) {
-    if (!this.isSupabaseConfigured()) {
-      return { data: null, error: new Error('Supabase not configured') };
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('subjects')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-      return { data, error };
-    } catch (error) {
-      return { data: null, error };
-    }
+    return await supabase
+      .from('subjects')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
   }
 
   async deleteSubject(id: string) {
-    if (!this.isSupabaseConfigured()) {
-      return { error: new Error('Supabase not configured') };
-    }
-
-    try {
-      const { error } = await supabase
-        .from('subjects')
-        .delete()
-        .eq('id', id);
-      return { error };
-    } catch (error) {
-      return { error };
-    }
+    return await supabase
+      .from('subjects')
+      .delete()
+      .eq('id', id);
   }
 
-  // Chapters methods
+  // Chapters
   async getChapters(filters: { subject_id?: string; grade?: number } = {}) {
-    if (!this.isSupabaseConfigured()) {
-      return { data: null, error: new Error('Supabase not configured') };
+    let query = supabase.from('chapters').select(`
+      *,
+      subjects!inner(*)
+    `);
+
+    if (filters.subject_id) {
+      query = query.eq('subject_id', filters.subject_id);
     }
 
-    try {
-      let query = supabase
-        .from('chapters')
-        .select(`
-          *,
-          subjects:subject_id(name, grade)
-        `)
-        .order('order_index', { ascending: true });
-
-      if (filters.subject_id) {
-        query = query.eq('subject_id', filters.subject_id);
-      }
-
-      const { data, error } = await query;
-
-      // Filter by grade if provided (since chapters don't have direct grade field)
-      if (data && filters.grade) {
-        const filteredData = data.filter(chapter =>
-          chapter.subjects && chapter.subjects.grade === filters.grade
-        );
-        return { data: filteredData, error };
-      }
-
-      return { data, error };
-    } catch (error) {
-      return { data: null, error };
+    if (filters.grade) {
+      query = query.eq('subjects.grade', filters.grade);
     }
+
+    return await query.order('order_index');
   }
 
   async createChapter(chapter: Omit<Chapter, 'id' | 'created_at' | 'updated_at'>) {
-    if (!this.isSupabaseConfigured()) {
-      return { data: null, error: new Error('Supabase not configured') };
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('chapters')
-        .insert(chapter)
-        .select()
-        .single();
-      return { data, error };
-    } catch (error) {
-      return { data: null, error };
-    }
+    return await supabase
+      .from('chapters')
+      .insert(chapter)
+      .select()
+      .single();
   }
 
   async updateChapter(id: string, updates: Partial<Chapter>) {
-    if (!this.isSupabaseConfigured()) {
-      return { data: null, error: new Error('Supabase not configured') };
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('chapters')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-      return { data, error };
-    } catch (error) {
-      return { data: null, error };
-    }
+    return await supabase
+      .from('chapters')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
   }
 
   async deleteChapter(id: string) {
-    if (!this.isSupabaseConfigured()) {
-      return { error: new Error('Supabase not configured') };
-    }
-
-    try {
-      const { error } = await supabase
-        .from('chapters')
-        .delete()
-        .eq('id', id);
-      return { error };
-    } catch (error) {
-      return { error };
-    }
+    return await supabase
+      .from('chapters')
+      .delete()
+      .eq('id', id);
   }
 
-  // File upload methods
-  async uploadFile(bucket: string, path: string, file: File) {
-    if (!this.isSupabaseConfigured()) {
-      return { data: null, error: new Error('Supabase not configured') };
-    }
+  // File Upload
+  async uploadFile(file: File, bucket: string = 'study-materials') {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
+    const filePath = `${fileName}`;
 
     const { data, error } = await supabase.storage
       .from(bucket)
-      .upload(path, file);
-    return { data, error };
+      .upload(filePath, file);
+
+    return { data, error, filePath };
   }
 
-  getFileUrl(bucket: string, path: string): string {
-    if (!this.isSupabaseConfigured()) {
-      console.warn('Supabase not configured, cannot get file URL');
-      return '';
-    }
-
+  async getFileUrl(filePath: string, bucket: string = 'study-materials') {
     const { data } = supabase.storage
       .from(bucket)
-      .getPublicUrl(path);
+      .getPublicUrl(filePath);
+
     return data.publicUrl;
   }
 
@@ -318,40 +185,27 @@ class DataService {
   }
 
   convertGoogleDriveUrl(url: string): string {
-    // Convert various Google Drive URL formats to a consistent viewable format
-    if (url.includes('drive.google.com')) {
-      const fileId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
-      if (fileId) {
-        return `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
-      }
+    // Convert Google Drive share URL to direct access URL
+    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (fileIdMatch) {
+      const fileId = fileIdMatch[1];
+      return `https://drive.google.com/file/d/${fileId}/view`;
     }
     return url;
   }
 
   getGoogleDriveEmbedUrl(url: string): string {
-    // Convert Google Drive URL to embeddable format
-    if (url.includes('drive.google.com')) {
-      const fileId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1];
-      if (fileId) {
-        return `https://drive.google.com/file/d/${fileId}/preview`;
-      }
+    // Convert to embeddable URL
+    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (fileIdMatch) {
+      const fileId = fileIdMatch[1];
+      return `https://drive.google.com/file/d/${fileId}/preview`;
     }
     return url;
   }
 
-  // File validation utilities
-  validateFileType(fileName: string, allowedTypes: string[]): boolean {
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    return extension ? allowedTypes.includes(extension) : false;
-  }
-
-  validateFileSize(file: File, maxSizeMB: number): boolean {
-    const maxSizeBytes = maxSizeMB * 1024 * 1024;
-    return file.size <= maxSizeBytes;
-  }
-
-  // Content validation
-  validateContentData(material: Partial<StudyMaterial>): { isValid: boolean; errors: string[] } {
+  // Validation utilities
+  validateContentData(material: any): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     if (!material.title?.trim()) {
@@ -362,24 +216,13 @@ class DataService {
       errors.push('Content type is required');
     }
 
-    if (!material.subject_id) {
-      errors.push('Subject is required');
+    if (!material.teacher_id) {
+      errors.push('Teacher ID is required');
     }
 
-    if (!material.chapter_id) {
-      errors.push('Chapter is required');
-    }
-
-    if (!material.grade || material.grade < 1 || material.grade > 12) {
-      errors.push('Valid grade (1-12) is required');
-    }
-
-    // Validate URL for certain types
     if (material.type === 'video' || material.type === 'quiz') {
       if (!material.url?.trim()) {
         errors.push(`URL is required for ${material.type} content`);
-      } else if (!this.isValidUrl(material.url)) {
-        errors.push('Please provide a valid URL');
       }
     }
 
@@ -389,13 +232,13 @@ class DataService {
     };
   }
 
-  private isValidUrl(url: string): boolean {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
+  validateFileType(fileName: string, allowedTypes: string[]): boolean {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    return allowedTypes.includes(extension || '');
+  }
+
+  validateFileSize(file: File, maxSizeMB: number): boolean {
+    return file.size <= maxSizeMB * 1024 * 1024;
   }
 }
 

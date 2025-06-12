@@ -7,14 +7,14 @@ import SecureStudyMaterialForm from './SecureStudyMaterialForm';
 import SyncStatusBanner from '../ContentUploader/SyncStatusBanner';
 import SyncStatusIndicator from '../ContentUploader/SyncStatusIndicator';
 import { supabaseService, StudyMaterial } from '../../../services/supabaseService';
-import { useAuth } from '../../auth/AuthProvider';
+import { useDemoAuth } from '@/components/auth/DemoAuthProvider';
 import { toast } from '@/hooks/use-toast';
 
 // Fix the sync status type to include 'error'
 type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
 
 const StudyMaterialManager: React.FC = () => {
-  const { user } = useAuth();
+  const { user } = useDemoAuth();
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,13 +26,12 @@ const StudyMaterialManager: React.FC = () => {
     if (user) {
       loadMaterials();
       
-      // Subscribe to real-time updates for immediate sync with student portal
+      // Subscribe to real-time updates
       const channel = supabaseService.subscribeToStudyMaterials((payload) => {
         console.log('Real-time update detected:', payload);
         setSyncStatus('syncing');
-        loadMaterials(); // Reload materials when changes occur
+        loadMaterials();
         
-        // Show sync notification
         setTimeout(() => {
           setSyncStatus('synced');
           toast({
@@ -40,7 +39,6 @@ const StudyMaterialManager: React.FC = () => {
             description: "Your changes are now live for students",
           });
           
-          // Reset status after 3 seconds
           setTimeout(() => setSyncStatus('idle'), 3000);
         }, 1000);
       }, 'study-material-manager');
@@ -57,31 +55,16 @@ const StudyMaterialManager: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const { data, error: fetchError } = await supabaseService.getTeacherStudyMaterials(user.id);
+      const { data, error: fetchError } = await supabaseService.getStudyMaterials({ 
+        teacher_id: user.id 
+      });
       
       if (fetchError) {
         throw fetchError;
       }
 
-      // Transform and validate the data to ensure type safety
-      const transformedMaterials: StudyMaterial[] = (data || []).map((item: any) => ({
-        id: item.id,
-        teacher_id: item.teacher_id,
-        title: item.title,
-        description: item.description,
-        type: item.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz',
-        url: item.url,
-        file_path: item.file_path,
-        subject_id: item.subject_id,
-        chapter_id: item.chapter_id,
-        grade: item.grade,
-        is_public: item.is_public,
-        created_at: item.created_at,
-        updated_at: item.updated_at
-      }));
-
-      setMaterials(transformedMaterials);
-      console.log('Loaded materials from Supabase:', transformedMaterials);
+      setMaterials(data || []);
+      console.log('Loaded materials from Supabase:', data);
     } catch (err: any) {
       console.error("Failed to fetch materials:", err);
       setError('Failed to load study materials. Please try again.');
@@ -107,23 +90,11 @@ const StudyMaterialManager: React.FC = () => {
         description: formData.get('description') as string || undefined,
         type: formData.get('type') as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz',
         url: formData.get('url') as string || undefined,
-        file_path: undefined as string | undefined,
         subject_id: formData.get('subjectId') as string || undefined,
         chapter_id: formData.get('chapterId') as string || undefined,
         grade: formData.get('grade') ? parseInt(formData.get('grade') as string) : undefined,
         is_public: true
       };
-
-      // Handle file upload if present
-      const file = formData.get('file') as File;
-      if (file && file.size > 0) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-        const filePath = `study-materials/${fileName}`;
-        
-        materialData.file_path = filePath;
-        materialData.url = undefined;
-      }
 
       let result;
       if (editingMaterial) {
@@ -135,7 +106,7 @@ const StudyMaterialManager: React.FC = () => {
       } else {
         result = await supabaseService.createStudyMaterial(materialData);
         toast({
-          title: "Success",
+          title: "Success", 
           description: "Study material added and synced to student portal",
         });
       }

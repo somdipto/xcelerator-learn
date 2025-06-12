@@ -1,20 +1,21 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 class RealtimeService {
-  private activeChannels = new Map<string, any>();
+  private channels: Map<string, RealtimeChannel> = new Map();
 
-  subscribeToStudyMaterials(callback: (payload: any) => void, channelName?: string) {
-    const uniqueChannelName = channelName || `study_materials_${Date.now()}_${Math.random()}`;
-    
+  subscribeToStudyMaterials(
+    callback: (payload: any) => void,
+    channelName: string = 'study-materials-changes'
+  ): RealtimeChannel {
     // Remove existing channel if it exists
-    if (this.activeChannels.has(uniqueChannelName)) {
-      const existingChannel = this.activeChannels.get(uniqueChannelName);
-      supabase.removeChannel(existingChannel);
+    if (this.channels.has(channelName)) {
+      this.removeChannel(this.channels.get(channelName)!);
     }
 
     const channel = supabase
-      .channel(uniqueChannelName)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -26,25 +27,27 @@ class RealtimeService {
       )
       .subscribe();
 
-    this.activeChannels.set(uniqueChannelName, channel);
+    this.channels.set(channelName, channel);
     return channel;
   }
 
-  removeChannel(channel: any) {
-    for (const [name, activeChannel] of this.activeChannels.entries()) {
-      if (activeChannel === channel) {
-        this.activeChannels.delete(name);
+  removeChannel(channel: RealtimeChannel) {
+    supabase.removeChannel(channel);
+    
+    // Remove from our tracking
+    for (const [name, ch] of this.channels.entries()) {
+      if (ch === channel) {
+        this.channels.delete(name);
         break;
       }
     }
-    supabase.removeChannel(channel);
   }
 
-  cleanup() {
-    for (const [name, channel] of this.activeChannels.entries()) {
+  removeAllChannels() {
+    this.channels.forEach(channel => {
       supabase.removeChannel(channel);
-    }
-    this.activeChannels.clear();
+    });
+    this.channels.clear();
   }
 }
 
