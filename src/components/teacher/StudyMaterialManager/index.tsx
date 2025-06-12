@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +10,9 @@ import { supabaseService, StudyMaterial } from '../../../services/supabaseServic
 import { useAuth } from '../../auth/AuthProvider';
 import { toast } from '@/hooks/use-toast';
 
+// Fix the sync status type to include 'error'
+type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
+
 const StudyMaterialManager: React.FC = () => {
   const { user } = useAuth();
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
@@ -18,7 +20,7 @@ const StudyMaterialManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
   const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
 
   useEffect(() => {
     if (user) {

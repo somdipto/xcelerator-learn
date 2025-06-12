@@ -1,3 +1,4 @@
+
 import { Suspense, lazy } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,21 +7,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { Helmet } from 'react-helmet-async';
 import ContentSecurityWrapper from '@/components/security/ContentSecurityWrapper';
-const Home = lazy(() => import('./pages/Home'));
-const About = lazy(() => import('./pages/About'));
-const Contact = lazy(() => import('./pages/Contact'));
-const Pricing = lazy(() => import('./pages/Pricing'));
-const Blog = lazy(() => import('./pages/Blog'));
-const BlogPost = lazy(() => import('./pages/BlogPost'));
-const FAQ = lazy(() => import('./pages/FAQ'));
-const Terms = lazy(() => import('./pages/Terms'));
-const Privacy = lazy(() => import('./pages/Privacy'));
+
+// Import existing pages - using the correct paths
+const Index = lazy(() => import('./pages/Index'));
 const NotFound = lazy(() => import('./pages/NotFound'));
-const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
-const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
-const SignUp = lazy(() => import('./pages/SignUp'));
-const SignIn = lazy(() => import('./pages/SignIn'));
-const AccountSettings = lazy(() => import('./pages/AccountSettings'));
+const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'));
+const TeacherLogin = lazy(() => import('./pages/TeacherLogin'));
+const UnauthorizedPage = lazy(() => import('./pages/UnauthorizedPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,20 +51,10 @@ const App = () => {
                   </div>
                 }>
                   <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/about" element={<About />} />
-                    <Route path="/contact" element={<Contact />} />
-                    <Route path="/pricing" element={<Pricing />} />
-                    <Route path="/blog" element={<Blog />} />
-                    <Route path="/blog/:id" element={<BlogPost />} />
-                    <Route path="/faq" element={<FAQ />} />
-                    <Route path="/terms" element={<Terms />} />
-                    <Route path="/privacy" element={<Privacy />} />
-                    <Route path="/signup" element={<SignUp />} />
-                    <Route path="/signin" element={<SignIn />} />
-                    <Route path="/account" element={<AccountSettings />} />
+                    <Route path="/" element={<Index />} />
+                    <Route path="/teacher-login" element={<TeacherLogin />} />
                     <Route path="/teacher/*" element={<TeacherDashboard />} />
-                    <Route path="/admin/*" element={<AdminDashboard />} />
+                    <Route path="/unauthorized" element={<UnauthorizedPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>

@@ -26,7 +26,16 @@ export const validatePasswordStrength = async (password: string): Promise<{
       };
     }
     
-    return data;
+    // Fix type issue by properly casting the response
+    if (typeof data === 'object' && data !== null && 'valid' in data && 'errors' in data) {
+      return data as { valid: boolean; errors: string[] };
+    }
+    
+    // Fallback if data format is unexpected
+    return {
+      valid: false,
+      errors: ['Password validation failed. Please try again.']
+    };
   } catch (error) {
     console.error('Password validation error:', error);
     return {
@@ -48,7 +57,7 @@ export const validateUrlSafety = async (url: string): Promise<boolean> => {
       return false;
     }
     
-    return data;
+    return Boolean(data);
   } catch (error) {
     console.error('URL validation error:', error);
     return false;
@@ -87,7 +96,7 @@ export const validateFileUpload = async (
       return { valid: false, error: 'File validation failed' };
     }
     
-    return { valid: data };
+    return { valid: Boolean(data) };
   } catch (error) {
     console.error('File validation error:', error);
     return { valid: false, error: 'File validation failed' };
