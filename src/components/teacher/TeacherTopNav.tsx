@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, Bell } from 'lucide-react';
+import { LogOut, Bell, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -33,10 +33,24 @@ const TeacherTopNav = ({ teacherData }: TeacherTopNavProps) => {
     }
   };
 
+  const handleBackToHome = () => {
+    navigate('/');
+  };
+
   return (
     <nav className="bg-[#1A1A1A] border-b border-[#2C2C2C] p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4 ml-16 md:ml-0">
+          <Button
+            onClick={handleBackToHome}
+            variant="ghost"
+            size="icon"
+            className="text-[#E0E0E0] hover:text-[#00E676] hover:bg-[#00E676]/10"
+            title="Back to Home"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          
           <div className="text-xl font-bold">
             <span className="text-[#2979FF]">Teacher</span>
             <span className="text-white"> CMS</span>

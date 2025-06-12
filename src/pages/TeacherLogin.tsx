@@ -13,8 +13,8 @@ const TeacherLogin = () => {
   const navigate = useNavigate();
   const { user, signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('teacher@test.com'); // Pre-filled for testing
-  const [password, setPassword] = useState('teacher123'); // Pre-filled for testing
+  const [email, setEmail] = useState('teacher1'); // Updated credentials
+  const [password, setPassword] = useState('teacher1'); // Updated credentials
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -93,7 +93,7 @@ const TeacherLogin = () => {
             Login to access the Content Management System
           </p>
           <div className="text-xs text-[#666666] mt-2">
-            Use: teacher@test.com / teacher123 or admin@test.com / teacher123
+            Use: teacher1 / teacher1 for demo access
           </div>
         </CardHeader>
 
@@ -108,12 +108,12 @@ const TeacherLogin = () => {
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-[#E0E0E0]">
-                Email Address
+                Username/Email
               </Label>
               <Input
                 id="email"
-                type="email"
-                placeholder="Enter your email"
+                type="text"
+                placeholder="Enter username or email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
@@ -134,7 +134,6 @@ const TeacherLogin = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF] pr-10"
                   required
-                  minLength={6}
                 />
                 <Button
                   type="button"

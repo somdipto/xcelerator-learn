@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -198,6 +199,15 @@ const ContentUploader = () => {
   };
 
   const handleUpload = async () => {
+    if (!currentUser) {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in to upload content",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Enhanced validation
     const validation = supabaseService.validateContentData({
       title: uploadData.title,
@@ -234,15 +244,6 @@ const ContentUploader = () => {
       toast({
         title: "Missing URL",
         description: `Please provide a URL for ${uploadData.type} content`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!currentUser) {
-      toast({
-        title: "Authentication Error",
-        description: "Please log in to upload content",
         variant: "destructive"
       });
       return;

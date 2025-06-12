@@ -13,8 +13,10 @@ import {
   X,
   Settings,
   BarChart3,
-  Book
+  Book,
+  ArrowLeft
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface TeacherSidebarProps {
   activeSection: string;
@@ -23,6 +25,7 @@ interface TeacherSidebarProps {
 
 const TeacherSidebar = ({ activeSection, onSectionChange }: TeacherSidebarProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
 
   const menuItems = [
     { id: 'overview', label: 'Dashboard', icon: Home },
@@ -38,6 +41,10 @@ const TeacherSidebar = ({ activeSection, onSectionChange }: TeacherSidebarProps)
   const handleItemClick = (sectionId: string) => {
     onSectionChange(sectionId);
     setIsOpen(false); // Close mobile menu
+  };
+
+  const handleBackToHome = () => {
+    navigate('/');
   };
 
   return (
@@ -66,14 +73,27 @@ const TeacherSidebar = ({ activeSection, onSectionChange }: TeacherSidebarProps)
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         <div className="p-4 border-b border-[#2C2C2C]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-[#2979FF] to-[#00E676] rounded-lg flex items-center justify-center">
-              <Book className="h-5 w-5 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-[#2979FF] to-[#00E676] rounded-lg flex items-center justify-center">
+                <Book className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Teacher CMS</h2>
+                <p className="text-xs text-[#E0E0E0]">Content Management</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">Teacher CMS</h2>
-              <p className="text-xs text-[#E0E0E0]">Content Management</p>
-            </div>
+            
+            {/* Back button */}
+            <Button
+              onClick={handleBackToHome}
+              variant="ghost"
+              size="icon"
+              className="text-[#E0E0E0] hover:text-[#00E676] hover:bg-[#00E676]/10"
+              title="Back to Home"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
