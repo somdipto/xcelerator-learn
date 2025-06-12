@@ -104,11 +104,6 @@ const ContentUploader = () => {
     }
   }, [uploadData.subject_id, uploadData.grade, dbSubjects]);
 
-  const checkUser = async () => {
-    const { user } = await supabaseService.getCurrentUser();
-    setCurrentUser(user);
-  };
-
   const loadAllData = async () => {
     setLoading(true);
     try {
