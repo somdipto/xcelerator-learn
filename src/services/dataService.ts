@@ -1,5 +1,9 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import type { StudyMaterial } from '@/types/studyMaterial';
+
+// Export the StudyMaterial type for other services
+export type { StudyMaterial } from '@/types/studyMaterial';
 
 export interface Subject {
   id: string;

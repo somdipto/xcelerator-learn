@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +20,7 @@ interface Chapter {
   order_index: number;
 }
 
+// Fix ContentItem interface to extend StudyMaterial properly
 interface ContentItem extends StudyMaterial {
   subjects?: { name: string; grade: number };
   chapters?: { name: string };
