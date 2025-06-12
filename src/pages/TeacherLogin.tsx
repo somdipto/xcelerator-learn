@@ -7,30 +7,24 @@ import { Label } from '@/components/ui/label';
 import { GraduationCap, Eye, EyeOff, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/components/auth/AuthProvider';
-import AuthDebug from '@/components/debug/AuthDebug';
+import { useAuth } from '@/contexts/AuthContext';
 
 const TeacherLogin = () => {
   const navigate = useNavigate();
-  const { user, profile, signIn, signUp } = useAuth();
+  const { user, signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('teacher@test.com'); // Pre-filled for testing
   const [password, setPassword] = useState('teacher123'); // Pre-filled for testing
-  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
 
   useEffect(() => {
-    // Redirect if already authenticated as teacher
-    if (user && profile?.role === 'teacher') {
-      console.log('User authenticated as teacher, redirecting to dashboard');
-      navigate('/teacher-dashboard');
-    } else if (user && profile && profile.role !== 'teacher') {
-      console.log('User authenticated but not as teacher, role:', profile.role);
-      setError('Access denied. Teacher account required.');
+    // Redirect if already authenticated
+    if (user) {
+      console.log('User authenticated, redirecting to dashboard');
+      navigate('/teacher');
     }
-  }, [user, profile, navigate]);
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,51 +49,10 @@ const TeacherLogin = () => {
           title: "Login Successful! 👩‍🏫",
           description: "Welcome to the Teacher CMS Dashboard",
         });
-
-        // Wait a moment for profile to load, then check role
-        setTimeout(() => {
-          // Navigation will be handled by the useEffect above
-        }, 1000);
+        navigate('/teacher');
       }
     } catch (err: any) {
       console.error('Login exception:', err);
-      setError('An unexpected error occurred');
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const { error: authError } = await signUp(email, password, {
-        full_name: fullName,
-        role: 'teacher'
-      });
-      
-      if (authError) {
-        setError(authError.message);
-        toast({
-          title: "Registration Failed",
-          description: authError.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Registration Successful! 📧",
-          description: "Please check your email to verify your account",
-        });
-        setIsSignUp(false);
-      }
-    } catch (err: any) {
       setError('An unexpected error occurred');
       toast({
         title: "Error",
@@ -117,8 +70,7 @@ const TeacherLogin = () => {
 
   return (
     <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4">
-      <div className="flex gap-6 items-start">
-        <Card className="w-full max-w-md bg-[#1A1A1A] border-[#2C2C2C]">
+      <Card className="w-full max-w-md bg-[#1A1A1A] border-[#2C2C2C]">
         <CardHeader className="text-center">
           <Button
             onClick={handleBackToHome}
@@ -135,36 +87,22 @@ const TeacherLogin = () => {
           </div>
           
           <CardTitle className="text-2xl font-bold text-white">
-            {isSignUp ? 'Teacher Registration' : 'Teacher Portal'}
+            Teacher Portal
           </CardTitle>
           <p className="text-[#E0E0E0]">
-            {isSignUp ? 'Create your teacher account' : 'Login to access the Content Management System'}
+            Login to access the Content Management System
           </p>
+          <div className="text-xs text-[#666666] mt-2">
+            Use: teacher@test.com / teacher123 or admin@test.com / teacher123
+          </div>
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={isSignUp ? handleSignUp : handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             {error && (
               <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-md">
                 <AlertCircle className="h-4 w-4 text-red-400" />
                 <span className="text-sm text-red-400">{error}</span>
-              </div>
-            )}
-
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-[#E0E0E0]">
-                  Full Name
-                </Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
-                  required
-                />
               </div>
             )}
 
@@ -215,26 +153,11 @@ const TeacherLogin = () => {
               className="w-full bg-[#2979FF] hover:bg-[#2979FF]/90 text-white"
               disabled={loading}
             >
-              {loading ? (isSignUp ? 'Creating Account...' : 'Signing in...') : (isSignUp ? 'Create Teacher Account' : 'Sign In to CMS')}
+              {loading ? 'Signing in...' : 'Sign In to CMS'}
             </Button>
-
-            <div className="text-center pt-4">
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-[#2979FF] hover:text-[#2979FF]/80"
-                onClick={() => setIsSignUp(!isSignUp)}
-              >
-                {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Register as Teacher'}
-              </Button>
-            </div>
           </form>
         </CardContent>
       </Card>
-
-      {/* Debug panel for testing */}
-      <AuthDebug />
-      </div>
     </div>
   );
 };
