@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FileText, Video, Link as LinkIcon, BookOpen, FileSliders, Trophy, ExternalLink } from 'lucide-react';
-import { StudyMaterial, dataService } from '@/services/dataService';
+import { dataService } from '@/services/dataService';
 import GoogleDriveEmbed from './GoogleDriveEmbed';
 
 interface ChapterStudyMaterialProps {
@@ -10,6 +11,42 @@ interface ChapterStudyMaterialProps {
   chapter: string;
   selectedGrade: number;
   onBack: () => void;
+}
+
+// Type for Supabase response that includes joined data
+interface SupabaseStudyMaterial {
+  id: string;
+  teacher_id: string;
+  title: string;
+  description?: string;
+  type: string; // This comes as string from Supabase
+  url?: string;
+  file_path?: string;
+  subject_id?: string;
+  chapter_id?: string;
+  grade?: number;
+  is_public?: boolean;
+  created_at: string;
+  updated_at: string;
+  subjects?: { name: string; grade: number };
+  chapters?: { name: string };
+}
+
+// Local study material type that matches our interface
+interface StudyMaterial {
+  id: string;
+  title: string;
+  description?: string;
+  type: 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz';
+  url?: string;
+  file_path?: string;
+  teacher_id?: string;
+  subject_id?: string;
+  chapter_id?: string;
+  grade?: number;
+  is_public?: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: ChapterStudyMaterialProps) => {
@@ -29,12 +66,28 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
       });
 
       if (!error && supabaseMaterials?.length) {
-        // Filter materials for this specific chapter
-        const filteredMaterials = supabaseMaterials.filter((material: any) => {
-          const subjectMatch = material.subjects?.name === subject;
-          const chapterMatch = material.chapters?.name === chapter;
-          return subjectMatch && chapterMatch;
-        });
+        // Filter materials for this specific chapter and convert types
+        const filteredMaterials = supabaseMaterials
+          .filter((material: SupabaseStudyMaterial) => {
+            const subjectMatch = material.subjects?.name === subject;
+            const chapterMatch = material.chapters?.name === chapter;
+            return subjectMatch && chapterMatch;
+          })
+          .map((material: SupabaseStudyMaterial): StudyMaterial => ({
+            id: material.id,
+            title: material.title,
+            description: material.description,
+            type: material.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz',
+            url: material.url,
+            file_path: material.file_path,
+            teacher_id: material.teacher_id,
+            subject_id: material.subject_id,
+            chapter_id: material.chapter_id,
+            grade: material.grade,
+            is_public: material.is_public,
+            created_at: material.created_at,
+            updated_at: material.updated_at
+          }));
         
         setStudyMaterials(filteredMaterials);
       } else {
@@ -61,7 +114,8 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
       quiz: Trophy,
       link: LinkIcon
     };
-    return iconMap[type as keyof typeof iconMap] || FileText;
+    const IconComponent = iconMap[type as keyof typeof iconMap] || FileText;
+    return <IconComponent className="h-5 w-5" />;
   };
   
   return (

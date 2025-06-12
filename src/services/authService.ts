@@ -53,7 +53,21 @@ class AuthService {
       .eq('id', userId)
       .single();
 
-    return { data, error };
+    if (error) {
+      return { data: null, error };
+    }
+
+    // Type assertion to ensure role is properly typed
+    const profile: Profile = {
+      id: data.id,
+      email: data.email,
+      full_name: data.full_name,
+      role: data.role as 'student' | 'teacher' | 'admin',
+      created_at: data.created_at,
+      updated_at: data.updated_at
+    };
+
+    return { data: profile, error: null };
   }
 
   async updateProfile(userId: string, updates: Partial<Profile>) {
@@ -64,7 +78,21 @@ class AuthService {
       .select()
       .single();
 
-    return { data, error };
+    if (error) {
+      return { data: null, error };
+    }
+
+    // Type assertion for the returned data
+    const profile: Profile = {
+      id: data.id,
+      email: data.email,
+      full_name: data.full_name,
+      role: data.role as 'student' | 'teacher' | 'admin',
+      created_at: data.created_at,
+      updated_at: data.updated_at
+    };
+
+    return { data: profile, error: null };
   }
 }
 

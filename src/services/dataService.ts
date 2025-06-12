@@ -41,18 +41,35 @@ export interface Chapter {
 
 class DataService {
   // Study Materials
-  async getStudyMaterials(filters: Partial<StudyMaterial> = {}) {
+  async getStudyMaterials(filters: { 
+    teacher_id?: string;
+    subject_id?: string;
+    chapter_id?: string;
+    grade?: number;
+    is_public?: boolean;
+  } = {}) {
     let query = supabase.from('study_materials').select(`
       *,
       subjects(name, grade),
       chapters(name)
     `);
 
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined) {
-        query = query.eq(key, value);
-      }
-    });
+    // Apply filters
+    if (filters.teacher_id) {
+      query = query.eq('teacher_id', filters.teacher_id);
+    }
+    if (filters.subject_id) {
+      query = query.eq('subject_id', filters.subject_id);
+    }
+    if (filters.chapter_id) {
+      query = query.eq('chapter_id', filters.chapter_id);
+    }
+    if (filters.grade !== undefined) {
+      query = query.eq('grade', filters.grade);
+    }
+    if (filters.is_public !== undefined) {
+      query = query.eq('is_public', filters.is_public);
+    }
 
     return await query.order('created_at', { ascending: false });
   }
