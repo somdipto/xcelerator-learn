@@ -1,6 +1,7 @@
 
 import React, { useState, Suspense } from 'react';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { AuthProvider as SupabaseAuthProvider } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/contexts/AuthContext';
 import TeacherTopNav from '@/components/teacher/TeacherTopNav';
 import TeacherSidebar from '@/components/teacher/TeacherSidebar';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -15,8 +16,8 @@ import {
   LazySubjectChapterManager
 } from '@/components/LazyComponents';
 
-const TeacherDashboard = () => {
-  const { user, profile } = useAuth();
+const TeacherDashboardContent = () => {
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState('overview');
 
   const renderContent = () => {
@@ -142,21 +143,29 @@ const TeacherDashboard = () => {
   };
 
   return (
-    <ProtectedRoute requiredRole="teacher">
-      <div className="min-h-screen bg-[#121212] flex">
-        <TeacherSidebar 
-          activeSection={activeSection}
-          onSectionChange={setActiveSection}
-        />
+    <div className="min-h-screen bg-[#121212] flex">
+      <TeacherSidebar 
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+      />
+      
+      <div className="flex-1 flex flex-col md:ml-0 w-full">
+        <TeacherTopNav teacherData={{ ...user, profile: null }} />
         
-        <div className="flex-1 flex flex-col md:ml-0 w-full">
-          <TeacherTopNav teacherData={{ ...user, profile }} />
-          
-          <main className="flex-1 overflow-auto">
-            {renderContent()}
-          </main>
-        </div>
+        <main className="flex-1 overflow-auto">
+          {renderContent()}
+        </main>
       </div>
+    </div>
+  );
+};
+
+const TeacherDashboard = () => {
+  return (
+    <ProtectedRoute requiredRole="teacher">
+      <SupabaseAuthProvider>
+        <TeacherDashboardContent />
+      </SupabaseAuthProvider>
     </ProtectedRoute>
   );
 };

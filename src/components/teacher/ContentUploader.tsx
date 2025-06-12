@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -6,6 +5,7 @@ import { supabaseService } from '@/services/supabaseService';
 import { chapterSyncService } from '@/services/chapterSyncService';
 import { subjects } from '@/data/subjects';
 import type { Subject, StudyMaterial } from '@/services/dataService';
+import { useAuth as useSupabaseAuth } from '@/components/auth/AuthProvider';
 
 // Components
 import StatusCards from './ContentUploader/StatusCards';
@@ -28,6 +28,7 @@ interface ContentItem extends StudyMaterial {
 }
 
 const ContentUploader = () => {
+  const { user: currentUser } = useSupabaseAuth();
   const [uploadData, setUploadData] = useState({
     title: '',
     description: '',
@@ -42,7 +43,6 @@ const ContentUploader = () => {
   const [linkUrl, setLinkUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced'>('idle');
   
   // Data states
@@ -55,22 +55,23 @@ const ContentUploader = () => {
   const [availableChapters, setAvailableChapters] = useState<string[]>([]);
 
   useEffect(() => {
-    checkUser();
-    loadAllData();
-    
-    // Real-time sync setup
-    const channel = supabaseService.subscribeToStudyMaterials((payload) => {
-      console.log('Real-time content update:', payload);
-      setSyncStatus('syncing');
-      loadContent();
-      setTimeout(() => setSyncStatus('synced'), 1000);
-      setTimeout(() => setSyncStatus('idle'), 3000);
-    }, 'content-uploader');
+    if (currentUser) {
+      loadAllData();
+      
+      // Subscribe to real-time updates for immediate sync with student portal
+      const channel = supabaseService.subscribeToStudyMaterials((payload) => {
+        console.log('Real-time content update:', payload);
+        setSyncStatus('syncing');
+        loadContent();
+        setTimeout(() => setSyncStatus('synced'), 1000);
+        setTimeout(() => setSyncStatus('idle'), 3000);
+      }, 'content-uploader');
 
-    return () => {
-      supabaseService.removeChannel(channel);
-    };
-  }, []);
+      return () => {
+        supabaseService.removeChannel(channel);
+      };
+    }
+  }, [currentUser]);
 
   // Filter subjects when grade changes
   useEffect(() => {

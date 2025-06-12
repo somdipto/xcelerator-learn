@@ -11,9 +11,14 @@ export interface Profile {
 }
 
 class AuthService {
+  // Check if Supabase is available
+  private isSupabaseAvailable(): boolean {
+    return Boolean(supabase);
+  }
+
   // Authentication methods
   async signUp(email: string, password: string, userData: { full_name?: string; role?: string } = {}) {
-    if (!supabase) {
+    if (!this.isSupabaseAvailable()) {
       throw new Error('Supabase not configured');
     }
     
@@ -28,7 +33,7 @@ class AuthService {
   }
 
   async signIn(email: string, password: string) {
-    if (!supabase) {
+    if (!this.isSupabaseAvailable()) {
       throw new Error('Supabase not configured');
     }
     
@@ -40,7 +45,7 @@ class AuthService {
   }
 
   async signOut() {
-    if (!supabase) {
+    if (!this.isSupabaseAvailable()) {
       throw new Error('Supabase not configured');
     }
     
@@ -49,7 +54,7 @@ class AuthService {
   }
 
   async getCurrentUser() {
-    if (!supabase) {
+    if (!this.isSupabaseAvailable()) {
       throw new Error('Supabase not configured');
     }
     
@@ -59,7 +64,7 @@ class AuthService {
 
   // Profile methods
   async getProfile(userId: string): Promise<{ data: Profile | null; error: any }> {
-    if (!supabase) {
+    if (!this.isSupabaseAvailable()) {
       return { data: null, error: new Error('Supabase not configured') };
     }
     
@@ -72,7 +77,7 @@ class AuthService {
   }
 
   async updateProfile(userId: string, updates: Partial<Profile>) {
-    if (!supabase) {
+    if (!this.isSupabaseAvailable()) {
       throw new Error('Supabase not configured');
     }
     
