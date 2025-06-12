@@ -21,6 +21,9 @@ const App = () => {
           <Helmet>
             <title>Teacher CMS Portal</title>
             <meta name="description" content="Content Management System for Teachers" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <meta charSet="utf-8" />
+            <link rel="icon" type="image/x-icon" href="/favicon.ico" />
           </Helmet>
           <BrowserRouter>
             <div className="min-h-screen bg-gradient-to-br from-[#1A1A1A] to-[#2D2D2D]">
