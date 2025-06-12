@@ -47,12 +47,13 @@ export default defineConfig(({ mode }) => ({
     ],
   },
   define: {
-    // Ensure environment variables are properly defined for build
-    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL || ''),
-    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || ''),
+    // Ensure proper environment variable handling for build
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
   },
-  // Add error handling for missing dependencies
+  // Enhanced error handling for missing dependencies
   esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
+    // Support for optional chaining and nullish coalescing
+    target: 'es2020'
   }
 }));

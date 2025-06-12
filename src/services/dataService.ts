@@ -1,21 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-
-export interface StudyMaterial {
-  id: string;
-  teacher_id: string;
-  title: string;
-  description?: string;
-  type: 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz';
-  url?: string;
-  file_path?: string;
-  subject_id?: string;
-  chapter_id?: string;
-  grade?: number;
-  is_public: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import type { StudyMaterial } from '@/types/studyMaterial';
 
 export interface Subject {
   id: string;
@@ -40,167 +24,272 @@ export interface Chapter {
 }
 
 class DataService {
+  // Check if Supabase is configured
+  private isSupabaseConfigured(): boolean {
+    return Boolean(supabase);
+  }
+
   // Study materials methods
   async getStudyMaterials(filters: { grade?: number; subject_id?: string; teacher_id?: string } = {}) {
-    let query = supabase
-      .from('study_materials')
-      .select(`
-        *,
-        subjects:subject_id(name, grade),
-        profiles:teacher_id(full_name)
-      `)
-      .eq('is_public', true)
-      .order('created_at', { ascending: false });
-
-    if (filters.grade) {
-      query = query.eq('grade', filters.grade);
-    }
-    if (filters.subject_id) {
-      query = query.eq('subject_id', filters.subject_id);
-    }
-    if (filters.teacher_id) {
-      query = query.eq('teacher_id', filters.teacher_id);
+    if (!this.isSupabaseConfigured()) {
+      return { data: null, error: new Error('Supabase not configured') };
     }
 
-    const { data, error } = await query;
-    return { data, error };
+    try {
+      let query = supabase
+        .from('study_materials')
+        .select(`
+          *,
+          subjects:subject_id(name, grade),
+          profiles:teacher_id(full_name)
+        `)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false });
+
+      if (filters.grade) {
+        query = query.eq('grade', filters.grade);
+      }
+      if (filters.subject_id) {
+        query = query.eq('subject_id', filters.subject_id);
+      }
+      if (filters.teacher_id) {
+        query = query.eq('teacher_id', filters.teacher_id);
+      }
+
+      const { data, error } = await query;
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
   }
 
   async createStudyMaterial(material: Omit<StudyMaterial, 'id' | 'created_at' | 'updated_at'>) {
-    // Validate Google Drive URLs and convert to proper format
-    if (material.url && this.isGoogleDriveUrl(material.url)) {
-      material.url = this.convertGoogleDriveUrl(material.url);
+    if (!this.isSupabaseConfigured()) {
+      return { data: null, error: new Error('Supabase not configured') };
     }
 
-    const { data, error } = await supabase
-      .from('study_materials')
-      .insert(material)
-      .select()
-      .single();
-    return { data, error };
+    try {
+      // Validate Google Drive URLs and convert to proper format
+      if (material.url && this.isGoogleDriveUrl(material.url)) {
+        material.url = this.convertGoogleDriveUrl(material.url);
+      }
+
+      const { data, error } = await supabase
+        .from('study_materials')
+        .insert(material)
+        .select()
+        .single();
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
   }
 
   async updateStudyMaterial(id: string, updates: Partial<StudyMaterial>) {
-    // Validate Google Drive URLs and convert to proper format
-    if (updates.url && this.isGoogleDriveUrl(updates.url)) {
-      updates.url = this.convertGoogleDriveUrl(updates.url);
+    if (!this.isSupabaseConfigured()) {
+      return { data: null, error: new Error('Supabase not configured') };
     }
 
-    const { data, error } = await supabase
-      .from('study_materials')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    return { data, error };
+    try {
+      // Validate Google Drive URLs and convert to proper format
+      if (updates.url && this.isGoogleDriveUrl(updates.url)) {
+        updates.url = this.convertGoogleDriveUrl(updates.url);
+      }
+
+      const { data, error } = await supabase
+        .from('study_materials')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
   }
 
   async deleteStudyMaterial(id: string) {
-    const { error } = await supabase
-      .from('study_materials')
-      .delete()
-      .eq('id', id);
-    return { error };
+    if (!this.isSupabaseConfigured()) {
+      return { error: new Error('Supabase not configured') };
+    }
+
+    try {
+      const { error } = await supabase
+        .from('study_materials')
+        .delete()
+        .eq('id', id);
+      return { error };
+    } catch (error) {
+      return { error };
+    }
   }
 
   // Subjects methods
   async getSubjects(grade?: number) {
-    let query = supabase
-      .from('subjects')
-      .select('*')
-      .order('grade', { ascending: true });
-
-    if (grade) {
-      query = query.eq('grade', grade);
+    if (!this.isSupabaseConfigured()) {
+      return { data: null, error: new Error('Supabase not configured') };
     }
 
-    const { data, error } = await query;
-    return { data, error };
+    try {
+      let query = supabase
+        .from('subjects')
+        .select('*')
+        .order('grade', { ascending: true });
+
+      if (grade) {
+        query = query.eq('grade', grade);
+      }
+
+      const { data, error } = await query;
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
   }
 
   async createSubject(subject: Omit<Subject, 'id' | 'created_at' | 'updated_at'>) {
-    const { data, error } = await supabase
-      .from('subjects')
-      .insert(subject)
-      .select()
-      .single();
-    return { data, error };
+    if (!this.isSupabaseConfigured()) {
+      return { data: null, error: new Error('Supabase not configured') };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('subjects')
+        .insert(subject)
+        .select()
+        .single();
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
   }
 
   async updateSubject(id: string, updates: Partial<Subject>) {
-    const { data, error } = await supabase
-      .from('subjects')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    return { data, error };
+    if (!this.isSupabaseConfigured()) {
+      return { data: null, error: new Error('Supabase not configured') };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('subjects')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
   }
 
   async deleteSubject(id: string) {
-    const { error } = await supabase
-      .from('subjects')
-      .delete()
-      .eq('id', id);
-    return { error };
+    if (!this.isSupabaseConfigured()) {
+      return { error: new Error('Supabase not configured') };
+    }
+
+    try {
+      const { error } = await supabase
+        .from('subjects')
+        .delete()
+        .eq('id', id);
+      return { error };
+    } catch (error) {
+      return { error };
+    }
   }
 
   // Chapters methods
   async getChapters(filters: { subject_id?: string; grade?: number } = {}) {
-    let query = supabase
-      .from('chapters')
-      .select(`
-        *,
-        subjects:subject_id(name, grade)
-      `)
-      .order('order_index', { ascending: true });
-
-    if (filters.subject_id) {
-      query = query.eq('subject_id', filters.subject_id);
+    if (!this.isSupabaseConfigured()) {
+      return { data: null, error: new Error('Supabase not configured') };
     }
 
-    const { data, error } = await query;
+    try {
+      let query = supabase
+        .from('chapters')
+        .select(`
+          *,
+          subjects:subject_id(name, grade)
+        `)
+        .order('order_index', { ascending: true });
 
-    // Filter by grade if provided (since chapters don't have direct grade field)
-    if (data && filters.grade) {
-      const filteredData = data.filter(chapter =>
-        chapter.subjects && chapter.subjects.grade === filters.grade
-      );
-      return { data: filteredData, error };
+      if (filters.subject_id) {
+        query = query.eq('subject_id', filters.subject_id);
+      }
+
+      const { data, error } = await query;
+
+      // Filter by grade if provided (since chapters don't have direct grade field)
+      if (data && filters.grade) {
+        const filteredData = data.filter(chapter =>
+          chapter.subjects && chapter.subjects.grade === filters.grade
+        );
+        return { data: filteredData, error };
+      }
+
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
     }
-
-    return { data, error };
   }
 
   async createChapter(chapter: Omit<Chapter, 'id' | 'created_at' | 'updated_at'>) {
-    const { data, error } = await supabase
-      .from('chapters')
-      .insert(chapter)
-      .select()
-      .single();
-    return { data, error };
+    if (!this.isSupabaseConfigured()) {
+      return { data: null, error: new Error('Supabase not configured') };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('chapters')
+        .insert(chapter)
+        .select()
+        .single();
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
   }
 
   async updateChapter(id: string, updates: Partial<Chapter>) {
-    const { data, error } = await supabase
-      .from('chapters')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    return { data, error };
+    if (!this.isSupabaseConfigured()) {
+      return { data: null, error: new Error('Supabase not configured') };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('chapters')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
   }
 
   async deleteChapter(id: string) {
-    const { error } = await supabase
-      .from('chapters')
-      .delete()
-      .eq('id', id);
-    return { error };
+    if (!this.isSupabaseConfigured()) {
+      return { error: new Error('Supabase not configured') };
+    }
+
+    try {
+      const { error } = await supabase
+        .from('chapters')
+        .delete()
+        .eq('id', id);
+      return { error };
+    } catch (error) {
+      return { error };
+    }
   }
 
   // File upload methods
   async uploadFile(bucket: string, path: string, file: File) {
+    if (!this.isSupabaseConfigured()) {
+      return { data: null, error: new Error('Supabase not configured') };
+    }
+
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(path, file);
@@ -208,6 +297,11 @@ class DataService {
   }
 
   getFileUrl(bucket: string, path: string): string {
+    if (!this.isSupabaseConfigured()) {
+      console.warn('Supabase not configured, cannot get file URL');
+      return '';
+    }
+
     const { data } = supabase.storage
       .from(bucket)
       .getPublicUrl(path);

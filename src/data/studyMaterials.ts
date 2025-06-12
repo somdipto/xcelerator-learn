@@ -1,15 +1,8 @@
 
-export interface StudyMaterial {
-  pdfUrl?: string;
-  videoUrl?: string;
-  practiceQuestionsUrl?: string;
-  quizUrl?: string;
-  summaryUrl?: string;
-  pptUrl?: string;
-}
+import type { LocalStudyMaterial } from '@/types/studyMaterial';
 
 export interface ChapterMaterials {
-  [chapter: string]: StudyMaterial;
+  [chapter: string]: LocalStudyMaterial;
 }
 
 export interface SubjectMaterials {
@@ -45,7 +38,7 @@ export const studyMaterials: { [subject: string]: SubjectMaterials } = {
   }
 };
 
-export const getStudyMaterial = (subject: string, grade: number, chapter: string): StudyMaterial | null => {
+export const getStudyMaterial = (subject: string, grade: number, chapter: string): LocalStudyMaterial | null => {
   return studyMaterials[subject]?.[grade]?.[chapter] || null;
 };
 

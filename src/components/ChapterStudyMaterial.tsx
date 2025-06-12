@@ -1,15 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, Users, Trophy, RefreshCw, BookOpen, FileText, Video, FileSliders } from 'lucide-react';
+import { ArrowLeft, Clock, RefreshCw, BookOpen, FileText, Video, FileSliders, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { subjects, SubjectName } from '@/data/subjects';
 import { getStudyMaterial, convertToEmbedUrl } from '@/data/studyMaterials';
-import { supabaseService, StudyMaterial } from '@/services/supabaseService';
+import { convertLocalToStudyMaterial } from '@/types/studyMaterial';
+import { dataService } from '@/services/dataService';
 import { toast } from '@/hooks/use-toast';
-import PDFViewer from './PDFViewer';
+import type { StudyMaterial } from '@/types/studyMaterial';
 
 interface ChapterStudyMaterialProps {
   subject: SubjectName;
@@ -33,31 +34,33 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
   const loadStudyMaterials = async () => {
     setIsLoading(true);
     try {
-      // Get all study materials from Supabase
-      const { data, error } = await supabaseService.getStudyMaterials();
+      // Get materials from Supabase
+      const { data, error } = await dataService.getStudyMaterials();
 
-      if (error) {
-        console.error('Error loading study materials:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load study materials",
-          variant: "destructive",
-        });
-        setStudyMaterials([]);
-      } else {
-        // Filter materials to match current context
-        const filteredMaterials = (data || []).filter(material => {
-          const materialTitle = material.title.toLowerCase();
+      let allMaterials: StudyMaterial[] = [];
+
+      // Add local materials if available
+      if (localStudyMaterial) {
+        const localMaterials = convertLocalToStudyMaterial(localStudyMaterial, chapter, subject, selectedGrade);
+        allMaterials = [...localMaterials];
+      }
+
+      // Add Supabase materials
+      if (!error && data) {
+        const filteredMaterials = data.filter(material => {
+          const materialTitle = material.title?.toLowerCase() || '';
           const subjectMatch = materialTitle.includes(subject.toLowerCase()) ||
-                             material.chapter_id?.includes(subject.toLowerCase());
+                             material.chapter_id?.toLowerCase().includes(subject.toLowerCase());
           const chapterMatch = materialTitle.includes(chapter.toLowerCase()) ||
-                             material.chapter_id?.includes(chapter.toLowerCase());
+                             material.chapter_id?.toLowerCase().includes(chapter.toLowerCase());
           return subjectMatch && chapterMatch;
         });
 
-        setStudyMaterials(filteredMaterials);
-        console.log('Loaded study materials:', filteredMaterials);
+        allMaterials = [...allMaterials, ...filteredMaterials];
       }
+
+      setStudyMaterials(allMaterials);
+      console.log('Loaded study materials:', allMaterials);
     } catch (error) {
       console.error('Failed to load study materials:', error);
       toast({
@@ -65,7 +68,12 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
         description: "Failed to load study materials",
         variant: "destructive",
       });
-      setStudyMaterials([]);
+      
+      // Fallback to local materials only
+      if (localStudyMaterial) {
+        const localMaterials = convertLocalToStudyMaterial(localStudyMaterial, chapter, subject, selectedGrade);
+        setStudyMaterials(localMaterials);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -77,19 +85,6 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
   const summaryMaterials = studyMaterials.filter(m => m.type === 'summary');
   const pptMaterials = studyMaterials.filter(m => m.type === 'ppt');
   const quizMaterials = studyMaterials.filter(m => m.type === 'quiz');
-
-  // Get the primary textbook for theory tab (prioritize mock data, then local data)
-  const primaryTextbook = textbookMaterials[0] || (localStudyMaterial?.pdfUrl ? {
-    id: 'local-pdf',
-    title: `${chapter} - Textbook`,
-    description: `Local textbook for ${chapter}`,
-    type: 'notes' as const,
-    url: localStudyMaterial.pdfUrl,
-    chapter_id: chapter,
-    order_index: 1,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  } : null);
 
   const renderEmbeddedContent = (url: string, title: string, type: string) => {
     const embedUrl = convertToEmbedUrl(url);
@@ -137,19 +132,40 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
     </Card>
   );
 
-  // Helper function to render local study materials with embedded content
-  const renderLocalMaterialTab = (url: string | undefined, title: string, emptyMessage: string) => {
-    if (url) {
-      return renderEmbeddedContent(url, title, 'local');
-    }
-    
-    return (
-      <div className="text-center py-12">
-        <div className="text-4xl md:text-6xl mb-4">
-          <BookOpen className="h-16 w-16 mx-auto text-[#666666]" />
+  const renderMaterialsTab = (materials: StudyMaterial[], emptyMessage: string) => {
+    if (materials.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <div className="text-4xl md:text-6xl mb-4">
+            <BookOpen className="h-16 w-16 mx-auto text-[#666666]" />
+          </div>
+          <h3 className="text-lg md:text-xl text-[#E0E0E0] mb-2">No content available yet</h3>
+          <p className="text-[#666666] text-sm md:text-base">{emptyMessage}</p>
         </div>
-        <h3 className="text-lg md:text-xl text-[#E0E0E0] mb-2">No content available yet</h3>
-        <p className="text-[#666666] text-sm md:text-base">{emptyMessage}</p>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {materials.map((material, index) => {
+          const icons = {
+            textbook: '📚',
+            video: '🎥',
+            summary: '📝',
+            ppt: '📊',
+            quiz: '🏆'
+          };
+          
+          const colors = {
+            textbook: '[#00E676]',
+            video: '[#2979FF]',
+            summary: '[#FFA726]',
+            ppt: '[#FF7043]',
+            quiz: '[#E91E63]'
+          };
+
+          return renderMaterialCard(material, icons[material.type] || '📄', colors[material.type] || '[#666666]');
+        })}
       </div>
     );
   };
@@ -254,89 +270,24 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="textbook" className="space-y-6">
-                {renderLocalMaterialTab(
-                  localStudyMaterial?.pdfUrl,
-                  `${chapter} - Textbook`,
-                  `Textbook materials for ${chapter} will be uploaded by teachers soon.`
-                )}
-
-                {/* Additional textbook materials from Supabase */}
-                {textbookMaterials.length > 0 && (
-                  <div className="grid md:grid-cols-1 gap-4 md:gap-6 mt-6">
-                    {textbookMaterials.map(material => 
-                      renderMaterialCard(material, '📚', '[#00E676]')
-                    )}
-                  </div>
-                )}
+              <TabsContent value="textbook">
+                {renderMaterialsTab(textbookMaterials, `Textbook materials for ${chapter} will be uploaded by teachers soon.`)}
               </TabsContent>
 
-              <TabsContent value="videos" className="space-y-6">
-                {renderLocalMaterialTab(
-                  localStudyMaterial?.videoUrl,
-                  `${chapter} - Video Lecture`,
-                  `Video lectures for ${chapter} will be uploaded by teachers soon.`
-                )}
-
-                {/* Additional video materials from Supabase */}
-                {videoMaterials.length > 0 && (
-                  <div className="grid md:grid-cols-1 gap-4 md:gap-6 mt-6">
-                    {videoMaterials.map(material => 
-                      renderMaterialCard(material, '🎥', '[#2979FF]')
-                    )}
-                  </div>
-                )}
+              <TabsContent value="videos">
+                {renderMaterialsTab(videoMaterials, `Video lectures for ${chapter} will be uploaded by teachers soon.`)}
               </TabsContent>
 
-              <TabsContent value="summary" className="space-y-6">
-                {renderLocalMaterialTab(
-                  localStudyMaterial?.summaryUrl,
-                  `${chapter} - Summary Notes`,
-                  `Summary notes for ${chapter} will be uploaded by teachers soon.`
-                )}
-
-                {/* Additional summary materials from Supabase */}
-                {summaryMaterials.length > 0 && (
-                  <div className="grid md:grid-cols-1 gap-4 md:gap-6 mt-6">
-                    {summaryMaterials.map(material => 
-                      renderMaterialCard(material, '📝', '[#FFA726]')
-                    )}
-                  </div>
-                )}
+              <TabsContent value="summary">
+                {renderMaterialsTab(summaryMaterials, `Summary notes for ${chapter} will be uploaded by teachers soon.`)}
               </TabsContent>
 
-              <TabsContent value="ppt" className="space-y-6">
-                {renderLocalMaterialTab(
-                  localStudyMaterial?.pptUrl,
-                  `${chapter} - Presentation`,
-                  `PowerPoint presentations for ${chapter} will be uploaded by teachers soon.`
-                )}
-
-                {/* Additional PPT materials from Supabase */}
-                {pptMaterials.length > 0 && (
-                  <div className="grid md:grid-cols-1 gap-4 md:gap-6 mt-6">
-                    {pptMaterials.map(material => 
-                      renderMaterialCard(material, '📊', '[#FF7043]')
-                    )}
-                  </div>
-                )}
+              <TabsContent value="ppt">
+                {renderMaterialsTab(pptMaterials, `PowerPoint presentations for ${chapter} will be uploaded by teachers soon.`)}
               </TabsContent>
 
-              <TabsContent value="quiz" className="space-y-6">
-                {renderLocalMaterialTab(
-                  localStudyMaterial?.quizUrl,
-                  `${chapter} - Quiz`,
-                  `Quizzes and assessments for ${chapter} will be created by teachers soon.`
-                )}
-
-                {/* Additional quiz materials from Supabase */}
-                {quizMaterials.length > 0 && (
-                  <div className="grid md:grid-cols-1 gap-4 md:gap-6 mt-6">
-                    {quizMaterials.map(material => 
-                      renderMaterialCard(material, '🏆', '[#E91E63]')
-                    )}
-                  </div>
-                )}
+              <TabsContent value="quiz">
+                {renderMaterialsTab(quizMaterials, `Quizzes and assessments for ${chapter} will be created by teachers soon.`)}
               </TabsContent>
             </Tabs>
           </CardContent>
