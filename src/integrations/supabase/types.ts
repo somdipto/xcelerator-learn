@@ -242,6 +242,23 @@ export type Database = {
         Args: { file_path: string; file_size: number; mime_type: string }
         Returns: boolean
       }
+      validate_file_upload_secure: {
+        Args: {
+          file_path: string
+          file_size: number
+          mime_type: string
+          user_role?: string
+        }
+        Returns: boolean
+      }
+      validate_password_strength: {
+        Args: { password: string }
+        Returns: Json
+      }
+      validate_url_secure: {
+        Args: { url: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

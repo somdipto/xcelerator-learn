@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, RefreshCw, Upload, Users } from 'lucide-react';
 import StudyMaterialList from './StudyMaterialList';
-import StudyMaterialForm from './StudyMaterialForm';
+import SecureStudyMaterialForm from './SecureStudyMaterialForm';
+import SyncStatusBanner from '../ContentUploader/SyncStatusBanner';
+import SyncStatusIndicator from '../ContentUploader/SyncStatusIndicator';
 import { supabaseService, StudyMaterial } from '../../../services/supabaseService';
 import { useAuth } from '../../auth/AuthProvider';
 import { toast } from '@/hooks/use-toast';
@@ -187,33 +189,6 @@ const StudyMaterialManager: React.FC = () => {
     }
   };
 
-  const getSyncStatusIndicator = () => {
-    switch (syncStatus) {
-      case 'syncing':
-        return (
-          <div className="flex items-center gap-2 text-[#FFA726]">
-            <RefreshCw className="h-4 w-4 animate-spin" />
-            <span className="text-sm">Syncing to student portal...</span>
-          </div>
-        );
-      case 'synced':
-        return (
-          <div className="flex items-center gap-2 text-[#00E676]">
-            <Users className="h-4 w-4" />
-            <span className="text-sm">✓ Synced with student portal</span>
-          </div>
-        );
-      case 'error':
-        return (
-          <div className="flex items-center gap-2 text-[#FF6B6B]">
-            <span className="text-sm">⚠ Sync error - please try again</span>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -248,7 +223,7 @@ const StudyMaterialManager: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {getSyncStatusIndicator()}
+              <SyncStatusIndicator syncStatus={syncStatus} />
               <Button
                 onClick={loadMaterials}
                 variant="outline"
@@ -268,21 +243,7 @@ const StudyMaterialManager: React.FC = () => {
             </div>
           )}
           
-          {/* Sync Status Banner */}
-          <div className="mb-6 p-4 bg-[#2C2C2C]/50 rounded-lg border border-[#424242]">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-[#E0E0E0] font-medium mb-1">Real-time Sync with Student Portal</h4>
-                <p className="text-[#999999] text-sm">
-                  All changes you make here are instantly available to students. No manual publishing required.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 text-[#00E676]">
-                <Users className="h-5 w-5" />
-                <span className="text-sm font-medium">Live Sync Active</span>
-              </div>
-            </div>
-          </div>
+          <SyncStatusBanner />
           
           {!showForm ? (
             <div className="space-y-4">
@@ -307,7 +268,7 @@ const StudyMaterialManager: React.FC = () => {
               />
             </div>
           ) : (
-            <StudyMaterialForm
+            <SecureStudyMaterialForm
               onSubmit={handleFormSubmit}
               initialData={editingMaterial}
               onCancel={() => {
