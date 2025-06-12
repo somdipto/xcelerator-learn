@@ -68,19 +68,7 @@ const TopNavigation = ({
         </div>
 
         {/* Right Section */}
-        <div className="flex items-center gap-3">
-          {/* Mobile Teacher Login Button */}
-          <Button variant="ghost" size="sm" onClick={handleTeacherLogin} className="lg:hidden text-[#00E676] hover:text-white hover:bg-[#00E676]/10 transition-all duration-200 touch-manipulation border border-[#00E676]/30 px-3 py-1.5">
-            <GraduationCap className="h-4 w-4" />
-          </Button>
-
-          {/* Avatar */}
-          <Avatar className="h-9 w-9 border-2 border-[#00E676] cursor-pointer hover:border-[#2979FF] transition-colors duration-200 touch-manipulation">
-            <AvatarFallback className="bg-gradient-to-r from-[#00E676] to-[#2979FF] text-black font-bold text-sm">
-              S
-            </AvatarFallback>
-          </Avatar>
-        </div>
+        
       </div>
     </nav>;
 };
