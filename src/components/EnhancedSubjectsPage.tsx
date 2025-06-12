@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Settings, RefreshCw, TrendingUp, Users, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,12 @@ import ContentPreviewCard from './ContentPreviewCard';
 import { dataService, Subject } from '@/services/dataService';
 import { subjects as subjectsData } from '@/data/subjects';
 import { toast } from '@/hooks/use-toast';
+
+interface BreadcrumbItemType {
+  label: string;
+  href?: string;
+  isActive?: boolean;
+}
 
 interface EnhancedSubjectsPageProps {
   selectedGrade: number;
@@ -135,8 +140,8 @@ const EnhancedSubjectsPage = ({
     });
   };
 
-  const getBreadcrumbItems = () => {
-    const items = [
+  const getBreadcrumbItems = (): BreadcrumbItemType[] => {
+    const items: BreadcrumbItemType[] = [
       { label: `Class ${selectedGrade}`, href: `/class/${selectedGrade}` }
     ];
     
