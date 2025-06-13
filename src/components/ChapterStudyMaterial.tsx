@@ -115,7 +115,7 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
       link: LinkIcon
     };
     const IconComponent = iconMap[type as keyof typeof iconMap] || FileText;
-    return <IconComponent className="h-5 w-5" />;
+    return React.createElement(IconComponent, { className: "h-5 w-5" });
   };
   
   return (

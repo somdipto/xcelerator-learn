@@ -100,7 +100,7 @@ const SubjectsPage = ({ selectedGrade, onChapterSelect, onClassChange }: Subject
   if (selectedChapter && selectedSubject) {
     return (
       <ChapterStudyMaterial
-        subject={selectedSubject as any}
+        subject={selectedSubject}
         chapter={selectedChapter}
         selectedGrade={selectedGrade}
         onBack={handleBackToSubjects}
