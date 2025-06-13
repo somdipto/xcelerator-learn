@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Video, Link as LinkIcon, BookOpen, FileSliders, Trophy, ExternalLink, RefreshCw } from 'lucide-react';
+import { FileText, Video, Link as LinkIcon, BookOpen, FileSliders, Trophy, ExternalLink, RefreshCw, Globe, CheckCircle } from 'lucide-react';
 import { dataService } from '@/services/dataService';
 import { googleDriveService } from '@/services/googleDriveService';
 import GoogleDriveEmbed from './GoogleDriveEmbed';
@@ -14,13 +15,12 @@ interface ChapterStudyMaterialProps {
   onBack: () => void;
 }
 
-// Type for Supabase response that includes joined data
 interface SupabaseStudyMaterial {
   id: string;
   teacher_id: string;
   title: string;
   description?: string;
-  type: string; // This comes as string from Supabase
+  type: string;
   url?: string;
   file_path?: string;
   subject_id?: string;
@@ -33,7 +33,6 @@ interface SupabaseStudyMaterial {
   chapters?: { name: string };
 }
 
-// Local study material type that matches our interface
 interface StudyMaterial {
   id: string;
   title: string;
@@ -48,11 +47,13 @@ interface StudyMaterial {
   is_public?: boolean;
   created_at: string;
   updated_at: string;
+  accessVerified?: boolean;
 }
 
 const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: ChapterStudyMaterialProps) => {
   const [studyMaterials, setStudyMaterials] = useState<StudyMaterial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [verifyingAccess, setVerifyingAccess] = useState<string[]>([]);
 
   useEffect(() => {
     loadStudyMaterials();
@@ -61,14 +62,14 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
   const loadStudyMaterials = async () => {
     setIsLoading(true);
     try {
-      // Load from Supabase with enhanced Google Drive support
+      console.log(`Loading materials for: ${subject} - ${chapter} - Grade ${selectedGrade}`);
+      
       const { data: supabaseMaterials, error } = await dataService.getStudyMaterials({
         grade: selectedGrade,
-        is_public: true // Ensure universal access
+        is_public: true
       });
 
       if (!error && supabaseMaterials?.length) {
-        // Filter materials for this specific chapter and convert types
         const filteredMaterials = supabaseMaterials
           .filter((material: any) => {
             const subjectMatch = material.subjects?.name === subject;
@@ -88,24 +89,33 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
             grade: material.grade,
             is_public: material.is_public,
             created_at: material.created_at,
-            updated_at: material.updated_at
+            updated_at: material.updated_at,
+            accessVerified: false
           }));
         
         setStudyMaterials(filteredMaterials);
+        
+        // Verify access for Google Drive links
+        verifyGoogleDriveAccess(filteredMaterials);
+        
+        toast({
+          title: "Content Loaded",
+          description: `Found ${filteredMaterials.length} materials for ${chapter}`,
+        });
       } else {
-        // Fallback to localStorage for demo content
         const localKey = `studentContent_${subject}_${selectedGrade}`;
         const localContent = JSON.parse(localStorage.getItem(localKey) || '[]');
         const chapterContent = localContent.filter((item: any) => item.embedInChapter === chapter);
         setStudyMaterials(chapterContent);
-      }
-
-      // Show success message if materials are loaded
-      if (studyMaterials.length > 0) {
-        toast({
-          title: "Content Loaded",
-          description: `Found ${studyMaterials.length} materials for ${chapter}`,
-        });
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          toast({
+            title: "Database Connection Issue",
+            description: "Loaded cached content. Some materials may not be up to date.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to load study materials:', error);
@@ -120,11 +130,39 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
     }
   };
 
+  const verifyGoogleDriveAccess = async (materials: StudyMaterial[]) => {
+    const googleDriveMaterials = materials.filter(m => 
+      m.url && dataService.isGoogleDriveUrl(m.url)
+    );
+
+    if (googleDriveMaterials.length === 0) return;
+
+    setVerifyingAccess(googleDriveMaterials.map(m => m.id));
+
+    for (const material of googleDriveMaterials) {
+      try {
+        const accessResult = await googleDriveService.verifyUniversalAccess(material.url!);
+        
+        setStudyMaterials(prev => 
+          prev.map(m => 
+            m.id === material.id 
+              ? { ...m, accessVerified: accessResult.accessible }
+              : m
+          )
+        );
+      } catch (error) {
+        console.error(`Failed to verify access for ${material.title}:`, error);
+      }
+    }
+
+    setVerifyingAccess([]);
+  };
+
   const handleRefresh = () => {
     loadStudyMaterials();
     toast({
       title: "Refreshing Content",
-      description: "Checking for latest updates...",
+      description: "Checking for latest updates and verifying access...",
     });
   };
 
@@ -143,16 +181,48 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
 
   const renderMaterialContent = (material: StudyMaterial) => {
     if (material.url && dataService.isGoogleDriveUrl(material.url)) {
-      // Enhanced Google Drive embedding with universal access
       return (
-        <GoogleDriveEmbed
-          url={material.url}
-          title={material.title}
-          description={material.description}
-        />
+        <div className="space-y-3">
+          <GoogleDriveEmbed
+            url={material.url}
+            title={material.title}
+            description={material.description}
+          />
+          
+          {/* Access Status */}
+          <div className="flex items-center justify-between bg-[#121212] border border-[#424242] rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              {verifyingAccess.includes(material.id) ? (
+                <>
+                  <RefreshCw className="h-4 w-4 text-[#FFA726] animate-spin" />
+                  <span className="text-sm text-[#FFA726]">Verifying access...</span>
+                </>
+              ) : material.accessVerified ? (
+                <>
+                  <CheckCircle className="h-4 w-4 text-[#00E676]" />
+                  <span className="text-sm text-[#00E676]">Universal access verified</span>
+                </>
+              ) : (
+                <>
+                  <Globe className="h-4 w-4 text-[#2979FF]" />
+                  <span className="text-sm text-[#2979FF]">Universal access enabled</span>
+                </>
+              )}
+            </div>
+            
+            <Button
+              onClick={() => window.open(material.url, '_blank', 'noopener,noreferrer')}
+              variant="ghost"
+              size="sm"
+              className="text-[#2979FF] hover:bg-[#2979FF]/10"
+            >
+              <ExternalLink className="h-4 w-4 mr-1" />
+              Open
+            </Button>
+          </div>
+        </div>
       );
     } else if (material.url) {
-      // Other URL types
       return (
         <div className="bg-[#2979FF]/10 border border-[#2979FF]/20 rounded-lg p-4">
           <Button
@@ -165,7 +235,6 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
         </div>
       );
     } else {
-      // No content available
       return (
         <div className="bg-[#666666]/10 border border-[#666666]/20 rounded-lg p-4">
           <p className="text-[#666666] text-sm">Content not available</p>
@@ -201,9 +270,14 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
         <h1 className="text-3xl font-bold text-white mb-2">
           {subject} - {chapter}
         </h1>
-        <p className="text-[#E0E0E0]">
-          Explore study materials for Class {selectedGrade} • Universal Access Enabled
-        </p>
+        <div className="flex items-center gap-4 text-[#E0E0E0]">
+          <span>Class {selectedGrade}</span>
+          <span>•</span>
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-[#00E676]" />
+            <span>Universal Access Enabled</span>
+          </div>
+        </div>
       </div>
       
       {/* Loading State */}
@@ -211,6 +285,7 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00E676] mx-auto mb-4"></div>
           <p className="text-[#E0E0E0]">Loading study materials...</p>
+          <p className="text-sm text-[#999999] mt-2">Verifying universal access...</p>
         </div>
       ) : (
         /* Study Materials Section */
@@ -221,13 +296,16 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
                 <CardTitle className="text-white flex items-center gap-3">
                   {getTypeIcon(material.type)}
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-lg font-semibold">{material.title}</h3>
                       {material.url && dataService.isGoogleDriveUrl(material.url) && (
                         <span className="text-xs bg-[#00E676]/20 text-[#00E676] px-2 py-1 rounded-full font-medium">
                           Universal Access
                         </span>
                       )}
+                      <span className="text-xs bg-[#2979FF]/20 text-[#2979FF] px-2 py-1 rounded-full font-medium">
+                        {material.type.toUpperCase()}
+                      </span>
                     </div>
                     {material.description && (
                       <p className="text-sm text-[#E0E0E0] font-normal mt-1">
@@ -251,10 +329,15 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
                 <p className="text-[#E0E0E0] mb-4">
                   Your teacher hasn't uploaded any materials for this chapter yet.
                 </p>
+                <div className="space-y-2 text-sm text-[#999999]">
+                  <p>✓ All content is universally accessible across devices</p>
+                  <p>✓ Google Drive links provide optimal compatibility</p>
+                  <p>✓ Real-time updates when teachers add new content</p>
+                </div>
                 <Button
                   onClick={handleRefresh}
                   variant="outline"
-                  className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white"
+                  className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white mt-6"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Check for Updates

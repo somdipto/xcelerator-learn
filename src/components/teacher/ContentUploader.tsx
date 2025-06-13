@@ -1,566 +1,279 @@
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, RefreshCw, CheckCircle, AlertCircle, BookOpen, Video, FileText, FileSliders, Trophy, FileAudio } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useDemoAuth } from '@/components/auth/DemoAuthProvider';
-import { subjects } from '@/data/subjects';
-
-interface UploadData {
-  title: string;
-  description: string;
-  subject: string;
-  chapter: string;
-  grade: string;
-  type: 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz';
-  summaryType: 'pdf' | 'audio';
-}
-
-interface ContentItem {
-  id: string;
-  title: string;
-  description: string;
-  subject: string;
-  chapter: string;
-  grade: string;
-  type: string;
-  url?: string;
-  filePath?: string;
-  createdAt: string;
-}
+import { dataService, StudyMaterial } from '@/services/dataService';
+import SecureStudyMaterialForm from './StudyMaterialManager/SecureStudyMaterialForm';
+import ContentList from './ContentUploader/ContentList';
+import BatchUploadManager from './ContentUploader/BatchUploadManager';
+import ContentAnalytics from './ContentUploader/ContentAnalytics';
+import SyncStatusBanner from './ContentUploader/SyncStatusBanner';
+import StatusCards from './ContentUploader/StatusCards';
+import { Upload, BarChart3, List, Globe } from 'lucide-react';
 
 const ContentUploader = () => {
-  const { user } = useDemoAuth();
-  const [uploadData, setUploadData] = useState<UploadData>({
-    title: '',
-    description: '',
-    subject: '',
-    chapter: '',
-    grade: '',
-    type: 'textbook',
-    summaryType: 'pdf'
-  });
-  
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [linkUrl, setLinkUrl] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced'>('idle');
-  const [contentList, setContentList] = useState<ContentItem[]>([]);
-  
-  // Get available subjects and chapters based on selected grade
-  const availableSubjects = uploadData.grade ? 
-    Object.keys(subjects).filter(subject => 
-      subjects[subject as keyof typeof subjects].chapters[parseInt(uploadData.grade) as keyof typeof subjects[keyof typeof subjects]['chapters']]
-    ) : [];
+  const [contentList, setContentList] = useState<(StudyMaterial & { subjects?: any; chapters?: any })[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [subjectsCount, setSubjectsCount] = useState(0);
+  const [chaptersCount, setChaptersCount] = useState(0);
 
-  const availableChapters = uploadData.subject && uploadData.grade ? 
-    subjects[uploadData.subject as keyof typeof subjects]?.chapters[parseInt(uploadData.grade) as keyof typeof subjects[keyof typeof subjects]['chapters']] || [] : [];
+  // Mock teacher ID - in real app this would come from auth context
+  const teacherId = 'mock-teacher-id';
 
   useEffect(() => {
-    // Load existing content from localStorage
-    const savedContent = localStorage.getItem('teacherContent');
-    if (savedContent) {
-      try {
-        setContentList(JSON.parse(savedContent));
-      } catch (error) {
-        console.error('Error loading content:', error);
-      }
-    }
+    loadContent();
+    loadCounts();
   }, []);
 
-  const contentTypes = [
-    { value: 'textbook', label: 'Textbook/PDF', icon: BookOpen },
-    { value: 'video', label: 'Video Lecture', icon: Video },
-    { value: 'summary', label: 'Summary Notes', icon: FileText },
-    { value: 'ppt', label: 'Presentation (PPT)', icon: FileSliders },
-    { value: 'quiz', label: 'Quiz/Assessment', icon: Trophy }
-  ];
-
-  const summaryTypes = [
-    { value: 'pdf', label: 'PDF Summary', icon: FileText },
-    { value: 'audio', label: 'Audio Summary', icon: FileAudio }
-  ];
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setLinkUrl(''); // Clear URL if file is selected
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to upload content",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validation
-    if (!uploadData.title || !uploadData.subject || !uploadData.chapter || !uploadData.grade) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const needsFile = uploadData.type !== 'quiz' && uploadData.type !== 'video';
-    const needsUrl = uploadData.type === 'quiz' || uploadData.type === 'video';
-
-    if (needsFile && !selectedFile && !linkUrl) {
-      toast({
-        title: "Missing Content",
-        description: "Please provide either a file or a link",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (needsUrl && !linkUrl) {
-      toast({
-        title: "Missing URL",
-        description: `Please provide a URL for ${uploadData.type} content`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setUploading(true);
-    setSyncStatus('syncing');
-
+  const loadContent = async () => {
     try {
-      // Simulate upload process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { data, error } = await dataService.getStudyMaterials({
+        teacher_id: teacherId
+      });
 
-      let description = uploadData.description;
-      if (uploadData.type === 'summary') {
-        const summaryTypeLabel = uploadData.summaryType === 'audio' ? 'Audio Summary' : 'PDF Summary';
-        description = description ? `${summaryTypeLabel}: ${description}` : summaryTypeLabel;
+      if (error) {
+        console.error('Error loading content:', error);
+        toast({
+          title: "Loading Error",
+          description: "Failed to load your content",
+          variant: "destructive",
+        });
+        return;
       }
 
-      const newContent: ContentItem = {
-        id: `content-${Date.now()}`,
-        title: uploadData.title,
-        description: description || '',
-        subject: uploadData.subject,
-        chapter: uploadData.chapter,
-        grade: uploadData.grade,
-        type: uploadData.type,
-        url: linkUrl || undefined,
-        filePath: selectedFile ? `uploads/${selectedFile.name}` : undefined,
-        createdAt: new Date().toISOString()
+      setContentList(data || []);
+    } catch (error) {
+      console.error('Failed to load content:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadCounts = async () => {
+    try {
+      const [subjectsResult, chaptersResult] = await Promise.all([
+        dataService.getSubjects(),
+        dataService.getChapters()
+      ]);
+
+      setSubjectsCount(subjectsResult.data?.length || 0);
+      setChaptersCount(chaptersResult.data?.length || 0);
+    } catch (error) {
+      console.error('Failed to load counts:', error);
+    }
+  };
+
+  const handleFormSubmit = async (formData: FormData) => {
+    try {
+      const materialData = {
+        teacher_id: teacherId,
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        type: formData.get('type') as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz',
+        url: formData.get('url') as string,
+        grade: parseInt(formData.get('grade') as string),
+        subject_id: formData.get('subjectId') as string,
+        chapter_id: formData.get('chapterId') as string,
+        is_public: formData.get('universalAccess') === 'true',
       };
 
-      // Save to localStorage (simulating database)
-      const updatedContent = [...contentList, newContent];
-      setContentList(updatedContent);
-      localStorage.setItem('teacherContent', JSON.stringify(updatedContent));
+      const { data, error } = await dataService.createStudyMaterial(materialData);
 
-      // Also save to subject-specific storage for student access
-      const studentContentKey = `studentContent_${uploadData.subject}_${uploadData.grade}`;
-      const existingStudentContent = JSON.parse(localStorage.getItem(studentContentKey) || '[]');
-      existingStudentContent.push({
-        ...newContent,
-        teacherName: user.name,
-        embedInChapter: uploadData.chapter
-      });
-      localStorage.setItem(studentContentKey, JSON.stringify(existingStudentContent));
+      if (error) {
+        toast({
+          title: "Upload Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
 
       toast({
-        title: "Upload Successful! 🎉",
-        description: `${uploadData.title} has been uploaded and synced to student portal`,
+        title: "Content Uploaded Successfully",
+        description: "Your content is now available with universal access",
       });
 
-      // Reset form
-      setUploadData({
-        title: '',
-        description: '',
-        subject: '',
-        chapter: '',
-        grade: '',
-        type: 'textbook',
-        summaryType: 'pdf'
-      });
-      setSelectedFile(null);
-      setLinkUrl('');
-
-      // Reset file input
-      const fileInput = document.getElementById('file') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
-
-      setSyncStatus('synced');
-      
-      // Reset sync status after 3 seconds
-      setTimeout(() => setSyncStatus('idle'), 3000);
-
-    } catch (error) {
+      loadContent(); // Refresh the content list
+    } catch (error: any) {
       console.error('Upload error:', error);
-      setSyncStatus('idle');
       toast({
-        title: "Upload Failed",
-        description: "Failed to upload content. Please try again.",
-        variant: "destructive"
+        title: "Upload Error",
+        description: error.message || "Failed to upload content",
+        variant: "destructive",
       });
-    } finally {
-      setUploading(false);
     }
   };
 
-  const handleDelete = (contentId: string) => {
-    if (window.confirm('Are you sure you want to delete this content?')) {
-      const updatedContent = contentList.filter(item => item.id !== contentId);
-      setContentList(updatedContent);
-      localStorage.setItem('teacherContent', JSON.stringify(updatedContent));
-      
+  const handleDeleteContent = async (id: string, title: string) => {
+    try {
+      const { error } = await dataService.deleteStudyMaterial(id);
+
+      if (error) {
+        toast({
+          title: "Delete Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "Content Deleted",
-        description: "Content has been removed from the system",
+        description: `"${title}" has been removed`,
+      });
+
+      loadContent(); // Refresh the content list
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Delete Error",
+        description: error.message || "Failed to delete content",
+        variant: "destructive",
       });
     }
   };
 
-  const getAcceptedFileTypes = () => {
-    if (uploadData.type === 'video') return 'video/*';
-    if (uploadData.type === 'textbook' || uploadData.type === 'ppt') return '.pdf,.ppt,.pptx';
-    if (uploadData.type === 'summary') {
-      return uploadData.summaryType === 'audio' ? 'audio/*,.mp3,.wav,.m4a' : '.pdf';
+  const handleBatchUploadComplete = (result: any) => {
+    loadContent(); // Refresh content list after batch upload
+    
+    if (result.success) {
+      toast({
+        title: "Batch Upload Complete",
+        description: `Successfully processed ${result.summary.successful} items with universal access`,
+      });
     }
-    return '*/*';
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-2">Content Upload & Management</h1>
-        <p className="text-[#E0E0E0] mb-4">Upload and manage educational content with real-time sync to student portal</p>
+    <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-3">
+            <Globe className="h-8 w-8 text-[#00E676]" />
+            Universal Content Management
+          </h1>
+          <p className="text-[#E0E0E0]">
+            Upload and manage Google Drive content with universal accessibility across all devices
+          </p>
+        </div>
+
+        {/* Sync Status Banner */}
+        <SyncStatusBanner />
 
         {/* Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-[#E0E0E0]">Total Content</p>
-                  <p className="text-2xl font-bold text-[#00E676]">{contentList.length}</p>
-                </div>
-                <BookOpen className="h-8 w-8 text-[#00E676]" />
-              </div>
-            </CardContent>
-          </Card>
+        <StatusCards 
+          subjectsCount={subjectsCount}
+          chaptersCount={chaptersCount}
+          contentCount={contentList.length}
+        />
 
-          <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-[#E0E0E0]">Active Subjects</p>
-                  <p className="text-2xl font-bold text-[#2979FF]">{availableSubjects.length}</p>
-                </div>
-                <Video className="h-8 w-8 text-[#2979FF]" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-[#E0E0E0]">Sync Status</p>
-                  <div className="flex items-center gap-2">
-                    {syncStatus === 'syncing' && <RefreshCw className="h-4 w-4 animate-spin text-[#FFA726]" />}
-                    {syncStatus === 'synced' && <CheckCircle className="h-4 w-4 text-[#00E676]" />}
-                    {syncStatus === 'idle' && <div className="h-4 w-4 rounded-full bg-[#666666]" />}
-                    <span className="text-sm text-white capitalize">{syncStatus}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upload Form */}
-        <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              Upload New Content
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Grade Selection */}
-            <div>
-              <Label className="text-[#E0E0E0]">Step 1: Select Grade *</Label>
-              <Select value={uploadData.grade} onValueChange={(value) => setUploadData({...uploadData, grade: value, subject: '', chapter: ''})}>
-                <SelectTrigger className="bg-[#121212] border-[#424242] text-white">
-                  <SelectValue placeholder="Choose class/grade first" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1A1A1A] border-[#2C2C2C]">
-                  {[8, 9, 10, 11, 12].map(grade => (
-                    <SelectItem key={grade} value={grade.toString()} className="text-white">
-                      Class {grade}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Subject Selection */}
-            <div>
-              <Label className="text-[#E0E0E0]">Step 2: Select Subject *</Label>
-              <Select 
-                value={uploadData.subject} 
-                onValueChange={(value) => setUploadData({...uploadData, subject: value, chapter: ''})}
-                disabled={!uploadData.grade}
-              >
-                <SelectTrigger className="bg-[#121212] border-[#424242] text-white">
-                  <SelectValue placeholder={uploadData.grade ? "Choose subject" : "Select grade first"} />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1A1A1A] border-[#2C2C2C]">
-                  {availableSubjects.map(subject => (
-                    <SelectItem key={subject} value={subject} className="text-white">
-                      {subject}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Chapter Selection */}
-            <div>
-              <Label className="text-[#E0E0E0]">Step 3: Select Chapter *</Label>
-              <Select 
-                value={uploadData.chapter} 
-                onValueChange={(value) => setUploadData({...uploadData, chapter: value})}
-                disabled={!uploadData.subject}
-              >
-                <SelectTrigger className="bg-[#121212] border-[#424242] text-white">
-                  <SelectValue placeholder={uploadData.subject ? "Choose chapter" : "Select subject first"} />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1A1A1A] border-[#2C2C2C]">
-                  {availableChapters.map((chapter, index) => (
-                    <SelectItem key={index} value={chapter} className="text-white">
-                      {chapter}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Content Details */}
-            <div>
-              <Label htmlFor="title" className="text-[#E0E0E0]">Step 4: Content Title *</Label>
-              <Input
-                id="title"
-                value={uploadData.title}
-                onChange={(e) => setUploadData({...uploadData, title: e.target.value})}
-                className="bg-[#121212] border-[#424242] text-white"
-                placeholder="e.g., Introduction to Algebra"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="description" className="text-[#E0E0E0]">Description</Label>
-              <Textarea
-                id="description"
-                value={uploadData.description}
-                onChange={(e) => setUploadData({...uploadData, description: e.target.value})}
-                className="bg-[#121212] border-[#424242] text-white"
-                placeholder="Brief description of the content"
-              />
-            </div>
-
-            {/* Content Type */}
-            <div>
-              <Label className="text-[#E0E0E0]">Step 5: Content Type</Label>
-              <Select value={uploadData.type} onValueChange={(value: any) => setUploadData({...uploadData, type: value})}>
-                <SelectTrigger className="bg-[#121212] border-[#424242] text-white">
-                  <SelectValue placeholder="Select content type" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1A1A1A] border-[#2C2C2C]">
-                  {contentTypes.map((type) => {
-                    const IconComponent = type.icon;
-                    return (
-                      <SelectItem key={type.value} value={type.value} className="text-white">
-                        <div className="flex items-center gap-2">
-                          <IconComponent className="h-4 w-4" />
-                          {type.label}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Summary Type Selection */}
-            {uploadData.type === 'summary' && (
-              <div>
-                <Label className="text-[#E0E0E0]">Step 5b: Summary Type *</Label>
-                <Select 
-                  value={uploadData.summaryType} 
-                  onValueChange={(value: any) => setUploadData({...uploadData, summaryType: value})}
-                >
-                  <SelectTrigger className="bg-[#121212] border-[#424242] text-white">
-                    <SelectValue placeholder="Choose summary type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#1A1A1A] border-[#2C2C2C]">
-                    {summaryTypes.map((type) => {
-                      const IconComponent = type.icon;
-                      return (
-                        <SelectItem key={type.value} value={type.value} className="text-white">
-                          <div className="flex items-center gap-2">
-                            <IconComponent className="h-4 w-4" />
-                            {type.label}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* File Upload or Link */}
-            <div className="space-y-3">
-              <Label className="text-[#E0E0E0]">Step 6: Upload Content *</Label>
-
-              {/* Link Input */}
-              <div>
-                <Label htmlFor="url" className="text-[#E0E0E0] text-sm">
-                  Link/URL {(uploadData.type === 'quiz' || uploadData.type === 'video') && '(Required)'}
-                </Label>
-                <Input
-                  id="url"
-                  type="url"
-                  placeholder={uploadData.type === 'quiz' ? 
-                    "https://forms.google.com/quiz-link" :
-                    "https://drive.google.com/file/d/your-file-id/view"
-                  }
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  className="bg-[#121212] border-[#424242] text-white"
-                />
-              </div>
-
-              {/* File Upload */}
-              {uploadData.type !== 'quiz' && uploadData.type !== 'video' && (
-                <div>
-                  <Label htmlFor="file" className="text-[#E0E0E0] text-sm">
-                    Or Upload File Directly
-                  </Label>
-                  <Input
-                    id="file"
-                    type="file"
-                    onChange={handleFileSelect}
-                    className="bg-[#121212] border-[#424242] text-white file:bg-[#2979FF] file:text-white file:border-0 file:rounded file:px-4 file:py-2"
-                    accept={getAcceptedFileTypes()}
-                  />
-                  {selectedFile && (
-                    <p className="text-sm text-[#00E676] mt-1">
-                      File selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <Button
-              onClick={handleUpload}
-              className="w-full bg-[#2979FF] hover:bg-[#2979FF]/90 text-white"
-              disabled={uploading || !uploadData.title || !uploadData.subject || !uploadData.chapter || !uploadData.grade || (!linkUrl && !selectedFile)}
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="upload" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 bg-[#2C2C2C] border-[#424242]">
+            <TabsTrigger 
+              value="upload" 
+              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white"
             >
               <Upload className="h-4 w-4 mr-2" />
-              {uploading ? 'Uploading...' : 'Upload Content'}
-            </Button>
-          </CardContent>
-        </Card>
+              Single Upload
+            </TabsTrigger>
+            <TabsTrigger 
+              value="batch" 
+              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Batch Upload
+            </TabsTrigger>
+            <TabsTrigger 
+              value="content" 
+              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white"
+            >
+              <List className="h-4 w-4 mr-2" />
+              My Content
+            </TabsTrigger>
+            <TabsTrigger 
+              value="analytics" 
+              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Content List */}
-        <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center justify-between">
-              <span>Uploaded Content</span>
-              <span className="text-sm bg-[#2979FF]/20 text-[#2979FF] px-2 py-1 rounded">
-                {contentList.length} items
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {contentList.length === 0 ? (
-                <div className="text-center py-8">
-                  <Upload className="h-12 w-12 text-[#666666] mx-auto mb-4" />
-                  <p className="text-[#666666]">No content uploaded yet</p>
-                </div>
-              ) : (
-                contentList.map((item) => (
-                  <div key={item.id} className="bg-[#2C2C2C] p-3 rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="text-white font-medium">{item.title}</h4>
-                        <p className="text-sm text-[#E0E0E0]">{item.description}</p>
-                        <div className="text-xs text-[#999999] mt-1">
-                          Class {item.grade} • {item.subject} • {item.chapter}
-                        </div>
-                        <div className="text-xs text-[#666666]">
-                          {new Date(item.createdAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => handleDelete(item.id)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
+          <TabsContent value="upload" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <SecureStudyMaterialForm
+                  onSubmit={handleFormSubmit}
+                  onCancel={() => {}}
+                />
+              </div>
+              <div className="lg:col-span-1">
+                <ContentList
+                  contentList={contentList.slice(0, 5)} // Show recent uploads
+                  onRefresh={loadContent}
+                  onDelete={handleDeleteContent}
+                />
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </TabsContent>
 
-      {/* Status Banner */}
-      {syncStatus !== 'idle' && (
-        <div className="fixed bottom-4 right-4 bg-[#1A1A1A] border border-[#2C2C2C] rounded-lg p-4 shadow-lg">
-          <div className="flex items-center gap-3">
-            {syncStatus === 'syncing' && (
-              <>
-                <RefreshCw className="h-5 w-5 animate-spin text-[#FFA726]" />
-                <span className="text-white">Syncing with student portal...</span>
-              </>
-            )}
-            {syncStatus === 'synced' && (
-              <>
-                <CheckCircle className="h-5 w-5 text-[#00E676]" />
-                <span className="text-white">Content synced successfully!</span>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+          <TabsContent value="batch" className="mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <BatchUploadManager
+                  teacherId={teacherId}
+                  onUploadComplete={handleBatchUploadComplete}
+                />
+              </div>
+              <div className="lg:col-span-1">
+                <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
+                  <CardHeader>
+                    <CardTitle className="text-white">Batch Upload Benefits</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Globe className="h-5 w-5 text-[#00E676] mt-0.5" />
+                      <div>
+                        <div className="text-white font-medium">Universal Access</div>
+                        <div className="text-sm text-[#999999]">All links automatically configured for universal accessibility</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Upload className="h-5 w-5 text-[#2979FF] mt-0.5" />
+                      <div>
+                        <div className="text-white font-medium">Bulk Processing</div>
+                        <div className="text-sm text-[#999999]">Upload multiple Google Drive links at once</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <BarChart3 className="h-5 w-5 text-[#FFA726] mt-0.5" />
+                      <div>
+                        <div className="text-white font-medium">Auto Organization</div>
+                        <div className="text-sm text-[#999999]">Content automatically organized by subject and chapter</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="content" className="mt-6">
+            <ContentList
+              contentList={contentList}
+              onRefresh={loadContent}
+              onDelete={handleDeleteContent}
+            />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-6">
+            <ContentAnalytics teacherId={teacherId} />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
