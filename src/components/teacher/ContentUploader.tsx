@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +41,13 @@ const ContentUploader = () => {
         return;
       }
 
-      setContentList(data || []);
+      // Cast the type property to the correct union type
+      const typedData = (data || []).map(item => ({
+        ...item,
+        type: item.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz'
+      }));
+
+      setContentList(typedData);
     } catch (error) {
       console.error('Failed to load content:', error);
     } finally {

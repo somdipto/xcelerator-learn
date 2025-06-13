@@ -13,8 +13,8 @@ interface ContentAnalyticsProps {
 const ContentAnalytics: React.FC<ContentAnalyticsProps> = ({ teacherId }) => {
   const [analytics, setAnalytics] = useState({
     totalContent: 0,
-    byType: {},
-    bySubject: {},
+    byType: {} as Record<string, number>,
+    bySubject: {} as Record<string, number>,
     recentUploads: 0
   });
   const [isLoading, setIsLoading] = useState(true);
