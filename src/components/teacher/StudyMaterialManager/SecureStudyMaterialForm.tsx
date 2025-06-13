@@ -6,8 +6,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
+import { CheckCircle, AlertCircle, ExternalLink, Globe } from 'lucide-react';
 import { dataService, Subject, Chapter } from '../../../services/dataService';
+import { googleDriveService } from '../../../services/googleDriveService';
+import { toast } from '@/hooks/use-toast';
 
 interface StudyMaterialFormProps {
   onSubmit: (formData: FormData) => void;
@@ -27,10 +29,12 @@ const SecureStudyMaterialForm: React.FC<StudyMaterialFormProps> = ({
   const [grade, setGrade] = useState<number>(10);
   const [subjectId, setSubjectId] = useState('');
   const [chapterId, setChapterId] = useState('');
+  const [enableUniversalAccess, setEnableUniversalAccess] = useState(true);
   
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [isValidGoogleDriveUrl, setIsValidGoogleDriveUrl] = useState(false);
+  const [urlValidation, setUrlValidation] = useState<{ isValid: boolean; normalizedUrl?: string; fileId?: string }>({ isValid: false });
 
   useEffect(() => {
     loadSubjects();
@@ -43,6 +47,7 @@ const SecureStudyMaterialForm: React.FC<StudyMaterialFormProps> = ({
       setGrade(initialData.grade || 10);
       setSubjectId(initialData.subject_id || '');
       setChapterId(initialData.chapter_id || '');
+      setEnableUniversalAccess(initialData.is_public !== false);
     }
   }, [initialData]);
 
@@ -56,7 +61,9 @@ const SecureStudyMaterialForm: React.FC<StudyMaterialFormProps> = ({
   }, [subjectId]);
 
   useEffect(() => {
-    setIsValidGoogleDriveUrl(dataService.isGoogleDriveUrl(url));
+    const validation = googleDriveService.validateAndNormalizeUrl(url);
+    setUrlValidation(validation);
+    setIsValidGoogleDriveUrl(validation.isValid);
   }, [url]);
 
   const loadSubjects = async () => {
@@ -85,17 +92,28 @@ const SecureStudyMaterialForm: React.FC<StudyMaterialFormProps> = ({
     }
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
+    // Validate Google Drive URL
+    if (url && !isValidGoogleDriveUrl) {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid Google Drive URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const formData = new FormData();
     formData.append('title', title);
     formData.append('description', description);
     formData.append('type', type);
-    formData.append('url', url);
+    formData.append('url', urlValidation.normalizedUrl || url); // Use normalized URL
     formData.append('grade', grade.toString());
     formData.append('subjectId', subjectId);
     formData.append('chapterId', chapterId);
+    formData.append('universalAccess', enableUniversalAccess.toString());
 
     if (initialData?.id) {
       formData.append('id', initialData.id);
@@ -109,17 +127,30 @@ const SecureStudyMaterialForm: React.FC<StudyMaterialFormProps> = ({
     setGrade(gradeNum);
     setSubjectId('');
     setChapterId('');
-    // Reload subjects for new grade
     loadSubjects();
   };
 
-  const previewUrl = isValidGoogleDriveUrl ? dataService.getGoogleDriveEmbedUrl(url) : '';
+  const previewUrl = isValidGoogleDriveUrl ? googleDriveService.getEmbeddableUrl(url) : '';
+
+  const handleTestUniversalAccess = () => {
+    if (previewUrl) {
+      window.open(previewUrl, '_blank', 'noopener,noreferrer');
+      toast({
+        title: "Testing Universal Access",
+        description: "Opening preview in new tab to test accessibility",
+      });
+    }
+  };
 
   return (
     <Card className="bg-[#2C2C2C] border-[#424242]">
       <CardHeader>
-        <CardTitle className="text-white">
+        <CardTitle className="text-white flex items-center gap-2">
+          <Globe className="h-5 w-5 text-[#00E676]" />
           {initialData ? 'Edit Study Material' : 'Add New Study Material'}
+          <span className="text-sm bg-[#00E676]/20 text-[#00E676] px-2 py-1 rounded-full font-medium">
+            Universal Access
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -161,8 +192,8 @@ const SecureStudyMaterialForm: React.FC<StudyMaterialFormProps> = ({
 
           {/* Chapter Selection */}
           <div className="space-y-2">
-            <Label htmlFor="chapter" className="text-[#E0E0E0]">Chapter</Label>
-            <Select value={chapterId} onValueChange={setChapterId} disabled={!subjectId}>
+            <Label htmlFor="chapter" className="text-[#E0E0E0]">Chapter *</Label>
+            <Select value={chapterId} onValueChange={setChapterId} disabled={!subjectId} required>
               <SelectTrigger className="bg-[#121212] border-[#424242] text-white focus:border-[#2979FF]">
                 <SelectValue placeholder={subjectId ? "Select chapter" : "Select subject first"} />
               </SelectTrigger>
@@ -222,7 +253,7 @@ const SecureStudyMaterialForm: React.FC<StudyMaterialFormProps> = ({
           {/* Google Drive URL */}
           <div className="space-y-2">
             <Label htmlFor="url" className="text-[#E0E0E0]">
-              Google Drive Link *
+              Google Drive Link * (Universal Access Enabled)
             </Label>
             <div className="relative">
               <Input
@@ -247,7 +278,7 @@ const SecureStudyMaterialForm: React.FC<StudyMaterialFormProps> = ({
             
             {url && !isValidGoogleDriveUrl && (
               <p className="text-sm text-[#FF7043]">
-                Please enter a valid Google Drive URL
+                Please enter a valid Google Drive URL for universal accessibility
               </p>
             )}
             
@@ -255,23 +286,35 @@ const SecureStudyMaterialForm: React.FC<StudyMaterialFormProps> = ({
               <div className="space-y-2">
                 <p className="text-sm text-[#00E676] flex items-center gap-2">
                   <CheckCircle className="h-4 w-4" />
-                  Valid Google Drive link detected
+                  Valid Google Drive link detected - Universal access enabled
                 </p>
                 
                 {previewUrl && (
                   <div className="bg-[#121212] border border-[#424242] rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-[#E0E0E0]">Preview:</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => window.open(url, '_blank')}
-                        className="text-[#2979FF] hover:bg-[#2979FF]/10"
-                      >
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Open
-                      </Button>
+                      <span className="text-sm text-[#E0E0E0]">Universal Access Preview:</span>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleTestUniversalAccess}
+                          className="text-[#00E676] hover:bg-[#00E676]/10"
+                        >
+                          <Globe className="h-4 w-4 mr-1" />
+                          Test Access
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(url, '_blank')}
+                          className="text-[#2979FF] hover:bg-[#2979FF]/10"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Open
+                        </Button>
+                      </div>
                     </div>
                     <iframe
                       src={previewUrl}
@@ -284,12 +327,26 @@ const SecureStudyMaterialForm: React.FC<StudyMaterialFormProps> = ({
             )}
           </div>
 
+          {/* Universal Access Notice */}
+          <div className="bg-[#00E676]/10 border border-[#00E676]/20 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Globe className="h-5 w-5 text-[#00E676] mt-0.5" />
+              <div>
+                <h4 className="text-[#00E676] font-medium mb-1">Universal Access Enabled</h4>
+                <p className="text-sm text-[#E0E0E0]">
+                  This material will be accessible to all students across all devices once uploaded. 
+                  Google Drive links ensure optimal compatibility and universal access.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <Button 
               type="submit"
               className="bg-[#00E676] text-black hover:bg-[#00E676]/90 flex-1"
-              disabled={!title || !type || !url || !isValidGoogleDriveUrl}
+              disabled={!title || !type || !url || !isValidGoogleDriveUrl || !subjectId || !chapterId}
             >
               {initialData ? 'Update Material' : 'Add Material'}
             </Button>

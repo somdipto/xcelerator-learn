@@ -16,10 +16,15 @@ interface SubjectCardProps {
 
 const SubjectCard = ({ subject, data, selectedGrade, onSubjectSelect, onChapterSelect }: SubjectCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showAllChapters, setShowAllChapters] = useState(false);
   const gradeChapters = data.chapters[selectedGrade as keyof typeof data.chapters] || [];
 
   const handleStartLearning = () => {
     setIsExpanded(!isExpanded);
+  };
+
+  const handleShowMoreChapters = () => {
+    setShowAllChapters(true);
   };
 
   return (
@@ -103,7 +108,7 @@ const SubjectCard = ({ subject, data, selectedGrade, onSubjectSelect, onChapterS
           {!isExpanded && gradeChapters.length > 0 && (
             <div className="space-y-2">
               <div className="text-sm text-[#E0E0E0] font-semibold mb-2 px-1">Preview</div>
-              {gradeChapters.slice(0, 2).map((chapter, index) => (
+              {gradeChapters.slice(0, showAllChapters ? gradeChapters.length : 2).map((chapter, index) => (
                 <button 
                   key={index}
                   onClick={() => onChapterSelect(subject, chapter)}
@@ -113,10 +118,13 @@ const SubjectCard = ({ subject, data, selectedGrade, onSubjectSelect, onChapterS
                   <span className="flex-1 leading-relaxed truncate">{chapter}</span>
                 </button>
               ))}
-              {gradeChapters.length > 2 && (
-                <div className="text-sm text-[#2979FF] text-center py-2 font-medium">
+              {gradeChapters.length > 2 && !showAllChapters && (
+                <button
+                  onClick={handleShowMoreChapters}
+                  className="w-full text-sm text-[#2979FF] text-center py-2 font-medium hover:text-[#00E676] transition-colors duration-200 cursor-pointer"
+                >
                   +{gradeChapters.length - 2} more chapters
-                </div>
+                </button>
               )}
             </div>
           )}
