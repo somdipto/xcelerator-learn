@@ -78,6 +78,17 @@ const StudyMaterialManager: React.FC = () => {
         is_public: true
       };
 
+      // Convert materialData to string format for validation
+      const validationData: Record<string, string> = {
+        title: materialData.title,
+        description: materialData.description || '',
+        type: materialData.type,
+        url: materialData.url || '',
+        subject_id: materialData.subject_id || '',
+        chapter_id: materialData.chapter_id || '',
+        grade: materialData.grade ? materialData.grade.toString() : ''
+      };
+
       // Validate form data
       const validationRules = {
         title: { required: true, minLength: 1, maxLength: 200, sanitize: true },
@@ -86,14 +97,25 @@ const StudyMaterialManager: React.FC = () => {
         url: { maxLength: 2048 }
       };
 
-      const validation = validateForm(materialData, validationRules);
+      const validation = validateForm(validationData, validationRules);
       if (!validation.isValid) {
         const errorMessage = Object.values(validation.errors).flat().join(', ');
         throw new Error(`Validation failed: ${errorMessage}`);
       }
 
-      // Use sanitized data
-      const sanitizedData = validation.sanitizedData;
+      // Use sanitized data but convert grade back to number
+      const sanitizedData = {
+        ...validation.sanitizedData,
+        grade: materialData.grade,
+        is_public: materialData.is_public
+      };
+
+      // Remove empty fields
+      Object.keys(sanitizedData).forEach(key => {
+        if (sanitizedData[key] === '' || sanitizedData[key] === undefined) {
+          delete sanitizedData[key];
+        }
+      });
 
       let result;
       if (editingMaterial) {

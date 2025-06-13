@@ -21,8 +21,6 @@ const SecureContentRenderer: React.FC<SecureContentRendererProps> = ({
     return DOMPurify.sanitize(html, {
       ALLOWED_TAGS: allowedTags,
       ALLOWED_ATTR: allowedAttributes,
-      REMOVE_DATA_URI_SCHEMES: true,
-      REMOVE_UNKNOWN_PROTOCOLS: true,
       USE_PROFILES: { html: true }
     });
   };
