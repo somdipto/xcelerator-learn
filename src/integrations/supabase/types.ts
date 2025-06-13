@@ -238,6 +238,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      log_security_event: {
+        Args: { event_type: string; event_details?: Json }
+        Returns: undefined
+      }
+      validate_content_security: {
+        Args: {
+          content_title: string
+          content_description?: string
+          content_url?: string
+        }
+        Returns: boolean
+      }
       validate_file_upload: {
         Args: { file_path: string; file_size: number; mime_type: string }
         Returns: boolean

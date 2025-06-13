@@ -2,17 +2,20 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import SecureAuthWrapper from '@/components/security/SecureAuthWrapper';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: 'teacher' | 'admin';
   redirectTo?: string;
+  requireVerifiedEmail?: boolean;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRole,
-  redirectTo = '/teacher-login'
+  redirectTo = '/teacher-login',
+  requireVerifiedEmail = false
 }) => {
   const { user, loading } = useAuth();
 
@@ -34,13 +37,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={redirectTo} replace />;
   }
 
-  if (requiredRole && user.role !== requiredRole && !(user.role === 'admin' && requiredRole === 'teacher')) {
-    console.log('Role mismatch. Required:', requiredRole, 'Actual:', user.role);
-    return <Navigate to="/unauthorized" replace />;
-  }
-
-  console.log('Access granted for role:', user.role);
-  return <>{children}</>;
+  return (
+    <SecureAuthWrapper 
+      requiredRole={requiredRole} 
+      requireVerifiedEmail={requireVerifiedEmail}
+    >
+      {children}
+    </SecureAuthWrapper>
+  );
 };
 
 export default ProtectedRoute;

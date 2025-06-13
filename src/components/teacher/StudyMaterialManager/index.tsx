@@ -1,51 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, RefreshCw, Upload, Users } from 'lucide-react';
+import { Plus, RefreshCw, Upload, Shield } from 'lucide-react';
 import StudyMaterialList from './StudyMaterialList';
 import SecureStudyMaterialForm from './SecureStudyMaterialForm';
 import SyncStatusBanner from '../ContentUploader/SyncStatusBanner';
 import SyncStatusIndicator from '../ContentUploader/SyncStatusIndicator';
-import { supabaseService, StudyMaterial } from '../../../services/supabaseService';
+import { secureDataService } from '@/services/secureDataService';
 import { useDemoAuth } from '@/components/auth/DemoAuthProvider';
 import { toast } from '@/hooks/use-toast';
+import { useSecureValidation } from '@/hooks/useSecureValidation';
 
 // Fix the sync status type to include 'error'
 type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
 
 const StudyMaterialManager: React.FC = () => {
   const { user } = useDemoAuth();
-  const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+  const { validateForm } = useSecureValidation();
+  const [materials, setMaterials] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState<boolean>(false);
-  const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
+  const [editingMaterial, setEditingMaterial] = useState<any | null>(null);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
 
   useEffect(() => {
     if (user) {
       loadMaterials();
-      
-      // Subscribe to real-time updates
-      const channel = supabaseService.subscribeToStudyMaterials((payload) => {
-        console.log('Real-time update detected:', payload);
-        setSyncStatus('syncing');
-        loadMaterials();
-        
-        setTimeout(() => {
-          setSyncStatus('synced');
-          toast({
-            title: "Content Synced",
-            description: "Your changes are now live for students",
-          });
-          
-          setTimeout(() => setSyncStatus('idle'), 3000);
-        }, 1000);
-      }, 'study-material-manager');
-
-      return () => {
-        supabaseService.removeChannel(channel);
-      };
     }
   }, [user]);
 
@@ -55,7 +36,7 @@ const StudyMaterialManager: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const { data, error: fetchError } = await supabaseService.getStudyMaterials({ 
+      const { data, error: fetchError } = await secureDataService.secureGetStudyMaterials({ 
         teacher_id: user.id 
       });
       
@@ -64,13 +45,13 @@ const StudyMaterialManager: React.FC = () => {
       }
 
       setMaterials(data || []);
-      console.log('Loaded materials from Supabase:', data);
+      console.log('Loaded materials securely:', data);
     } catch (err: any) {
       console.error("Failed to fetch materials:", err);
       setError('Failed to load study materials. Please try again.');
       toast({
-        title: "Error",
-        description: "Failed to load study materials",
+        title: "Security Error",
+        description: err.message || "Failed to load study materials",
         variant: "destructive",
       });
     } finally {
@@ -83,12 +64,13 @@ const StudyMaterialManager: React.FC = () => {
     
     setIsLoading(true);
     setSyncStatus('syncing');
+    
     try {
+      // Extract and validate form data
       const materialData = {
-        teacher_id: user.id,
         title: formData.get('title') as string,
         description: formData.get('description') as string || undefined,
-        type: formData.get('type') as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz',
+        type: formData.get('type') as string,
         url: formData.get('url') as string || undefined,
         subject_id: formData.get('subjectId') as string || undefined,
         chapter_id: formData.get('chapterId') as string || undefined,
@@ -96,18 +78,35 @@ const StudyMaterialManager: React.FC = () => {
         is_public: true
       };
 
+      // Validate form data
+      const validationRules = {
+        title: { required: true, minLength: 1, maxLength: 200, sanitize: true },
+        description: { maxLength: 1000, sanitize: true },
+        type: { required: true, pattern: /^(textbook|video|summary|ppt|quiz)$/ },
+        url: { maxLength: 2048 }
+      };
+
+      const validation = validateForm(materialData, validationRules);
+      if (!validation.isValid) {
+        const errorMessage = Object.values(validation.errors).flat().join(', ');
+        throw new Error(`Validation failed: ${errorMessage}`);
+      }
+
+      // Use sanitized data
+      const sanitizedData = validation.sanitizedData;
+
       let result;
       if (editingMaterial) {
-        result = await supabaseService.updateStudyMaterial(editingMaterial.id, materialData);
+        result = await secureDataService.secureUpdateStudyMaterial(editingMaterial.id, sanitizedData);
         toast({
           title: "Success",
-          description: "Study material updated and synced to student portal",
+          description: "Study material updated securely",
         });
       } else {
-        result = await supabaseService.createStudyMaterial(materialData);
+        result = await secureDataService.secureCreateStudyMaterial(sanitizedData);
         toast({
           title: "Success", 
-          description: "Study material added and synced to student portal",
+          description: "Study material added securely",
         });
       }
 
@@ -124,7 +123,7 @@ const StudyMaterialManager: React.FC = () => {
       setError('Failed to save material. Please try again.');
       setSyncStatus('error');
       toast({
-        title: "Error",
+        title: "Security Error",
         description: err.message || "Failed to save material",
         variant: "destructive",
       });
@@ -134,10 +133,10 @@ const StudyMaterialManager: React.FC = () => {
   };
 
   const handleDelete = async (materialId: string) => {
-    if (window.confirm('Are you sure? This will remove the content from the student portal immediately.')) {
+    if (window.confirm('Are you sure? This action cannot be undone.')) {
       setSyncStatus('syncing');
       try {
-        const { error } = await supabaseService.deleteStudyMaterial(materialId);
+        const { error } = await secureDataService.secureDeleteStudyMaterial(materialId);
         
         if (error) {
           throw error;
@@ -147,15 +146,15 @@ const StudyMaterialManager: React.FC = () => {
         setSyncStatus('synced');
         toast({
           title: "Success",
-          description: "Study material deleted and removed from student portal",
+          description: "Study material deleted securely",
         });
       } catch (err: any) {
         console.error("Failed to delete material:", err);
         setError('Failed to delete material. Please try again.');
         setSyncStatus('error');
         toast({
-          title: "Error",
-          description: "Failed to delete material",
+          title: "Security Error",
+          description: err.message || "Failed to delete material",
           variant: "destructive",
         });
       }
@@ -189,8 +188,8 @@ const StudyMaterialManager: React.FC = () => {
         <CardHeader>
           <CardTitle className="text-white flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Upload className="h-5 w-5" />
-              <span>Study Materials Management</span>
+              <Shield className="h-5 w-5 text-[#00E676]" />
+              <span>Secure Study Materials Management</span>
               <div className="text-sm bg-[#2979FF]/20 text-[#2979FF] px-2 py-1 rounded">
                 {materials.length} materials
               </div>
