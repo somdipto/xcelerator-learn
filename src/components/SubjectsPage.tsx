@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import SubjectCard from './SubjectCard';
 import ChapterStudyMaterial from './ChapterStudyMaterial';
 import { dataService, Subject } from '@/services/dataService';
-import { subjects as subjectsData } from '@/data/subjects';
+import { subjects as subjectsData } from '@/data/subjects.ts';
 import { toast } from '@/hooks/use-toast';
 
 interface SubjectsPageProps {
