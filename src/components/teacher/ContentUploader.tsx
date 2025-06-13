@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { dataService, StudyMaterial } from '@/services/dataService';
+import { googleDriveService } from '@/services/googleDriveService';
 import SecureStudyMaterialForm from './StudyMaterialManager/SecureStudyMaterialForm';
 import ContentList from './ContentUploader/ContentList';
 import BatchUploadManager from './ContentUploader/BatchUploadManager';
@@ -27,19 +29,22 @@ const ContentUploader = () => {
 
   const loadContent = async () => {
     try {
+      console.log('Loading content from Supabase...');
       const { data, error } = await dataService.getStudyMaterials({
         teacher_id: teacherId
       });
 
       if (error) {
-        console.error('Error loading content:', error);
+        console.error('Error loading content from Supabase:', error);
         toast({
           title: "Loading Error",
-          description: "Failed to load your content",
+          description: "Failed to load your content from database",
           variant: "destructive",
         });
         return;
       }
+
+      console.log('Raw data from Supabase:', data);
 
       // Cast the type property to the correct union type
       const typedData = (data || []).map(item => ({
@@ -47,7 +52,13 @@ const ContentUploader = () => {
         type: item.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz'
       }));
 
+      console.log('Processed content data:', typedData);
       setContentList(typedData);
+      
+      toast({
+        title: "Content Loaded",
+        description: `Loaded ${typedData.length} items from database`,
+      });
     } catch (error) {
       console.error('Failed to load content:', error);
     } finally {
@@ -71,40 +82,96 @@ const ContentUploader = () => {
 
   const handleFormSubmit = async (formData: FormData) => {
     try {
-      const materialData = {
-        teacher_id: teacherId,
-        title: formData.get('title') as string,
-        description: formData.get('description') as string,
-        type: formData.get('type') as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz',
-        url: formData.get('url') as string,
-        grade: parseInt(formData.get('grade') as string),
-        subject_id: formData.get('subjectId') as string,
-        chapter_id: formData.get('chapterId') as string,
-        is_public: formData.get('universalAccess') === 'true',
-      };
+      console.log('Processing form submission...');
+      
+      const url = formData.get('url') as string;
+      const title = formData.get('title') as string;
+      const description = formData.get('description') as string;
+      const type = formData.get('type') as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz';
+      const grade = parseInt(formData.get('grade') as string);
+      const subjectId = formData.get('subjectId') as string;
+      const chapterId = formData.get('chapterId') as string;
 
-      const { data, error } = await dataService.createStudyMaterial(materialData);
+      // Check if it's a Google Drive URL and process it through the enhanced service
+      if (url && dataService.isGoogleDriveUrl(url)) {
+        console.log('Processing Google Drive URL:', url);
+        
+        // Get subject and chapter names for Google Drive service
+        let subjectName = 'General';
+        let chapterName = 'General';
+        
+        if (subjectId) {
+          const { data: subjects } = await dataService.getSubjects();
+          const subject = subjects?.find(s => s.id === subjectId);
+          subjectName = subject?.name || 'General';
+        }
+        
+        if (chapterId) {
+          const { data: chapters } = await dataService.getChapters();
+          const chapter = chapters?.find(c => c.id === chapterId);
+          chapterName = chapter?.name || 'General';
+        }
 
-      if (error) {
-        toast({
-          title: "Upload Failed",
-          description: error.message,
-          variant: "destructive",
+        // Use Google Drive service for enhanced processing
+        const result = await googleDriveService.ingestGoogleDriveLink({
+          url,
+          title,
+          description,
+          type,
+          subject: subjectName,
+          chapter: chapterName,
+          grade,
+          teacherId,
+          isPublic: true // Always public for universal access
         });
-        return;
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to process Google Drive link');
+        }
+
+        console.log('Google Drive link processed successfully:', result.data);
+        
+        toast({
+          title: "Google Drive Content Added",
+          description: "Link processed and saved to database with universal access",
+        });
+      } else {
+        // Handle non-Google Drive content with standard flow
+        const materialData = {
+          teacher_id: teacherId,
+          title,
+          description,
+          type,
+          url,
+          grade,
+          subject_id: subjectId,
+          chapter_id: chapterId,
+          is_public: true, // Always public for universal access
+        };
+
+        console.log('Creating standard material:', materialData);
+
+        const { data, error } = await dataService.createStudyMaterial(materialData);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        console.log('Standard material created successfully:', data);
+        
+        toast({
+          title: "Content Added",
+          description: "Content saved to database successfully",
+        });
       }
 
-      toast({
-        title: "Content Uploaded Successfully",
-        description: "Your content is now available with universal access",
-      });
-
-      loadContent(); // Refresh the content list
+      // Reload content to show the new item
+      await loadContent();
     } catch (error: any) {
       console.error('Upload error:', error);
       toast({
         title: "Upload Error",
-        description: error.message || "Failed to upload content",
+        description: error.message || "Failed to save content to database",
         variant: "destructive",
       });
     }
@@ -112,40 +179,41 @@ const ContentUploader = () => {
 
   const handleDeleteContent = async (id: string, title: string) => {
     try {
+      console.log('Deleting content:', id);
+      
       const { error } = await dataService.deleteStudyMaterial(id);
 
       if (error) {
-        toast({
-          title: "Delete Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
+        throw new Error(error.message);
       }
 
       toast({
         title: "Content Deleted",
-        description: `"${title}" has been removed`,
+        description: `"${title}" has been removed from database`,
       });
 
-      loadContent(); // Refresh the content list
+      // Reload content to update the list
+      await loadContent();
     } catch (error: any) {
       console.error('Delete error:', error);
       toast({
         title: "Delete Error",
-        description: error.message || "Failed to delete content",
+        description: error.message || "Failed to delete content from database",
         variant: "destructive",
       });
     }
   };
 
-  const handleBatchUploadComplete = (result: any) => {
-    loadContent(); // Refresh content list after batch upload
+  const handleBatchUploadComplete = async (result: any) => {
+    console.log('Batch upload completed:', result);
+    
+    // Reload content list after batch upload
+    await loadContent();
     
     if (result.success) {
       toast({
         title: "Batch Upload Complete",
-        description: `Successfully processed ${result.summary.successful} items with universal access`,
+        description: `Successfully processed ${result.summary.successful} Google Drive links and saved to database`,
       });
     }
   };
@@ -160,7 +228,7 @@ const ContentUploader = () => {
             Universal Content Management
           </h1>
           <p className="text-[#E0E0E0]">
-            Upload and manage Google Drive content with universal accessibility across all devices
+            Upload Google Drive content with universal accessibility across all devices
           </p>
         </div>
 
@@ -236,28 +304,28 @@ const ContentUploader = () => {
               <div className="lg:col-span-1">
                 <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
                   <CardHeader>
-                    <CardTitle className="text-white">Batch Upload Benefits</CardTitle>
+                    <CardTitle className="text-white">Database Storage Benefits</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-start gap-3">
                       <Globe className="h-5 w-5 text-[#00E676] mt-0.5" />
                       <div>
                         <div className="text-white font-medium">Universal Access</div>
-                        <div className="text-sm text-[#999999]">All links automatically configured for universal accessibility</div>
+                        <div className="text-sm text-[#999999]">All links saved to Supabase database for cross-device access</div>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <Upload className="h-5 w-5 text-[#2979FF] mt-0.5" />
                       <div>
-                        <div className="text-white font-medium">Bulk Processing</div>
-                        <div className="text-sm text-[#999999]">Upload multiple Google Drive links at once</div>
+                        <div className="text-white font-medium">Real-time Sync</div>
+                        <div className="text-sm text-[#999999]">Content instantly available on all devices</div>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <BarChart3 className="h-5 w-5 text-[#FFA726] mt-0.5" />
                       <div>
-                        <div className="text-white font-medium">Auto Organization</div>
-                        <div className="text-sm text-[#999999]">Content automatically organized by subject and chapter</div>
+                        <div className="text-white font-medium">Persistent Storage</div>
+                        <div className="text-sm text-[#999999]">No cache issues - data stored permanently in database</div>
                       </div>
                     </div>
                   </CardContent>

@@ -57,23 +57,43 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
 
   useEffect(() => {
     loadStudyMaterials();
+    // Set up real-time refresh every 30 seconds to catch new uploads
+    const interval = setInterval(loadStudyMaterials, 30000);
+    return () => clearInterval(interval);
   }, [subject, chapter, selectedGrade]);
 
   const loadStudyMaterials = async () => {
     setIsLoading(true);
     try {
-      console.log(`Loading materials for: ${subject} - ${chapter} - Grade ${selectedGrade}`);
+      console.log(`Loading materials from Supabase for: ${subject} - ${chapter} - Grade ${selectedGrade}`);
       
+      // Always load from Supabase database, never from localStorage
       const { data: supabaseMaterials, error } = await dataService.getStudyMaterials({
         grade: selectedGrade,
         is_public: true
       });
 
-      if (!error && supabaseMaterials?.length) {
+      console.log('Raw Supabase data:', supabaseMaterials);
+      console.log('Supabase error:', error);
+
+      if (error) {
+        console.error('Supabase error:', error);
+        toast({
+          title: "Database Error",
+          description: "Failed to load materials from database. Please refresh the page.",
+          variant: "destructive",
+        });
+        setStudyMaterials([]);
+        return;
+      }
+
+      if (supabaseMaterials?.length) {
+        // Filter materials for this specific subject and chapter
         const filteredMaterials = supabaseMaterials
           .filter((material: any) => {
             const subjectMatch = material.subjects?.name === subject;
             const chapterMatch = material.chapters?.name === chapter;
+            console.log(`Material: ${material.title}, Subject: ${material.subjects?.name} (${subjectMatch}), Chapter: ${material.chapters?.name} (${chapterMatch})`);
             return subjectMatch && chapterMatch;
           })
           .map((material: any): StudyMaterial => ({
@@ -93,36 +113,30 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
             accessVerified: false
           }));
         
+        console.log('Filtered materials:', filteredMaterials);
         setStudyMaterials(filteredMaterials);
         
         // Verify access for Google Drive links
         verifyGoogleDriveAccess(filteredMaterials);
         
         toast({
-          title: "Content Loaded",
-          description: `Found ${filteredMaterials.length} materials for ${chapter}`,
+          title: "Content Loaded from Database",
+          description: `Found ${filteredMaterials.length} materials for ${chapter} in database`,
         });
       } else {
-        const localKey = `studentContent_${subject}_${selectedGrade}`;
-        const localContent = JSON.parse(localStorage.getItem(localKey) || '[]');
-        const chapterContent = localContent.filter((item: any) => item.embedInChapter === chapter);
-        setStudyMaterials(chapterContent);
-        
-        if (error) {
-          console.error('Supabase error:', error);
-          toast({
-            title: "Database Connection Issue",
-            description: "Loaded cached content. Some materials may not be up to date.",
-            variant: "destructive",
-          });
-        }
+        console.log('No materials found in database');
+        setStudyMaterials([]);
+        toast({
+          title: "No Content Found",
+          description: "No materials found in database for this chapter",
+        });
       }
     } catch (error) {
       console.error('Failed to load study materials:', error);
       setStudyMaterials([]);
       toast({
         title: "Loading Error",
-        description: "Failed to load study materials. Please try again.",
+        description: "Failed to load study materials from database. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -159,10 +173,11 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
   };
 
   const handleRefresh = () => {
+    console.log('Manual refresh triggered');
     loadStudyMaterials();
     toast({
       title: "Refreshing Content",
-      description: "Checking for latest updates and verifying access...",
+      description: "Loading latest content from database...",
     });
   };
 
@@ -275,7 +290,7 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
           <span>•</span>
           <div className="flex items-center gap-2">
             <Globe className="h-4 w-4 text-[#00E676]" />
-            <span>Universal Access Enabled</span>
+            <span>Database Synced</span>
           </div>
         </div>
       </div>
@@ -284,8 +299,8 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
       {isLoading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00E676] mx-auto mb-4"></div>
-          <p className="text-[#E0E0E0]">Loading study materials...</p>
-          <p className="text-sm text-[#999999] mt-2">Verifying universal access...</p>
+          <p className="text-[#E0E0E0]">Loading study materials from database...</p>
+          <p className="text-sm text-[#999999] mt-2">Fetching latest content...</p>
         </div>
       ) : (
         /* Study Materials Section */
@@ -306,6 +321,9 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
                       <span className="text-xs bg-[#2979FF]/20 text-[#2979FF] px-2 py-1 rounded-full font-medium">
                         {material.type.toUpperCase()}
                       </span>
+                      <span className="text-xs bg-[#FFA726]/20 text-[#FFA726] px-2 py-1 rounded-full font-medium">
+                        Database Synced
+                      </span>
                     </div>
                     {material.description && (
                       <p className="text-sm text-[#E0E0E0] font-normal mt-1">
@@ -325,14 +343,14 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
             <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
               <CardContent className="text-center py-12">
                 <FileText className="h-16 w-16 text-[#666666] mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">No Study Materials Yet</h3>
+                <h3 className="text-xl font-semibold text-white mb-2">No Study Materials in Database</h3>
                 <p className="text-[#E0E0E0] mb-4">
-                  Your teacher hasn't uploaded any materials for this chapter yet.
+                  No materials found in the database for this chapter yet.
                 </p>
                 <div className="space-y-2 text-sm text-[#999999]">
-                  <p>✓ All content is universally accessible across devices</p>
-                  <p>✓ Google Drive links provide optimal compatibility</p>
-                  <p>✓ Real-time updates when teachers add new content</p>
+                  <p>✓ All content is stored in Supabase database</p>
+                  <p>✓ Universal access across all devices</p>
+                  <p>✓ Real-time sync when teachers add new content</p>
                 </div>
                 <Button
                   onClick={handleRefresh}
@@ -340,7 +358,7 @@ const ChapterStudyMaterial = ({ subject, chapter, selectedGrade, onBack }: Chapt
                   className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white mt-6"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Check for Updates
+                  Check Database for Updates
                 </Button>
               </CardContent>
             </Card>

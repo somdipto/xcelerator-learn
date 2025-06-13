@@ -124,7 +124,7 @@ class GoogleDriveService {
     }
   }
 
-  // Enhanced content ingestion with better error handling
+  // Enhanced content ingestion with better error handling and direct Supabase storage
   async ingestGoogleDriveLink(linkData: {
     url: string;
     title: string;
@@ -137,11 +137,15 @@ class GoogleDriveService {
     isPublic?: boolean;
   }): Promise<{ success: boolean; data?: any; error?: string }> {
     try {
+      console.log('Starting Google Drive link ingestion:', linkData);
+      
       // Enhanced validation
       const validation = this.validateAndNormalizeUrl(linkData.url);
       if (!validation.isValid) {
         return { success: false, error: 'Invalid Google Drive URL format' };
       }
+
+      console.log('URL validation passed:', validation);
 
       // Verify universal access
       const accessCheck = await this.verifyUniversalAccess(linkData.url);
@@ -152,16 +156,7 @@ class GoogleDriveService {
         };
       }
 
-      // Prepare enhanced material data
-      const materialData = {
-        teacher_id: linkData.teacherId,
-        title: linkData.title,
-        description: linkData.description || `${validation.serviceType || 'Google Drive'} content for ${linkData.chapter}`,
-        type: linkData.type,
-        url: validation.normalizedUrl,
-        grade: linkData.grade,
-        is_public: linkData.isPublic ?? true, // Default to public for universal access
-      };
+      console.log('Access verification passed');
 
       // Find or create subject with enhanced error handling
       const { data: subjects, error: subjectsError } = await dataService.getSubjects(linkData.grade);
@@ -175,8 +170,10 @@ class GoogleDriveService {
         const existingSubject = subjects.find(s => s.name.toLowerCase() === linkData.subject.toLowerCase());
         if (existingSubject) {
           subjectId = existingSubject.id;
+          console.log('Found existing subject:', existingSubject);
         } else {
           // Create new subject
+          console.log('Creating new subject:', linkData.subject);
           const { data: newSubject, error: subjectError } = await dataService.createSubject({
             name: linkData.subject,
             grade: linkData.grade,
@@ -187,6 +184,7 @@ class GoogleDriveService {
           }
           if (newSubject) {
             subjectId = newSubject.id;
+            console.log('Created new subject:', newSubject);
           }
         }
       }
@@ -203,8 +201,10 @@ class GoogleDriveService {
           const existingChapter = chapters.find(c => c.name.toLowerCase() === linkData.chapter.toLowerCase());
           if (existingChapter) {
             chapterId = existingChapter.id;
+            console.log('Found existing chapter:', existingChapter);
           } else {
             // Create new chapter
+            console.log('Creating new chapter:', linkData.chapter);
             const { data: newChapter, error: chapterError } = await dataService.createChapter({
               name: linkData.chapter,
               subject_id: subjectId,
@@ -215,24 +215,35 @@ class GoogleDriveService {
             }
             if (newChapter) {
               chapterId = newChapter.id;
+              console.log('Created new chapter:', newChapter);
             }
           }
         }
       }
 
-      // Create the study material with enhanced data
-      const finalMaterialData = {
-        ...materialData,
+      // Prepare enhanced material data for Supabase
+      const materialData = {
+        teacher_id: linkData.teacherId,
+        title: linkData.title,
+        description: linkData.description || `${validation.serviceType || 'Google Drive'} content for ${linkData.chapter}`,
+        type: linkData.type,
+        url: validation.normalizedUrl, // Use the normalized URL for universal access
+        grade: linkData.grade,
         subject_id: subjectId,
         chapter_id: chapterId,
+        is_public: linkData.isPublic ?? true, // Default to public for universal access
       };
 
-      const { data: studyMaterial, error } = await dataService.createStudyMaterial(finalMaterialData);
+      console.log('Creating study material in Supabase:', materialData);
+
+      // Create the study material directly in Supabase
+      const { data: studyMaterial, error } = await dataService.createStudyMaterial(materialData);
 
       if (error) {
-        return { success: false, error: `Failed to create study material: ${error.message}` };
+        return { success: false, error: `Failed to create study material in database: ${error.message}` };
       }
 
+      console.log('Successfully created study material in Supabase:', studyMaterial);
       return { success: true, data: studyMaterial };
     } catch (error: any) {
       console.error('Error ingesting Google Drive link:', error);
@@ -256,7 +267,10 @@ class GoogleDriveService {
     let successful = 0;
     let failed = 0;
     
+    console.log('Starting batch ingestion of', links.length, 'links');
+    
     for (const link of links) {
+      console.log('Processing link:', link.title);
       const result = await this.ingestGoogleDriveLink(link);
       results.push({
         ...result,
@@ -266,10 +280,14 @@ class GoogleDriveService {
       
       if (result.success) {
         successful++;
+        console.log('Successfully processed:', link.title);
       } else {
         failed++;
+        console.log('Failed to process:', link.title, result.error);
       }
     }
+
+    console.log('Batch ingestion complete. Successful:', successful, 'Failed:', failed);
 
     return {
       success: successful > 0,
@@ -335,25 +353,38 @@ class GoogleDriveService {
     return data;
   }
 
-  // Get enhanced chapter content with universal access verification
+  // Get enhanced chapter content with universal access verification from Supabase
   async getChapterLinks(subject: string, chapter: string, grade: number): Promise<GoogleDriveLink[]> {
     try {
+      console.log('Loading chapter links from Supabase:', { subject, chapter, grade });
+      
       const { data: materials, error } = await dataService.getStudyMaterials({
         grade,
         is_public: true
       });
 
       if (error || !materials) {
-        console.error('Error fetching materials:', error);
+        console.error('Error fetching materials from Supabase:', error);
         return [];
       }
+
+      console.log('Raw materials from Supabase:', materials);
 
       // Filter and enhance materials
       const filteredMaterials = materials.filter((material: any) => {
         const subjectMatch = material.subjects?.name === subject;
         const chapterMatch = material.chapters?.name === chapter;
-        return subjectMatch && chapterMatch && material.url && dataService.isGoogleDriveUrl(material.url);
+        const isGoogleDrive = material.url && dataService.isGoogleDriveUrl(material.url);
+        console.log('Material filter check:', {
+          title: material.title,
+          subjectMatch,
+          chapterMatch,
+          isGoogleDrive
+        });
+        return subjectMatch && chapterMatch && isGoogleDrive;
       });
+
+      console.log('Filtered Google Drive materials:', filteredMaterials);
 
       // Enhance with accessibility verification
       const enhancedMaterials = filteredMaterials.map((material: any) => ({
@@ -373,12 +404,12 @@ class GoogleDriveService {
 
       return enhancedMaterials;
     } catch (error) {
-      console.error('Error fetching chapter links:', error);
+      console.error('Error fetching chapter links from Supabase:', error);
       return [];
     }
   }
 
-  // Analytics for content usage
+  // Analytics for content usage from Supabase
   async getContentAnalytics(teacherId: string): Promise<{
     totalContent: number;
     byType: Record<string, number>;
@@ -386,11 +417,14 @@ class GoogleDriveService {
     recentUploads: number;
   }> {
     try {
+      console.log('Loading content analytics from Supabase for teacher:', teacherId);
+      
       const { data: materials, error } = await dataService.getStudyMaterials({
         teacher_id: teacherId
       });
 
       if (error || !materials) {
+        console.error('Error fetching analytics from Supabase:', error);
         return {
           totalContent: 0,
           byType: {},
@@ -420,6 +454,13 @@ class GoogleDriveService {
         }
       });
 
+      console.log('Analytics processed:', {
+        totalContent: materials.length,
+        byType,
+        bySubject,
+        recentUploads
+      });
+
       return {
         totalContent: materials.length,
         byType,
@@ -427,7 +468,7 @@ class GoogleDriveService {
         recentUploads
       };
     } catch (error) {
-      console.error('Error fetching content analytics:', error);
+      console.error('Error fetching content analytics from Supabase:', error);
       return {
         totalContent: 0,
         byType: {},
