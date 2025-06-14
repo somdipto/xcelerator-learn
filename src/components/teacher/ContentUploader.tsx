@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,8 +13,21 @@ import StatusCards from './ContentUploader/StatusCards';
 import { Upload, List, Globe, RefreshCw, RefreshCcw } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+// Define ContentItem interface to match what ContentList expects
+interface ContentItem {
+  id: string;
+  title: string;
+  description?: string;
+  type: 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz';
+  url?: string;
+  grade?: number;
+  created_at: string; // Required field
+  subjects?: { name: string };
+  chapters?: { name: string };
+}
+
 const ContentUploader = () => {
-  const [contentList, setContentList] = useState<StudyMaterial[]>([]);
+  const [contentList, setContentList] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [subjectsCount, setSubjectsCount] = useState(0);
@@ -47,11 +59,17 @@ const ContentUploader = () => {
         return;
       }
 
-      const typedData = (data || []).map(item => ({
-        ...item,
+      // Convert StudyMaterial[] to ContentItem[] with required created_at field
+      const typedData: ContentItem[] = (data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
         type: item.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz',
-        created_at: item.created_at || new Date().toISOString(),
-        is_public: item.is_public ?? true
+        url: item.url,
+        grade: item.grade,
+        created_at: item.created_at || new Date().toISOString(), // Ensure created_at is always present
+        subjects: (item as any).subjects,
+        chapters: (item as any).chapters
       }));
 
       setContentList(typedData);
@@ -132,7 +150,7 @@ const ContentUploader = () => {
             const { data: newSubject } = await dataService.createSubject({
               name: subjectName,
               grade,
-              created_by: teacherId, // Add the required created_by field
+              created_by: teacherId,
               description: `${subjectName} curriculum for Class ${grade}`,
               icon: subjectData.icon,
               color: subjectData.gradient.split(' ')[1] // Extract color from gradient

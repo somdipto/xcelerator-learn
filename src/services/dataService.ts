@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Subject {
@@ -465,11 +464,25 @@ class DataService {
     return url;
   }
 
-  validateContentData(material: any): boolean {
-    if (!material.title?.trim()) return false;
-    if (!material.type) return false;
-    if (['video', 'quiz'].includes(material.type) && !material.url) return false;
-    return true;
+  validateContentData(material: any): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+    
+    if (!material.title?.trim()) {
+      errors.push('Title is required');
+    }
+    
+    if (!material.type) {
+      errors.push('Type is required');
+    }
+    
+    if (['video', 'quiz'].includes(material.type) && !material.url) {
+      errors.push(`URL is required for ${material.type} content`);
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
   }
 
   validateFileType(fileName: string, allowedTypes: string[]): boolean {
