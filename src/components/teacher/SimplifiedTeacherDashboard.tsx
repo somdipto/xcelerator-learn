@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, List, BarChart3, Book, Plus, RefreshCw } from 'lucide-react';
+import { Upload, List, BarChart3, Book, Plus, RefreshCw, Trophy } from 'lucide-react';
 import { dataService } from '@/services/dataService';
 import { toast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import SecureStudyMaterialForm from './StudyMaterialManager/SecureStudyMaterialForm';
 import ContentList from './ContentUploader/ContentList';
 
@@ -15,6 +16,7 @@ const SimplifiedTeacherDashboard = () => {
   const [chapters, setChapters] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const isMobile = useIsMobile();
 
   // Mock teacher ID - in real app this would come from auth context
   const teacherId = 'mock-teacher-id';
@@ -146,7 +148,7 @@ const SimplifiedTeacherDashboard = () => {
     },
     {
       title: 'Active Students',
-      value: 0, // Set to 0 as requested
+      value: 0,
       icon: BarChart3,
       color: 'text-[#FFA726]',
       bgColor: 'bg-[#FFA726]/10'
@@ -154,18 +156,19 @@ const SimplifiedTeacherDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] p-3 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Teacher Dashboard</h1>
-            <p className="text-[#E0E0E0]">Manage your study materials with universal access</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Teacher Dashboard</h1>
+            <p className="text-[#E0E0E0] text-sm md:text-base">Manage your study materials with universal access</p>
           </div>
           <Button
             onClick={loadAllData}
             variant="outline"
-            className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white"
+            size={isMobile ? "sm" : "default"}
+            className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white self-start md:self-auto"
             disabled={isLoading}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
@@ -174,19 +177,19 @@ const SimplifiedTeacherDashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
           {stats.map((stat, index) => (
             <Card key={index} className="bg-[#1A1A1A] border-[#2C2C2C]">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm text-[#E0E0E0]">{stat.title}</CardTitle>
-                  <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                  <CardTitle className="text-xs md:text-sm text-[#E0E0E0] leading-tight">{stat.title}</CardTitle>
+                  <div className={`p-1.5 md:p-2 rounded-lg ${stat.bgColor}`}>
+                    <stat.icon className={`h-3 w-3 md:h-4 md:w-4 ${stat.color}`} />
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className={`text-2xl font-bold ${stat.color}`}>
+                <div className={`text-xl md:text-2xl font-bold ${stat.color}`}>
                   {stat.value.toLocaleString()}
                 </div>
               </CardContent>
@@ -196,31 +199,32 @@ const SimplifiedTeacherDashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="materials" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-[#2C2C2C] border-[#424242]">
+          <TabsList className={`grid w-full grid-cols-2 bg-[#2C2C2C] border-[#424242] ${isMobile ? 'h-12' : ''}`}>
             <TabsTrigger 
               value="materials" 
-              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white"
+              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white text-sm md:text-base"
             >
-              <List className="h-4 w-4 mr-2" />
-              My Materials
+              <List className="h-4 w-4 mr-1 md:mr-2" />
+              <span className={isMobile ? 'text-xs' : ''}>Materials</span>
             </TabsTrigger>
             <TabsTrigger 
               value="upload" 
-              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white"
+              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white text-sm md:text-base"
             >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Content
+              <Upload className="h-4 w-4 mr-1 md:mr-2" />
+              <span className={isMobile ? 'text-xs' : ''}>Upload</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="materials" className="mt-6">
+          <TabsContent value="materials" className="mt-4 md:mt-6">
             <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
               <CardHeader>
-                <CardTitle className="text-white flex items-center justify-between">
-                  <span>Study Materials ({materials.length})</span>
+                <CardTitle className="text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <span className="text-lg md:text-xl">Study Materials ({materials.length})</span>
                   <Button
                     onClick={() => setShowUploadForm(true)}
-                    className="bg-[#00E676] text-black hover:bg-[#00E676]/90"
+                    className="bg-[#00E676] text-black hover:bg-[#00E676]/90 self-start sm:self-auto"
+                    size={isMobile ? "sm" : "default"}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Material
@@ -237,10 +241,10 @@ const SimplifiedTeacherDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="upload" className="mt-6">
+          <TabsContent value="upload" className="mt-4 md:mt-6">
             <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
               <CardHeader>
-                <CardTitle className="text-white">Upload Study Material</CardTitle>
+                <CardTitle className="text-white text-lg md:text-xl">Upload Study Material</CardTitle>
               </CardHeader>
               <CardContent>
                 <SecureStudyMaterialForm
@@ -254,10 +258,10 @@ const SimplifiedTeacherDashboard = () => {
 
         {/* Upload Form Modal */}
         {showUploadForm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[#1A1A1A] border border-[#2C2C2C] rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#1A1A1A] border border-[#2C2C2C] rounded-lg p-4 md:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-white">Upload Study Material</h2>
+                <h2 className="text-lg md:text-xl font-bold text-white">Upload Study Material</h2>
                 <Button
                   onClick={() => setShowUploadForm(false)}
                   variant="outline"

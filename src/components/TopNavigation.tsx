@@ -1,62 +1,126 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Video, Book, GraduationCap } from 'lucide-react';
+import { Calendar, Video, Book, GraduationCap, Menu } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
+
 interface TopNavigationProps {
   selectedGrade: number;
   onChapterSelect: (subject: string, chapter: string) => void;
   onClassChange?: () => void;
 }
+
 const TopNavigation = ({
   selectedGrade,
   onClassChange
 }: TopNavigationProps) => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+
   const handleLiveClasses = () => {
     toast({
       title: "Live Classes",
       description: "No live classes scheduled for today. Check back later!"
     });
   };
+
   const handlePracticeTests = () => {
     toast({
       title: "Practice Tests",
       description: "Opening practice test section..."
     });
   };
+
   const handleClassClick = () => {
     if (onClassChange) {
       onClassChange();
     }
   };
+
   const handleTeacherLogin = () => {
     navigate('/teacher-login');
   };
-  return <nav className="bg-[#1A1A1A]/95 backdrop-blur-lg border-b border-[#2C2C2C] p-4 sticky top-0 z-40">
+
+  return (
+    <nav className="bg-[#1A1A1A]/95 backdrop-blur-lg border-b border-[#2C2C2C] p-3 md:p-4 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Logo Section with Book Icon */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            {/* Book Logo Icon */}
-            
-            <div className="text-xl sm:text-2xl font-bold">
+        {/* Logo Section */}
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-1 md:gap-2">
+            <div className="text-lg md:text-xl lg:text-2xl font-bold">
               <span className="text-[#00E676]">Xcel</span>
               <span className="text-white">erator</span>
             </div>
           </div>
-          <button onClick={handleClassClick} className="text-xs text-[#CCCCCC] bg-[#2C2C2C] px-3 py-1.5 rounded-full hover:bg-[#00E676] hover:text-black transition-colors cursor-pointer touch-manipulation">
+          <button 
+            onClick={handleClassClick} 
+            className="text-xs text-[#CCCCCC] bg-[#2C2C2C] px-2 md:px-3 py-1 md:py-1.5 rounded-full hover:bg-[#00E676] hover:text-black transition-colors cursor-pointer touch-manipulation"
+          >
             Class {selectedGrade}
           </button>
         </div>
 
-        {/* Center Navigation - Hidden on mobile */}
-        
+        {/* Mobile Menu Button */}
+        {isMobile && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-white hover:text-[#00E676] hover:bg-[#00E676]/10 md:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
 
-        {/* Right Section */}
-        
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-4">
+          <Button
+            onClick={handleLiveClasses}
+            variant="ghost"
+            size="sm"
+            className="text-white hover:text-[#2979FF] hover:bg-[#2979FF]/10"
+          >
+            <Video className="h-4 w-4 mr-2" />
+            Live Classes
+          </Button>
+          
+          <Button
+            onClick={handlePracticeTests}
+            variant="ghost"
+            size="sm"
+            className="text-white hover:text-[#FFA726] hover:bg-[#FFA726]/10"
+          >
+            <Trophy className="h-4 w-4 mr-2" />
+            Practice Tests
+          </Button>
+
+          <Button
+            onClick={handleTeacherLogin}
+            variant="outline"
+            size="sm"
+            className="border-[#00E676] text-[#00E676] hover:bg-[#00E676] hover:text-black"
+          >
+            <GraduationCap className="h-4 w-4 mr-2" />
+            Teacher Login
+          </Button>
+        </div>
+
+        {/* Mobile Compact Actions */}
+        <div className="flex md:hidden items-center gap-1">
+          <Button
+            onClick={handleTeacherLogin}
+            variant="outline"
+            size="sm"
+            className="border-[#00E676] text-[#00E676] hover:bg-[#00E676] hover:text-black text-xs px-2"
+          >
+            Teacher
+          </Button>
+        </div>
       </div>
-    </nav>;
+    </nav>
+  );
 };
+
 export default TopNavigation;

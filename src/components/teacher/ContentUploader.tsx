@@ -6,10 +6,12 @@ import { toast } from '@/hooks/use-toast';
 import { dataService, StudyMaterial } from '@/services/dataService';
 import { googleDriveService } from '@/services/googleDriveService';
 import { chapterSyncService } from '@/services/chapterSyncService';
+import { subjects } from '@/data/subjects';
 import SecureStudyMaterialForm from './StudyMaterialManager/SecureStudyMaterialForm';
 import ContentList from './ContentUploader/ContentList';
 import StatusCards from './ContentUploader/StatusCards';
 import { Upload, List, Globe, RefreshCw, RefreshCcw } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const ContentUploader = () => {
   const [contentList, setContentList] = useState<(StudyMaterial & { subjects?: any; chapters?: any })[]>([]);
@@ -17,6 +19,7 @@ const ContentUploader = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [subjectsCount, setSubjectsCount] = useState(0);
   const [chaptersCount, setChaptersCount] = useState(0);
+  const isMobile = useIsMobile();
 
   // Mock teacher ID - in real app this would come from auth context
   const teacherId = 'mock-teacher-id';
@@ -78,34 +81,89 @@ const ContentUploader = () => {
   const handleSyncChapters = async () => {
     setIsSyncing(true);
     try {
-      console.log('Starting chapter synchronization...');
+      console.log('Starting chapter synchronization with NCERT curriculum...');
       
-      const result = await chapterSyncService.fullSync();
+      // Sync chapters from the frontend subjects data to ensure correct NCERT chapters
+      const syncResult = await syncNCERTChapters();
       
-      if (result.success) {
+      if (syncResult.success) {
         toast({
-          title: "Sync Complete",
-          description: `Successfully synced ${result.created + result.updated} chapters`,
+          title: "NCERT Sync Complete",
+          description: `Successfully synced ${syncResult.total} NCERT chapters`,
         });
       } else {
         toast({
           title: "Sync Issues",
-          description: `Completed with ${result.errors.length} errors. Check console for details.`,
+          description: `Completed with some errors. Check console for details.`,
           variant: "destructive",
         });
-        console.error('Sync errors:', result.errors);
       }
       
       await loadCounts();
     } catch (error) {
-      console.error('Sync failed:', error);
+      console.error('NCERT Sync failed:', error);
       toast({
         title: "Sync Failed",
-        description: "Failed to sync chapters. Please try again.",
+        description: "Failed to sync NCERT chapters. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const syncNCERTChapters = async () => {
+    try {
+      let totalSynced = 0;
+      
+      // Sync all subjects and chapters from the frontend data
+      for (const [subjectName, subjectData] of Object.entries(subjects)) {
+        for (const [gradeKey, chapters] of Object.entries(subjectData.chapters)) {
+          const grade = parseInt(gradeKey);
+          
+          // Create or get subject
+          const { data: existingSubjects } = await dataService.getSubjects();
+          let subject = existingSubjects?.find(s => s.name === subjectName && s.grade === grade);
+          
+          if (!subject) {
+            const { data: newSubject } = await dataService.createSubject({
+              name: subjectName,
+              grade,
+              description: `${subjectName} curriculum for Class ${grade}`,
+              icon: subjectData.icon,
+              color: subjectData.gradient.split(' ')[1] // Extract color from gradient
+            });
+            subject = newSubject;
+          }
+          
+          if (subject) {
+            // Sync chapters for this subject
+            for (let i = 0; i < chapters.length; i++) {
+              const chapterName = chapters[i];
+              
+              const { data: existingChapters } = await dataService.getChapters();
+              const chapterExists = existingChapters?.find(c => 
+                c.name === chapterName && c.subject_id === subject.id
+              );
+              
+              if (!chapterExists) {
+                await dataService.createChapter({
+                  name: chapterName,
+                  subject_id: subject.id,
+                  order_index: i + 1,
+                  description: `${chapterName} for ${subjectName} Class ${grade}`
+                });
+                totalSynced++;
+              }
+            }
+          }
+        }
+      }
+      
+      return { success: true, total: totalSynced };
+    } catch (error) {
+      console.error('Error syncing NCERT chapters:', error);
+      return { success: false, total: 0 };
     }
   };
 
@@ -228,31 +286,33 @@ const ContentUploader = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] p-3 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-              <Globe className="h-8 w-8 text-[#00E676]" />
-              Content Management System
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 flex items-center gap-2 md:gap-3">
+              <Globe className="h-6 w-6 md:h-8 md:w-8 text-[#00E676]" />
+              <span className={isMobile ? 'text-xl' : ''}>Content Management</span>
             </h1>
-            <p className="text-[#E0E0E0]">
+            <p className="text-[#E0E0E0] text-sm md:text-base">
               Class → Subject → Chapter → Study Material Structure
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
             <Button
               onClick={handleSyncChapters}
               variant="outline"
+              size={isMobile ? "sm" : "default"}
               className="border-[#00E676] text-[#00E676] hover:bg-[#00E676] hover:text-black"
               disabled={isSyncing}
             >
               <RefreshCcw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-              Sync Chapters
+              {isMobile ? 'Sync' : 'Sync NCERT Chapters'}
             </Button>
             <Button
               onClick={loadContent}
               variant="outline"
+              size={isMobile ? "sm" : "default"}
               className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white"
               disabled={isLoading}
             >
@@ -269,29 +329,29 @@ const ContentUploader = () => {
         />
 
         <Tabs defaultValue="upload" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-[#2C2C2C] border-[#424242]">
+          <TabsList className={`grid w-full grid-cols-2 bg-[#2C2C2C] border-[#424242] ${isMobile ? 'h-12' : ''}`}>
             <TabsTrigger 
               value="upload" 
-              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white"
+              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white text-sm md:text-base"
             >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Content
+              <Upload className="h-4 w-4 mr-1 md:mr-2" />
+              <span className={isMobile ? 'text-xs' : ''}>Upload</span>
             </TabsTrigger>
             <TabsTrigger 
               value="content" 
-              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white"
+              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white text-sm md:text-base"
             >
-              <List className="h-4 w-4 mr-2" />
-              My Content ({contentList.length})
+              <List className="h-4 w-4 mr-1 md:mr-2" />
+              <span className={isMobile ? 'text-xs' : ''}>Content ({contentList.length})</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="upload" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
+          <TabsContent value="upload" className="mt-4 md:mt-6">
+            <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'lg:grid-cols-3 gap-6'}`}>
+              <div className={isMobile ? 'col-span-1' : 'lg:col-span-2'}>
                 <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
-                  <CardHeader>
-                    <CardTitle className="text-white">Upload Study Material</CardTitle>
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-white text-lg md:text-xl">Upload Study Material</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <SecureStudyMaterialForm
@@ -301,28 +361,30 @@ const ContentUploader = () => {
                   </CardContent>
                 </Card>
               </div>
-              <div className="lg:col-span-1">
-                <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
-                  <CardHeader>
-                    <CardTitle className="text-white">Recent Uploads</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ContentList
-                      contentList={contentList.slice(0, 5)}
-                      onRefresh={loadContent}
-                      onDelete={handleDeleteContent}
-                      showActions={false}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
+              {!isMobile && (
+                <div className="lg:col-span-1">
+                  <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
+                    <CardHeader>
+                      <CardTitle className="text-white">Recent Uploads</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ContentList
+                        contentList={contentList.slice(0, 5)}
+                        onRefresh={loadContent}
+                        onDelete={handleDeleteContent}
+                        showActions={false}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           </TabsContent>
 
-          <TabsContent value="content" className="mt-6">
+          <TabsContent value="content" className="mt-4 md:mt-6">
             <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
               <CardHeader>
-                <CardTitle className="text-white">All Study Materials</CardTitle>
+                <CardTitle className="text-white text-lg md:text-xl">All Study Materials</CardTitle>
               </CardHeader>
               <CardContent>
                 <ContentList
