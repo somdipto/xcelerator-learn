@@ -2,20 +2,20 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { dataService, StudyMaterial } from '@/services/dataService';
 import { googleDriveService } from '@/services/googleDriveService';
+import { chapterSyncService } from '@/services/chapterSyncService';
 import SecureStudyMaterialForm from './StudyMaterialManager/SecureStudyMaterialForm';
 import ContentList from './ContentUploader/ContentList';
-import BatchUploadManager from './ContentUploader/BatchUploadManager';
-import ContentAnalytics from './ContentUploader/ContentAnalytics';
-import SyncStatusBanner from './ContentUploader/SyncStatusBanner';
 import StatusCards from './ContentUploader/StatusCards';
-import { Upload, BarChart3, List, Globe } from 'lucide-react';
+import { Upload, List, Globe, RefreshCw, Sync } from 'lucide-react';
 
 const ContentUploader = () => {
   const [contentList, setContentList] = useState<(StudyMaterial & { subjects?: any; chapters?: any })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [subjectsCount, setSubjectsCount] = useState(0);
   const [chaptersCount, setChaptersCount] = useState(0);
 
@@ -44,15 +44,12 @@ const ContentUploader = () => {
         return;
       }
 
-      console.log('Raw data from Supabase:', data);
-
       // Cast the type property to the correct union type
       const typedData = (data || []).map(item => ({
         ...item,
         type: item.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz'
       }));
 
-      console.log('Processed content data:', typedData);
       setContentList(typedData);
       
       toast({
@@ -77,6 +74,41 @@ const ContentUploader = () => {
       setChaptersCount(chaptersResult.data?.length || 0);
     } catch (error) {
       console.error('Failed to load counts:', error);
+    }
+  };
+
+  const handleSyncChapters = async () => {
+    setIsSyncing(true);
+    try {
+      console.log('Starting chapter synchronization...');
+      
+      const result = await chapterSyncService.fullSync();
+      
+      if (result.success) {
+        toast({
+          title: "Sync Complete",
+          description: `Successfully synced ${result.created + result.updated} chapters`,
+        });
+      } else {
+        toast({
+          title: "Sync Issues",
+          description: `Completed with ${result.errors.length} errors. Check console for details.`,
+          variant: "destructive",
+        });
+        console.error('Sync errors:', result.errors);
+      }
+      
+      // Reload counts after sync
+      await loadCounts();
+    } catch (error) {
+      console.error('Sync failed:', error);
+      toast({
+        title: "Sync Failed",
+        description: "Failed to sync chapters. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -204,36 +236,41 @@ const ContentUploader = () => {
     }
   };
 
-  const handleBatchUploadComplete = async (result: any) => {
-    console.log('Batch upload completed:', result);
-    
-    // Reload content list after batch upload
-    await loadContent();
-    
-    if (result.success) {
-      toast({
-        title: "Batch Upload Complete",
-        description: `Successfully processed ${result.summary.successful} Google Drive links and saved to database`,
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-3">
-            <Globe className="h-8 w-8 text-[#00E676]" />
-            Universal Content Management
-          </h1>
-          <p className="text-[#E0E0E0]">
-            Upload Google Drive content with universal accessibility across all devices
-          </p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+              <Globe className="h-8 w-8 text-[#00E676]" />
+              Content Management System
+            </h1>
+            <p className="text-[#E0E0E0]">
+              Class → Subject → Chapter → Study Material Structure
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleSyncChapters}
+              variant="outline"
+              className="border-[#00E676] text-[#00E676] hover:bg-[#00E676] hover:text-black"
+              disabled={isSyncing}
+            >
+              <Sync className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+              Sync Chapters
+            </Button>
+            <Button
+              onClick={loadContent}
+              variant="outline"
+              className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white"
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
-
-        {/* Sync Status Banner */}
-        <SyncStatusBanner />
 
         {/* Status Cards */}
         <StatusCards 
@@ -244,90 +281,50 @@ const ContentUploader = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="upload" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-[#2C2C2C] border-[#424242]">
+          <TabsList className="grid w-full grid-cols-2 bg-[#2C2C2C] border-[#424242]">
             <TabsTrigger 
               value="upload" 
               className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white"
             >
               <Upload className="h-4 w-4 mr-2" />
-              Single Upload
-            </TabsTrigger>
-            <TabsTrigger 
-              value="batch" 
-              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Batch Upload
+              Upload Content
             </TabsTrigger>
             <TabsTrigger 
               value="content" 
               className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white"
             >
               <List className="h-4 w-4 mr-2" />
-              My Content
-            </TabsTrigger>
-            <TabsTrigger 
-              value="analytics" 
-              className="data-[state=active]:bg-[#00E676] data-[state=active]:text-black text-white"
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analytics
+              My Content ({contentList.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <SecureStudyMaterialForm
-                  onSubmit={handleFormSubmit}
-                  onCancel={() => {}}
-                />
-              </div>
-              <div className="lg:col-span-1">
-                <ContentList
-                  contentList={contentList.slice(0, 5)} // Show recent uploads
-                  onRefresh={loadContent}
-                  onDelete={handleDeleteContent}
-                />
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="batch" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <BatchUploadManager
-                  teacherId={teacherId}
-                  onUploadComplete={handleBatchUploadComplete}
-                />
+                <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
+                  <CardHeader>
+                    <CardTitle className="text-white">Upload Study Material</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <SecureStudyMaterialForm
+                      onSubmit={handleFormSubmit}
+                      onCancel={() => {}}
+                    />
+                  </CardContent>
+                </Card>
               </div>
               <div className="lg:col-span-1">
                 <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
                   <CardHeader>
-                    <CardTitle className="text-white">Database Storage Benefits</CardTitle>
+                    <CardTitle className="text-white">Recent Uploads</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <Globe className="h-5 w-5 text-[#00E676] mt-0.5" />
-                      <div>
-                        <div className="text-white font-medium">Universal Access</div>
-                        <div className="text-sm text-[#999999]">All links saved to Supabase database for cross-device access</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Upload className="h-5 w-5 text-[#2979FF] mt-0.5" />
-                      <div>
-                        <div className="text-white font-medium">Real-time Sync</div>
-                        <div className="text-sm text-[#999999]">Content instantly available on all devices</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <BarChart3 className="h-5 w-5 text-[#FFA726] mt-0.5" />
-                      <div>
-                        <div className="text-white font-medium">Persistent Storage</div>
-                        <div className="text-sm text-[#999999]">No cache issues - data stored permanently in database</div>
-                      </div>
-                    </div>
+                  <CardContent>
+                    <ContentList
+                      contentList={contentList.slice(0, 5)} // Show recent uploads
+                      onRefresh={loadContent}
+                      onDelete={handleDeleteContent}
+                      showActions={false}
+                    />
                   </CardContent>
                 </Card>
               </div>
@@ -335,15 +332,18 @@ const ContentUploader = () => {
           </TabsContent>
 
           <TabsContent value="content" className="mt-6">
-            <ContentList
-              contentList={contentList}
-              onRefresh={loadContent}
-              onDelete={handleDeleteContent}
-            />
-          </TabsContent>
-
-          <TabsContent value="analytics" className="mt-6">
-            <ContentAnalytics teacherId={teacherId} />
+            <Card className="bg-[#1A1A1A] border-[#2C2C2C]">
+              <CardHeader>
+                <CardTitle className="text-white">All Study Materials</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ContentList
+                  contentList={contentList}
+                  onRefresh={loadContent}
+                  onDelete={handleDeleteContent}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
