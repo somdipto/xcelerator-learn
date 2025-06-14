@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,10 +15,11 @@ const SimplifiedTeacherDashboard = () => {
   const [chapters, setChapters] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   // Mock teacher ID - in real app this would come from auth context
-  const teacherId = 'mock-teacher-id';
+  const teacherId = 'f47ac10b-58cc-4372-a567-0e02b2c3d479'; // Using a valid UUID format
 
   useEffect(() => {
     loadAllData();
@@ -55,15 +55,100 @@ const SimplifiedTeacherDashboard = () => {
     }
   };
 
+  // Helper function to find subject UUID by name and grade
+  const findSubjectId = (subjectName: string, grade: number): string | null => {
+    const subject = subjects.find(s => 
+      s.name.toLowerCase() === subjectName.toLowerCase() && s.grade === grade
+    );
+    return subject?.id || null;
+  };
+
+  // Helper function to find chapter UUID by name and subject
+  const findChapterId = (chapterName: string, subjectId: string): string | null => {
+    const chapter = chapters.find(c => 
+      c.name === chapterName && c.subject_id === subjectId
+    );
+    return chapter?.id || null;
+  };
+
   const handleFormSubmit = async (formData: FormData) => {
+    setUploadError(null);
+    
     try {
       const url = formData.get('url') as string;
       const title = formData.get('title') as string;
       const description = formData.get('description') as string;
       const type = formData.get('type') as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz';
       const grade = parseInt(formData.get('grade') as string);
-      const subjectId = formData.get('subjectId') as string;
-      const chapterId = formData.get('chapterId') as string;
+      const subjectName = formData.get('subject') as string; // Changed from subjectId
+      const chapterName = formData.get('chapter') as string; // Changed from chapterId
+
+      console.log('Form submission data:', {
+        url, title, description, type, grade, subjectName, chapterName
+      });
+
+      // Validate required fields
+      if (!url || !title || !subjectName || !chapterName || !grade) {
+        throw new Error('All required fields must be filled');
+      }
+
+      // Validate URL format for Google Drive
+      if (!dataService.isGoogleDriveUrl(url)) {
+        throw new Error('Please provide a valid Google Drive URL');
+      }
+
+      // Find subject UUID
+      const subjectId = findSubjectId(subjectName, grade);
+      if (!subjectId) {
+        console.log('Creating new subject:', subjectName);
+        const { data: newSubject, error: subjectError } = await dataService.createSubject({
+          name: subjectName,
+          grade: grade,
+          created_by: teacherId,
+        });
+        
+        if (subjectError) {
+          throw new Error(`Failed to create subject: ${subjectError.message}`);
+        }
+        
+        if (!newSubject) {
+          throw new Error('Failed to create subject: No data returned');
+        }
+        
+        // Reload subjects to get the new one
+        const subjectsResult = await dataService.getSubjects();
+        setSubjects(subjectsResult.data || []);
+      }
+
+      // Find chapter UUID (try again after potential subject creation)
+      const finalSubjectId = subjectId || findSubjectId(subjectName, grade);
+      if (!finalSubjectId) {
+        throw new Error('Subject not found after creation attempt');
+      }
+
+      let chapterId = findChapterId(chapterName, finalSubjectId);
+      if (!chapterId) {
+        console.log('Creating new chapter:', chapterName);
+        const { data: newChapter, error: chapterError } = await dataService.createChapter({
+          name: chapterName,
+          subject_id: finalSubjectId,
+          order_index: chapters.filter(c => c.subject_id === finalSubjectId).length + 1,
+        });
+        
+        if (chapterError) {
+          throw new Error(`Failed to create chapter: ${chapterError.message}`);
+        }
+        
+        if (!newChapter) {
+          throw new Error('Failed to create chapter: No data returned');
+        }
+        
+        chapterId = newChapter.id;
+        
+        // Reload chapters to get the new one
+        const chaptersResult = await dataService.getChapters();
+        setChapters(chaptersResult.data || []);
+      }
 
       const materialData = {
         teacher_id: teacherId,
@@ -72,15 +157,18 @@ const SimplifiedTeacherDashboard = () => {
         type,
         url,
         grade,
-        subject_id: subjectId,
+        subject_id: finalSubjectId,
         chapter_id: chapterId,
         is_public: true, // Always public for universal access
       };
 
+      console.log('Final material data for submission:', materialData);
+
       const { data, error } = await dataService.createStudyMaterial(materialData);
 
       if (error) {
-        throw new Error(error.message);
+        console.error('Database error:', error);
+        throw new Error(`Database error: ${error.message}`);
       }
 
       toast({
@@ -92,9 +180,12 @@ const SimplifiedTeacherDashboard = () => {
       await loadAllData(); // Reload all data
     } catch (error: any) {
       console.error('Upload error:', error);
+      const errorMessage = error.message || "Failed to upload study material";
+      setUploadError(errorMessage);
+      
       toast({
         title: "Upload Error",
-        description: error.message || "Failed to upload study material",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -175,6 +266,17 @@ const SimplifiedTeacherDashboard = () => {
             Refresh
           </Button>
         </div>
+
+        {/* Error Display */}
+        {uploadError && (
+          <Card className="bg-red-900/20 border-red-500/50">
+            <CardContent className="p-4">
+              <div className="text-red-400">
+                <strong>Upload Error:</strong> {uploadError}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
