@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import { Upload, List, Globe, RefreshCw, RefreshCcw } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const ContentUploader = () => {
-  const [contentList, setContentList] = useState<(StudyMaterial & { subjects?: any; chapters?: any })[]>([]);
+  const [contentList, setContentList] = useState<StudyMaterial[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [subjectsCount, setSubjectsCount] = useState(0);
@@ -22,7 +23,7 @@ const ContentUploader = () => {
   const isMobile = useIsMobile();
 
   // Mock teacher ID - in real app this would come from auth context
-  const teacherId = 'mock-teacher-id';
+  const teacherId = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
 
   useEffect(() => {
     loadContent();
@@ -48,7 +49,9 @@ const ContentUploader = () => {
 
       const typedData = (data || []).map(item => ({
         ...item,
-        type: item.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz'
+        type: item.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz',
+        created_at: item.created_at || new Date().toISOString(),
+        is_public: item.is_public ?? true
       }));
 
       setContentList(typedData);
@@ -129,6 +132,7 @@ const ContentUploader = () => {
             const { data: newSubject } = await dataService.createSubject({
               name: subjectName,
               grade,
+              created_by: teacherId, // Add the required created_by field
               description: `${subjectName} curriculum for Class ${grade}`,
               icon: subjectData.icon,
               color: subjectData.gradient.split(' ')[1] // Extract color from gradient

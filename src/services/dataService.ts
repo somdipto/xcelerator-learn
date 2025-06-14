@@ -137,6 +137,42 @@ class DataService {
     });
   }
 
+  // Update a subject
+  async updateSubject(id: string, updates: Partial<Subject>): Promise<{ data: Subject | null; error: any }> {
+    return this.handleDatabaseOperation(async () => {
+      if (!this.isValidUUID(id)) {
+        return {
+          data: null,
+          error: { message: 'Invalid subject ID format' }
+        };
+      }
+
+      return await supabase
+        .from('subjects')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+    });
+  }
+
+  // Delete a subject
+  async deleteSubject(id: string): Promise<{ data: any; error: any }> {
+    return this.handleDatabaseOperation(async () => {
+      if (!this.isValidUUID(id)) {
+        return {
+          data: null,
+          error: { message: 'Invalid subject ID format' }
+        };
+      }
+
+      return await supabase
+        .from('subjects')
+        .delete()
+        .eq('id', id);
+    });
+  }
+
   // Get chapters with optional filters
   async getChapters(filters?: { subject_id?: string }): Promise<{ data: Chapter[] | null; error: any }> {
     return this.handleDatabaseOperation(async () => {
@@ -180,6 +216,42 @@ class DataService {
         .insert([chapterData])
         .select()
         .single();
+    });
+  }
+
+  // Update a chapter
+  async updateChapter(id: string, updates: Partial<Chapter>): Promise<{ data: Chapter | null; error: any }> {
+    return this.handleDatabaseOperation(async () => {
+      if (!this.isValidUUID(id)) {
+        return {
+          data: null,
+          error: { message: 'Invalid chapter ID format' }
+        };
+      }
+
+      return await supabase
+        .from('chapters')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+    });
+  }
+
+  // Delete a chapter
+  async deleteChapter(id: string): Promise<{ data: any; error: any }> {
+    return this.handleDatabaseOperation(async () => {
+      if (!this.isValidUUID(id)) {
+        return {
+          data: null,
+          error: { message: 'Invalid chapter ID format' }
+        };
+      }
+
+      return await supabase
+        .from('chapters')
+        .delete()
+        .eq('id', id);
     });
   }
 
@@ -315,6 +387,25 @@ class DataService {
     });
   }
 
+  // Update a study material
+  async updateStudyMaterial(id: string, updates: Partial<StudyMaterial>): Promise<{ data: StudyMaterial | null; error: any }> {
+    return this.handleDatabaseOperation(async () => {
+      if (!this.isValidUUID(id)) {
+        return {
+          data: null,
+          error: { message: 'Invalid material ID format' }
+        };
+      }
+
+      return await supabase
+        .from('study_materials')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+    });
+  }
+
   // Delete a study material
   async deleteStudyMaterial(id: string): Promise<{ data: any; error: any }> {
     return this.handleDatabaseOperation(async () => {
@@ -330,6 +421,65 @@ class DataService {
         .delete()
         .eq('id', id);
     });
+  }
+
+  // File upload methods
+  async uploadFile(file: File, path: string): Promise<{ data: any; error: any }> {
+    return this.handleDatabaseOperation(async () => {
+      return await supabase.storage
+        .from('study-materials')
+        .upload(path, file);
+    });
+  }
+
+  async getFileUrl(path: string): Promise<{ data: { publicUrl: string }; error: any }> {
+    try {
+      const { data } = supabase.storage
+        .from('study-materials')
+        .getPublicUrl(path);
+      
+      return { data, error: null };
+    } catch (error) {
+      return { data: { publicUrl: '' }, error };
+    }
+  }
+
+  // Utility methods
+  convertGoogleDriveUrl(url: string): string {
+    if (!this.isGoogleDriveUrl(url)) return url;
+    
+    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (fileIdMatch) {
+      return `https://drive.google.com/file/d/${fileIdMatch[1]}/view`;
+    }
+    return url;
+  }
+
+  getGoogleDriveEmbedUrl(url: string): string {
+    if (!this.isGoogleDriveUrl(url)) return url;
+    
+    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (fileIdMatch) {
+      return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+    }
+    return url;
+  }
+
+  validateContentData(material: any): boolean {
+    if (!material.title?.trim()) return false;
+    if (!material.type) return false;
+    if (['video', 'quiz'].includes(material.type) && !material.url) return false;
+    return true;
+  }
+
+  validateFileType(fileName: string, allowedTypes: string[]): boolean {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    return allowedTypes.includes(extension || '');
+  }
+
+  validateFileSize(file: File, maxSizeMB: number): boolean {
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    return file.size <= maxSizeBytes;
   }
 }
 
