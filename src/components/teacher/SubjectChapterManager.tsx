@@ -123,10 +123,13 @@ const SubjectChapterManager = () => {
     
     const { data, error } = await supabaseService.getTeacherStudyMaterials(currentUser.id);
     if (!error && data) {
-      // Cast the data to ensure type compatibility
+      // Ensure all required fields are present for StudyMaterialWithRelations
       const typedData: StudyMaterialWithRelations[] = data.map(item => ({
         ...item,
-        type: item.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz'
+        type: item.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz',
+        is_public: item.is_public ?? true, // Ensure is_public is always present
+        created_at: item.created_at || new Date().toISOString(),
+        updated_at: item.updated_at || new Date().toISOString()
       }));
       setStudyMaterials(typedData);
     }

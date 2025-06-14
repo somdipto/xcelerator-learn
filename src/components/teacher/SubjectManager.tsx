@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Plus, Edit, Trash2, BookOpen, Save, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { dataService, Subject } from '@/services/dataService';
+import { useDemoAuth } from '@/components/auth/DemoAuthProvider';
 
 const SubjectManager = () => {
+  const { user } = useDemoAuth();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,13 +59,23 @@ const SubjectManager = () => {
       });
       return;
     }
+
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "User not authenticated",
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
       const subjectData = {
         name: newSubject.name,
         description: newSubject.description,
         grade: newSubject.grade,
-        color: newSubject.color
+        color: newSubject.color,
+        created_by: user.id // Add the required created_by field
       };
       
       const { data, error } = await dataService.createSubject(subjectData);
