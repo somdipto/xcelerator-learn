@@ -52,20 +52,7 @@ const TopNavigation = ({
         </div>
 
         {/* Center Navigation - Hidden on mobile */}
-        <div className="hidden lg:flex items-center gap-4">
-          <Button variant="ghost" onClick={handleLiveClasses} className="text-white hover:text-[#2979FF] hover:bg-[#2979FF]/10 transition-all duration-200 touch-manipulation">
-            <Video className="h-4 w-4 mr-2" />
-            Live Classes
-          </Button>
-          <Button variant="ghost" onClick={handlePracticeTests} className="text-white hover:text-[#2979FF] hover:bg-[#2979FF]/10 transition-all duration-200 touch-manipulation">
-            <Calendar className="h-4 w-4 mr-2" />
-            Practice Tests
-          </Button>
-          <Button variant="ghost" onClick={handleTeacherLogin} className="text-[#00E676] hover:text-white hover:bg-[#00E676]/10 transition-all duration-200 touch-manipulation border border-[#00E676]/30">
-            <GraduationCap className="h-4 w-4 mr-2" />
-            Teacher Portal
-          </Button>
-        </div>
+        
 
         {/* Right Section */}
         
