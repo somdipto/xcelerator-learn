@@ -40,10 +40,6 @@ const TopNavigation = ({
     }
   };
 
-  const handleTeacherLogin = () => {
-    navigate('/teacher-login');
-  };
-
   return (
     <nav className="bg-[#1A1A1A]/95 backdrop-blur-lg border-b border-[#2C2C2C] p-3 md:p-4 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -63,19 +59,8 @@ const TopNavigation = ({
           </button>
         </div>
 
-        {/* Mobile Menu Button */}
-        {isMobile && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-white hover:text-[#00E676] hover:bg-[#00E676]/10 md:hidden"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        )}
-
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="flex items-center gap-4">
           <Button
             onClick={handleLiveClasses}
             variant="ghost"
@@ -83,7 +68,7 @@ const TopNavigation = ({
             className="text-white hover:text-[#2979FF] hover:bg-[#2979FF]/10"
           >
             <Video className="h-4 w-4 mr-2" />
-            Live Classes
+            {!isMobile && "Live Classes"}
           </Button>
           
           <Button
@@ -93,29 +78,7 @@ const TopNavigation = ({
             className="text-white hover:text-[#FFA726] hover:bg-[#FFA726]/10"
           >
             <Trophy className="h-4 w-4 mr-2" />
-            Practice Tests
-          </Button>
-
-          <Button
-            onClick={handleTeacherLogin}
-            variant="outline"
-            size="sm"
-            className="border-[#00E676] text-[#00E676] hover:bg-[#00E676] hover:text-black"
-          >
-            <GraduationCap className="h-4 w-4 mr-2" />
-            Teacher Login
-          </Button>
-        </div>
-
-        {/* Mobile Compact Actions */}
-        <div className="flex md:hidden items-center gap-1">
-          <Button
-            onClick={handleTeacherLogin}
-            variant="outline"
-            size="sm"
-            className="border-[#00E676] text-[#00E676] hover:bg-[#00E676] hover:text-black text-xs px-2"
-          >
-            Teacher
+            {!isMobile && "Practice Tests"}
           </Button>
         </div>
       </div>
