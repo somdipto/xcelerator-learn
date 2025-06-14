@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -57,29 +56,6 @@ const TopNavigation = ({
           >
             Class {selectedGrade}
           </button>
-        </div>
-
-        {/* Desktop Navigation */}
-        <div className="flex items-center gap-4">
-          <Button
-            onClick={handleLiveClasses}
-            variant="ghost"
-            size="sm"
-            className="text-white hover:text-[#2979FF] hover:bg-[#2979FF]/10"
-          >
-            <Video className="h-4 w-4 mr-2" />
-            {!isMobile && "Live Classes"}
-          </Button>
-          
-          <Button
-            onClick={handlePracticeTests}
-            variant="ghost"
-            size="sm"
-            className="text-white hover:text-[#FFA726] hover:bg-[#FFA726]/10"
-          >
-            <Trophy className="h-4 w-4 mr-2" />
-            {!isMobile && "Practice Tests"}
-          </Button>
         </div>
       </div>
     </nav>
