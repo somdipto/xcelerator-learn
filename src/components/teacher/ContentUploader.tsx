@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +9,7 @@ import { chapterSyncService } from '@/services/chapterSyncService';
 import SecureStudyMaterialForm from './StudyMaterialManager/SecureStudyMaterialForm';
 import ContentList from './ContentUploader/ContentList';
 import StatusCards from './ContentUploader/StatusCards';
-import { Upload, List, Globe, RefreshCw, Sync } from 'lucide-react';
+import { Upload, List, Globe, RefreshCw, RefreshCcw } from 'lucide-react';
 
 const ContentUploader = () => {
   const [contentList, setContentList] = useState<(StudyMaterial & { subjects?: any; chapters?: any })[]>([]);
@@ -44,7 +43,6 @@ const ContentUploader = () => {
         return;
       }
 
-      // Cast the type property to the correct union type
       const typedData = (data || []).map(item => ({
         ...item,
         type: item.type as 'textbook' | 'video' | 'summary' | 'ppt' | 'quiz'
@@ -98,7 +96,6 @@ const ContentUploader = () => {
         console.error('Sync errors:', result.errors);
       }
       
-      // Reload counts after sync
       await loadCounts();
     } catch (error) {
       console.error('Sync failed:', error);
@@ -124,11 +121,9 @@ const ContentUploader = () => {
       const subjectId = formData.get('subjectId') as string;
       const chapterId = formData.get('chapterId') as string;
 
-      // Check if it's a Google Drive URL and process it through the enhanced service
       if (url && dataService.isGoogleDriveUrl(url)) {
         console.log('Processing Google Drive URL:', url);
         
-        // Get subject and chapter names for Google Drive service
         let subjectName = 'General';
         let chapterName = 'General';
         
@@ -144,7 +139,6 @@ const ContentUploader = () => {
           chapterName = chapter?.name || 'General';
         }
 
-        // Use Google Drive service for enhanced processing
         const result = await googleDriveService.ingestGoogleDriveLink({
           url,
           title,
@@ -154,7 +148,7 @@ const ContentUploader = () => {
           chapter: chapterName,
           grade,
           teacherId,
-          isPublic: true // Always public for universal access
+          isPublic: true
         });
 
         if (!result.success) {
@@ -168,7 +162,6 @@ const ContentUploader = () => {
           description: "Link processed and saved to database with universal access",
         });
       } else {
-        // Handle non-Google Drive content with standard flow
         const materialData = {
           teacher_id: teacherId,
           title,
@@ -178,7 +171,7 @@ const ContentUploader = () => {
           grade,
           subject_id: subjectId,
           chapter_id: chapterId,
-          is_public: true, // Always public for universal access
+          is_public: true,
         };
 
         console.log('Creating standard material:', materialData);
@@ -197,7 +190,6 @@ const ContentUploader = () => {
         });
       }
 
-      // Reload content to show the new item
       await loadContent();
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -224,7 +216,6 @@ const ContentUploader = () => {
         description: `"${title}" has been removed from database`,
       });
 
-      // Reload content to update the list
       await loadContent();
     } catch (error: any) {
       console.error('Delete error:', error);
@@ -239,7 +230,6 @@ const ContentUploader = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
@@ -257,7 +247,7 @@ const ContentUploader = () => {
               className="border-[#00E676] text-[#00E676] hover:bg-[#00E676] hover:text-black"
               disabled={isSyncing}
             >
-              <Sync className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+              <RefreshCcw className={`h-4 w-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
               Sync Chapters
             </Button>
             <Button
@@ -272,14 +262,12 @@ const ContentUploader = () => {
           </div>
         </div>
 
-        {/* Status Cards */}
         <StatusCards 
           subjectsCount={subjectsCount}
           chaptersCount={chaptersCount}
           contentCount={contentList.length}
         />
 
-        {/* Main Content Tabs */}
         <Tabs defaultValue="upload" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-[#2C2C2C] border-[#424242]">
             <TabsTrigger 
@@ -320,7 +308,7 @@ const ContentUploader = () => {
                   </CardHeader>
                   <CardContent>
                     <ContentList
-                      contentList={contentList.slice(0, 5)} // Show recent uploads
+                      contentList={contentList.slice(0, 5)}
                       onRefresh={loadContent}
                       onDelete={handleDeleteContent}
                       showActions={false}
