@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,6 +81,7 @@ const SubjectChapterManager = () => {
 
   const checkUser = async () => {
     const { user } = await supabaseService.getCurrentUser();
+    console.log('Current user:', user);
     setCurrentUser(user);
   };
 
@@ -103,7 +103,10 @@ const SubjectChapterManager = () => {
   const loadSubjects = async () => {
     const { data, error } = await supabaseService.getSubjects();
     if (!error && data) {
+      console.log('Loaded subjects:', data);
       setSubjects(data);
+    } else {
+      console.error('Error loading subjects:', error);
     }
   };
 
@@ -114,7 +117,10 @@ const SubjectChapterManager = () => {
       .order('order_index');
     
     if (!error && data) {
+      console.log('Loaded chapters:', data);
       setChapters(data);
+    } else {
+      console.error('Error loading chapters:', error);
     }
   };
 
@@ -145,13 +151,45 @@ const SubjectChapterManager = () => {
       return;
     }
 
+    if (!currentUser) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to create chapters",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSyncStatus('syncing');
     try {
-      const { error } = await supabaseService.supabase
-        .from('chapters')
-        .insert([newChapter]);
+      console.log('Creating chapter with data:', newChapter);
+      console.log('Current user:', currentUser);
 
-      if (error) throw error;
+      // Verify the user owns the selected subject before creating chapter
+      const selectedSubjectData = subjects.find(s => s.id === newChapter.subject_id);
+      if (!selectedSubjectData) {
+        throw new Error('Selected subject not found');
+      }
+
+      console.log('Selected subject:', selectedSubjectData);
+
+      // Check if current user created this subject
+      if (selectedSubjectData.created_by !== currentUser.id) {
+        throw new Error('You can only create chapters for subjects you created');
+      }
+
+      const { data, error } = await supabaseService.supabase
+        .from('chapters')
+        .insert([newChapter])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Chapter creation error:', error);
+        throw error;
+      }
+
+      console.log('Chapter created successfully:', data);
 
       await loadChapters();
       setNewChapter({ name: '', description: '', subject_id: '', order_index: 1 });
@@ -161,11 +199,12 @@ const SubjectChapterManager = () => {
         title: "Chapter Created",
         description: `${newChapter.name} has been added and synced to student portal`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating chapter:', error);
+      setSyncStatus('idle');
       toast({
         title: "Error",
-        description: "Failed to create chapter",
+        description: error.message || "Failed to create chapter",
         variant: "destructive"
       });
     }
@@ -195,6 +234,8 @@ const SubjectChapterManager = () => {
         is_public: true
       };
 
+      console.log('Creating study material with data:', materialData);
+
       const { error } = await supabaseService.createStudyMaterial(materialData);
       if (error) throw error;
 
@@ -212,11 +253,12 @@ const SubjectChapterManager = () => {
         title: "Study Material Added",
         description: "Content has been added and synced to student portal",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating study material:', error);
+      setSyncStatus('idle');
       toast({
         title: "Error",
-        description: "Failed to create study material",
+        description: error.message || "Failed to create study material",
         variant: "destructive"
       });
     }
@@ -228,6 +270,11 @@ const SubjectChapterManager = () => {
 
   const filteredMaterials = studyMaterials.filter(material =>
     selectedChapter ? material.chapter_id === selectedChapter : true
+  );
+
+  // Filter subjects to only show those created by current user
+  const userSubjects = subjects.filter(subject => 
+    currentUser ? subject.created_by === currentUser.id : false
   );
 
   const getSyncIndicator = () => {
@@ -261,6 +308,22 @@ const SubjectChapterManager = () => {
     );
   }
 
+  if (!currentUser) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[#E0E0E0] mb-4">Please log in to manage subjects and chapters</p>
+          <Button 
+            onClick={checkUser}
+            className="bg-[#2979FF] hover:bg-[#2979FF]/90 text-white"
+          >
+            Refresh Login Status
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <div className="mb-6">
@@ -283,7 +346,7 @@ const SubjectChapterManager = () => {
                   <SelectValue placeholder="Select a subject" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subjects.map((subject) => (
+                  {userSubjects.map((subject) => (
                     <SelectItem key={subject.id} value={subject.id}>
                       {subject.name} - Grade {subject.grade}
                     </SelectItem>
@@ -341,7 +404,7 @@ const SubjectChapterManager = () => {
                   <SelectValue placeholder="Select subject" />
                 </SelectTrigger>
                 <SelectContent>
-                  {subjects.map((subject) => (
+                  {userSubjects.map((subject) => (
                     <SelectItem key={subject.id} value={subject.id}>
                       {subject.name}
                     </SelectItem>
@@ -374,7 +437,7 @@ const SubjectChapterManager = () => {
           <Button
             onClick={handleCreateChapter}
             className="bg-[#00E676] hover:bg-[#00E676]/90 text-black"
-            disabled={!newChapter.name.trim() || !newChapter.subject_id}
+            disabled={!newChapter.name.trim() || !newChapter.subject_id || !currentUser}
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Chapter
