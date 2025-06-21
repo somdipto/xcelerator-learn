@@ -1,21 +1,30 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
-interface User {
+interface Profile {
   id: string;
   email: string;
-  role: 'admin' | 'teacher';
-  full_name: string;
+  full_name: string | null;
+  role: 'student' | 'teacher' | 'admin';
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: SupabaseUser | null;
+  profile: Profile | null;
+  session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
-  signOut: () => void;
+  signUp: (email: string, password: string, userData?: { full_name?: string; role?: string }) => Promise<{ data: any; error: any }>;
+  signOut: () => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isTeacher: boolean;
+  isStudent: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,67 +37,154 @@ export const useAuth = () => {
   return context;
 };
 
-// Mock admin user for frontend-only demo
-const ADMIN_USER: User = {
-  id: 'admin-1',
-  email: 'admin@test.com',
-  role: 'admin',
-  full_name: 'Admin User'
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Check for existing session in localStorage
-    const savedUser = localStorage.getItem('cms_user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
-        localStorage.removeItem('cms_user');
+  // Fetch user profile
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
       }
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      return null;
     }
-    setLoading(false);
+  };
+
+  useEffect(() => {
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+
+        if (initialSession?.user) {
+          const profileData = await fetchProfile(initialSession.user.id);
+          setProfile(profileData);
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          const profileData = await fetchProfile(session.user.id);
+          setProfile(profileData);
+        } else {
+          setProfile(null);
+        }
+
+        setLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true);
-    
-    // Simple frontend authentication - accept any teacher@test.com or admin@test.com
-    if ((email === 'teacher@test.com' || email === 'admin@test.com') && password === 'teacher123') {
-      const userData = {
-        ...ADMIN_USER,
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        role: email.includes('admin') ? 'admin' as const : 'teacher' as const
-      };
-      
-      setUser(userData);
-      localStorage.setItem('cms_user', JSON.stringify(userData));
-      setLoading(false);
-      
-      return { data: { user: userData }, error: null };
+        password,
+      });
+
+      if (error) {
+        console.error('Sign in error:', error);
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Unexpected error during sign in:', error);
+      return { data: null, error: { message: 'An unexpected error occurred' } };
     }
-    
-    setLoading(false);
-    return { data: null, error: { message: 'Invalid email or password' } };
   };
 
-  const signOut = () => {
-    setUser(null);
-    localStorage.removeItem('cms_user');
+  const signUp = async (email: string, password: string, userData: { full_name?: string; role?: string } = {}) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: userData.full_name || '',
+            role: userData.role || 'student',
+          },
+        },
+      });
+
+      if (error) {
+        console.error('Sign up error:', error);
+        return { data: null, error };
+      }
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Unexpected error during sign up:', error);
+      return { data: null, error: { message: 'An unexpected error occurred' } };
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Sign out error:', error);
+      }
+
+      // Clear local state
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+    } catch (error) {
+      console.error('Unexpected error during sign out:', error);
+      // Force cleanup even if signout fails
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+    }
   };
 
   const value = {
     user,
+    profile,
+    session,
     loading,
     signIn,
+    signUp,
     signOut,
-    isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
-    isTeacher: user?.role === 'teacher' || user?.role === 'admin', // Admin can access teacher features
+    isAuthenticated: !!user && !!profile,
+    isAdmin: profile?.role === 'admin',
+    isTeacher: profile?.role === 'teacher' || profile?.role === 'admin',
+    isStudent: profile?.role === 'student',
   };
 
   return (

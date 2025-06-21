@@ -7,24 +7,24 @@ import { Label } from '@/components/ui/label';
 import { GraduationCap, Eye, EyeOff, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
-import { useSecureAuth } from '@/hooks/useSecureAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 const TeacherLogin = () => {
   const navigate = useNavigate();
-  const { user, signIn, loading: authLoading } = useSecureAuth();
+  const { user, signIn, loading: authLoading, isTeacher, isAdmin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('teacher1'); // Simple username format
-  const [password, setPassword] = useState('teacher1'); // Simple password format
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Redirect if already authenticated
-    if (user) {
+    // Redirect if already authenticated as teacher or admin
+    if (user && (isTeacher || isAdmin)) {
       console.log('User authenticated, redirecting to dashboard');
       navigate('/teacher');
     }
-  }, [user, navigate]);
+  }, [user, isTeacher, isAdmin, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,41 +34,25 @@ const TeacherLogin = () => {
     try {
       console.log('Attempting login for:', email);
       
-      // For demo purposes, accept simple username/password combinations
-      const demoCredentials = [
-        { username: 'teacher1', password: 'teacher1' },
-        { username: 'teacher2', password: 'teacher2' },
-        { username: 'teacher3', password: 'teacher3' },
-        { username: 'admin', password: 'admin' }
-      ];
+      const { data, error: signInError } = await signIn(email, password);
 
-      const credential = demoCredentials.find(
-        cred => cred.username === email && cred.password === password
-      );
-
-      if (credential) {
-        // Create a mock user session for demo purposes
-        localStorage.setItem('demoTeacherUser', JSON.stringify({
-          id: `demo-${credential.username}`,
-          email: `${credential.username}@demo.com`,
-          name: credential.username.charAt(0).toUpperCase() + credential.username.slice(1),
-          role: credential.username === 'admin' ? 'admin' : 'teacher',
-          authenticated: true
-        }));
-
-        toast({
-          title: "Login Successful! 👩‍🏫",
-          description: `Welcome ${credential.username}! Access granted to Teacher CMS Dashboard`,
-        });
-        
-        navigate('/teacher');
-      } else {
-        setError('Invalid username or password');
+      if (signInError) {
+        setError(signInError.message);
         toast({
           title: "Login Failed",
-          description: "Please check your credentials and try again",
+          description: signInError.message,
           variant: "destructive",
         });
+        return;
+      }
+
+      if (data?.user) {
+        toast({
+          title: "Login Successful! 👩‍🏫",
+          description: `Welcome! Access granted to Teacher CMS Dashboard`,
+        });
+        
+        // Navigation will happen automatically via useEffect when user state updates
       }
     } catch (err: any) {
       console.error('Login exception:', err);
@@ -112,10 +96,8 @@ const TeacherLogin = () => {
             Login to access the Content Management System
           </p>
           <div className="text-xs text-[#666666] mt-2 space-y-1">
-            <div>Demo Credentials:</div>
-            <div>teacher1 / teacher1</div>
-            <div>teacher2 / teacher2</div>
-            <div>admin / admin</div>
+            <div>Sign in with your Supabase credentials</div>
+            <div>Or create a new account to get started</div>
           </div>
         </CardHeader>
 
@@ -130,12 +112,12 @@ const TeacherLogin = () => {
 
             <div className="space-y-2">
               <Label htmlFor="email" className="text-[#E0E0E0]">
-                Username
+                Email
               </Label>
               <Input
                 id="email"
-                type="text"
-                placeholder="Enter username (e.g., teacher1)"
+                type="email"
+                placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF]"
@@ -151,7 +133,7 @@ const TeacherLogin = () => {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter password (e.g., teacher1)"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="bg-[#121212] border-[#424242] text-white placeholder:text-[#666666] focus:border-[#2979FF] pr-10"

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Video, Book, GraduationCap, Menu, Trophy } from 'lucide-react';
+import { Calendar, Video, Book, GraduationCap, Menu, Trophy, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -56,6 +56,19 @@ const TopNavigation = ({
           >
             Class {selectedGrade}
           </button>
+        </div>
+
+        {/* Teacher Login Button */}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => navigate('/teacher-login')}
+            variant="outline"
+            size={isMobile ? "sm" : "default"}
+            className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white"
+          >
+            <User className="h-4 w-4 mr-2" />
+            Teacher Login
+          </Button>
         </div>
       </div>
     </nav>

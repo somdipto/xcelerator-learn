@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, List, BarChart3, Book, Plus, RefreshCw, Trophy } from 'lucide-react';
+import { Upload, List, BarChart3, Book, Plus, RefreshCw, LogOut } from 'lucide-react';
 import { dataService } from '@/services/dataService';
 import { toast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import SecureStudyMaterialForm from './StudyMaterialManager/SecureStudyMaterialForm';
 import ContentList from './ContentUploader/ContentList';
 
@@ -17,15 +19,29 @@ const SimplifiedTeacherDashboard = () => {
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const { user, profile, isTeacher, isAdmin, signOut, loading } = useAuth();
+  const navigate = useNavigate();
 
-  // Mock teacher ID - in real app this would come from auth context
-  const teacherId = 'f47ac10b-58cc-4372-a567-0e02b2c3d479'; // Using a valid UUID format
+  // Check authentication
+  useEffect(() => {
+    if (!loading && (!user || !profile || (!isTeacher && !isAdmin))) {
+      console.log('User not authenticated or not a teacher/admin, redirecting to login');
+      navigate('/teacher-login');
+      return;
+    }
+  }, [user, profile, isTeacher, isAdmin, loading, navigate]);
+
+  const teacherId = user?.id;
 
   useEffect(() => {
-    loadAllData();
-  }, []);
+    if (teacherId && (isTeacher || isAdmin)) {
+      loadAllData();
+    }
+  }, [teacherId, isTeacher, isAdmin]);
 
   const loadAllData = async () => {
+    if (!teacherId) return;
+    
     setIsLoading(true);
     try {
       const [materialsResult, subjectsResult, chaptersResult] = await Promise.all([
@@ -246,6 +262,23 @@ const SimplifiedTeacherDashboard = () => {
     }
   ];
 
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2979FF] mx-auto mb-4"></div>
+          <p className="text-white">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated
+  if (!user || !profile || (!isTeacher && !isAdmin)) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#121212] to-[#1A1A1A] p-3 md:p-6">
       <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
@@ -253,18 +286,38 @@ const SimplifiedTeacherDashboard = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Teacher Dashboard</h1>
-            <p className="text-[#E0E0E0] text-sm md:text-base">Manage your study materials with universal access</p>
+            <p className="text-[#E0E0E0] text-sm md:text-base">
+              Welcome {profile?.full_name || profile?.email || 'Teacher'} - Manage your study materials
+            </p>
           </div>
-          <Button
-            onClick={loadAllData}
-            variant="outline"
-            size={isMobile ? "sm" : "default"}
-            className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white self-start md:self-auto"
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex gap-2 self-start md:self-auto">
+            <Button
+              onClick={loadAllData}
+              variant="outline"
+              size={isMobile ? "sm" : "default"}
+              className="border-[#2979FF] text-[#2979FF] hover:bg-[#2979FF] hover:text-white"
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
+                  await signOut();
+                  navigate('/teacher-login');
+                } catch (error) {
+                  console.error('Sign out error:', error);
+                }
+              }}
+              variant="outline"
+              size={isMobile ? "sm" : "default"}
+              className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         {/* Error Display */}
